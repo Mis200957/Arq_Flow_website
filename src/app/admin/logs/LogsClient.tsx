@@ -141,7 +141,7 @@ export default function LogsClient({ logs: initial }: Props) {
                         <td className="text-accent text-sm">{log.businesses?.business_name ?? "—"}</td>
                         <td className="text-muted text-sm whitespace-nowrap">{timeAgo(log.created_at, "en")}</td>
                         <td>
-                          {log.payload && (
+                          {!!log.payload && (
                             <button
                               onClick={() => setExpanded(isExpanded ? null : log.id)}
                               className="btn-ghost !p-1.5 text-muted"
@@ -152,7 +152,7 @@ export default function LogsClient({ logs: initial }: Props) {
                           )}
                         </td>
                       </tr>
-                      {isExpanded && log.payload && (
+                      {isExpanded && !!log.payload && (
                         <tr>
                           <td colSpan={6} className="p-0">
                             <pre className="bg-[rgba(7,15,28,0.6)] p-4 text-xs font-mono text-muted overflow-x-auto max-h-48">
