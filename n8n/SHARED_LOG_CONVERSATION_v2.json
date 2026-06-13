@@ -1,0 +1,138 @@
+{
+  "name": "🔧 SHARED_LOG_CONVERSATION_v2 (Supabase)",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"business_id\": \"uuid-here\", \"order_id\": \"CUST_260606_001\", \"business_name\": \"مطعم السدة\", \"plan_id\": \"business\", \"instance_name\": \"arq-cust-260606-001\"}, \"customer_id\": \"201234567890\", \"customer_name\": \"محمد\", \"customer_phone\": \"201234567890\", \"customer_message\": \"السلام عليكم\", \"ai_response\": \"أهلاً بك يا محمد\", \"intent\": \"general\", \"intent_confidence\": 0.85, \"sentiment_score\": 0, \"sentiment_label\": \"Neutral\", \"escalated\": false, \"response_time_sec\": 2, \"input_tokens\": 1200, \"output_tokens\": 50, \"cost_egp\": 0.18, \"model_used\": \"anthropic/claude-sonnet-4.5\", \"conversation_id\": \"\"}"
+      },
+      "id": "log-trigger-001",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// PREPARE conversation log data\n// ============================================================\nconst input = $input.first().json;\nconst tenant = input.tenant;\nif (!tenant || !tenant.business_id) throw new Error('Missing tenant.business_id');\n\nconst now = new Date();\nconst dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');\nconst convId = input.conversation_id || `CONV_${dateStr}_${Math.floor(Math.random() * 90000) + 10000}`;\n\nreturn {\n  json: {\n    business_id:        tenant.business_id,\n    order_id:           tenant.order_id || '',\n    conversation_id:    convId,\n    customer_id:        input.customer_id || input.customer_phone || 'UNKNOWN',\n    customer_name:      input.customer_name || '',\n    customer_phone:     input.customer_phone || input.customer_id || '',\n    customer_message:   input.customer_message || '',\n    ai_response:        input.ai_response || '',\n    intent:             input.intent || 'general',\n    intent_confidence:  parseFloat(input.intent_confidence || 0),\n    sentiment_score:    parseInt(input.sentiment_score || 0),\n    sentiment_label:    input.sentiment_label || 'Neutral',\n    escalated:          input.escalated === true || input.escalated === 'true',\n    response_time_sec:  parseFloat(input.response_time_sec || 0),\n    input_tokens:       parseInt(input.input_tokens || 0),\n    output_tokens:      parseInt(input.output_tokens || 0),\n    cost_egp:           parseFloat(input.cost_egp || 0),\n    model_used:         input.model_used || 'anthropic/claude-sonnet-4.5',\n    channel:            input.channel || 'whatsapp',\n    created_at:         now.toISOString()\n  }\n};"
+      },
+      "id": "log-prepare-001",
+      "name": "LOG_CONV_PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL || 'https://zjathejcdkpxjyvululp.supabase.co' }}/rest/v1/conversations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "apikey",        "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Prefer",        "value": "resolution=merge-duplicates,return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ id: $json.conversation_id, business_id: $json.business_id, customer_id: $json.customer_id, status: $json.escalated ? 'escalated' : 'open', last_message_at: $json.created_at }) }}",
+        "options": {}
+      },
+      "id": "http-upsert-conversation-001",
+      "name": "UPSERT_CONVERSATION",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, -120]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL || 'https://zjathejcdkpxjyvululp.supabase.co' }}/rest/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "apikey",        "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Prefer",        "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ business_id: $('LOG_CONV_PREPARE').item.json.business_id, conversation_id: $('LOG_CONV_PREPARE').item.json.conversation_id, customer_id: $('LOG_CONV_PREPARE').item.json.customer_id, customer_name: $('LOG_CONV_PREPARE').item.json.customer_name, customer_phone: $('LOG_CONV_PREPARE').item.json.customer_phone, customer_message: $('LOG_CONV_PREPARE').item.json.customer_message, ai_response: $('LOG_CONV_PREPARE').item.json.ai_response, intent: $('LOG_CONV_PREPARE').item.json.intent, intent_confidence: $('LOG_CONV_PREPARE').item.json.intent_confidence, sentiment_score: $('LOG_CONV_PREPARE').item.json.sentiment_score, sentiment_label: $('LOG_CONV_PREPARE').item.json.sentiment_label, escalated: $('LOG_CONV_PREPARE').item.json.escalated, response_time_sec: $('LOG_CONV_PREPARE').item.json.response_time_sec, input_tokens: $('LOG_CONV_PREPARE').item.json.input_tokens, output_tokens: $('LOG_CONV_PREPARE').item.json.output_tokens, cost_egp: $('LOG_CONV_PREPARE').item.json.cost_egp, model_used: $('LOG_CONV_PREPARE').item.json.model_used, channel: $('LOG_CONV_PREPARE').item.json.channel, created_at: $('LOG_CONV_PREPARE').item.json.created_at }) }}",
+        "options": {}
+      },
+      "id": "http-insert-message-001",
+      "name": "INSERT_MESSAGE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 120]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL || 'https://zjathejcdkpxjyvululp.supabase.co' }}/rest/v1/rpc/increment_usage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "apikey",        "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_business_id: $('LOG_CONV_PREPARE').item.json.business_id, p_messages_delta: 1, p_tokens_in_delta: $('LOG_CONV_PREPARE').item.json.input_tokens, p_tokens_out_delta: $('LOG_CONV_PREPARE').item.json.output_tokens, p_cost_egp_delta: $('LOG_CONV_PREPARE').item.json.cost_egp }) }}",
+        "options": {}
+      },
+      "id": "http-increment-usage-001",
+      "name": "INCREMENT_USAGE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $('INSERT_MESSAGE').first().json;\nreturn {\n  json: {\n    success: true,\n    message_id: Array.isArray(msg) ? msg[0]?.id : msg?.id,\n    conversation_id: $('LOG_CONV_PREPARE').first().json.conversation_id,\n    cost_egp: $('LOG_CONV_PREPARE').first().json.cost_egp\n  }\n};"
+      },
+      "id": "log-return-001",
+      "name": "RETURN_SUCCESS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 0]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [[{ "node": "LOG_CONV_PREPARE", "type": "main", "index": 0 }]]
+    },
+    "LOG_CONV_PREPARE": {
+      "main": [
+        [
+          { "node": "UPSERT_CONVERSATION", "type": "main", "index": 0 },
+          { "node": "INSERT_MESSAGE",       "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "UPSERT_CONVERSATION": {
+      "main": [[{ "node": "INCREMENT_USAGE", "type": "main", "index": 0 }]]
+    },
+    "INSERT_MESSAGE": {
+      "main": [[{ "node": "INCREMENT_USAGE", "type": "main", "index": 0 }]]
+    },
+    "INCREMENT_USAGE": {
+      "main": [[{ "node": "RETURN_SUCCESS", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Africa/Cairo"
+  },
+  "staticData": null,
+  "tags": [{ "name": "shared" }, { "name": "v2" }, { "name": "supabase" }],
+  "meta": {
+    "description": "Logs each conversation turn to Supabase messages + conversations tables. Increments usage_counters via increment_usage RPC. Replaces Google Sheets APPEND_CONVERSATION."
+  }
+}
