@@ -387,7 +387,7 @@ export default function DashboardShell({ profile, business, unreadCount: initial
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main className="flex-1 p-4 lg:p-6 overflow-auto">
           {children}
         </main>
       </div>
