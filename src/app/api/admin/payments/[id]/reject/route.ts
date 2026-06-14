@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { rejectPayment } from "@/lib/payments";
 
 /** POST /api/admin/payments/:id/reject  { reason: string } */
 export async function POST(
@@ -17,39 +17,10 @@ export async function POST(
 
   const { reason } = await req.json().catch(() => ({ reason: "" }));
 
-  const admin = createAdminClient();
-  const { data: payment } = await admin
-    .from("payments")
-    .select("id, status, business_id, businesses(order_id, business_name)")
-    .eq("id", id)
-    .single();
-  if (!payment) return NextResponse.json({ error: "Payment not found" }, { status: 404 });
-  if (payment.status !== "pending") {
-    return NextResponse.json({ error: `Payment already ${payment.status}` }, { status: 409 });
+  const result = await rejectPayment(id, user.id, reason || "");
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
-
-  await admin
-    .from("payments")
-    .update({
-      status: "rejected",
-      reviewed_by: user.id,
-      reviewed_at: new Date().toISOString(),
-      rejection_reason: reason || null,
-    })
-    .eq("id", id);
-
-  await admin
-    .from("businesses")
-    .update({ status: "pending_payment", internal_notes: `Payment rejected: ${reason || "no reason given"}` })
-    .eq("id", payment.business_id);
-
-  await admin.from("audit_logs").insert({
-    actor_id: user.id,
-    action: "payment.reject",
-    entity: "payments",
-    entity_id: id,
-    diff: { reason },
-  });
 
   return NextResponse.json({ ok: true });
 }

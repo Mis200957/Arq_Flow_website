@@ -1,0 +1,439 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "VALIDATE_AND_PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VALIDATE_AND_PREPARE": {
+      "main": [
+        [
+          {
+            "node": "APPEND_ORDER_ROW",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "APPEND_ORDER_ROW": {
+      "main": [
+        [
+          {
+            "node": "ENABLE_INVOICE?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ENABLE_INVOICE?": {
+      "main": [
+        [
+          {
+            "node": "APPEND_INVOICE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "UPDATE_CUSTOMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "APPEND_INVOICE": {
+      "main": [
+        [
+          {
+            "node": "UPDATE_CUSTOMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPDATE_CUSTOMER": {
+      "main": [
+        [
+          {
+            "node": "BUILD_CONFIRMATION_MSG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_CONFIRMATION_MSG": {
+      "main": [
+        [
+          {
+            "node": "SEND_CUSTOMER_CONFIRMATION",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "NOTIFY_ADMIN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND_CUSTOMER_CONFIRMATION": {
+      "main": [
+        [
+          {
+            "node": "RETURN_SUCCESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NOTIFY_ADMIN": {
+      "main": [
+        [
+          {
+            "node": "RETURN_SUCCESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-06-08T12:12:57.256Z",
+  "id": "4UJrPVyoLgZ4d28l",
+  "isArchived": false,
+  "meta": null,
+  "name": "🔧 SHARED_SAVE_TRANSACTION",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"sheets_id\": \"1xxx...\", \"business_name\": \"مطعم السدة\", \"currency\": \"EGP\", \"tax_pct\": 14, \"admin_whatsapp\": \"201090220773\", \"instance_name\": \"ConvoX Ai\", \"domain_type\": \"restaurant\", \"enable_invoices\": true, \"enable_pdf_invoices\": false, \"sheet_orders\": \"Orders\", \"sheet_invoices\": \"Invoices\", \"sheet_customers\": \"Customers\"}, \"transaction_type\": \"order\", \"customer\": {\"id\": \"CUST_260606_001\", \"name\": \"أحمد محمد\", \"phone\": \"201234567890\", \"remote_jid\": \"201234567890@s.whatsapp.net\"}, \"items\": [{\"name\": \"كنافة جبنة\", \"qty\": 2, \"unit_price\": 127.19}], \"address_or_location\": \"القاهرة - مدينة نصر\", \"payment_method\": \"cash\", \"delivery_fee\": 25, \"discount_pct\": 0, \"coupon_code\": \"\", \"notes\": \"\"}"
+      },
+      "id": "bc3f5fd6-31d7-41a2-97a5-6be32fabaa2c",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -896,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// VALIDATE & PREPARE TRANSACTION\n// Calculates totals, generates transaction ID, validates payload\n// ============================================================\ntry {\n  const input = $input.first().json;\n\n  // Validate tenant\n  const tenant = input.tenant;\n  if (!tenant || !tenant.sheets_id || !tenant.business_name) {\n    throw new Error('Missing tenant configuration');\n  }\n\n  // Validate customer\n  const customer = input.customer;\n  if (!customer || !customer.id || !customer.phone) {\n    throw new Error('Missing customer data');\n  }\n\n  // Validate items\n  const items = Array.isArray(input.items) ? input.items : [];\n  if (items.length === 0) throw new Error('No items in transaction');\n\n  // Clean and calculate items\n  const cleanItems = items.map(it => {\n    const qty = parseFloat(it.qty ?? it.quantity ?? 1) || 1;\n    const unitPrice = parseFloat(it.unit_price ?? it.price ?? 0) || 0;\n    return {\n      name: String(it.name ?? 'item').trim(),\n      qty: qty,\n      unit_price: unitPrice,\n      line_total: +(qty * unitPrice).toFixed(2),\n      metadata: it.metadata || {}\n    };\n  });\n\n  // Calculate totals\n  const subtotal = +cleanItems.reduce((s, it) => s + it.line_total, 0).toFixed(2);\n  const deliveryFee = parseFloat(input.delivery_fee ?? 0) || 0;\n  const discountPct = parseFloat(input.discount_pct ?? 0) || 0;\n  const discountAmount = +(subtotal * discountPct / 100).toFixed(2);\n  const finalPrice = +(subtotal + deliveryFee - discountAmount).toFixed(2);\n\n  // Tax calculation\n  const taxPct = parseFloat(tenant.tax_pct ?? 0) || 0;\n  const taxAmount = +(finalPrice * taxPct / 100).toFixed(2);\n  const totalWithTax = +(finalPrice + taxAmount).toFixed(2);\n\n  // Generate Transaction ID (internal, not dependent on Apps Script)\n  const now = new Date();\n  const datePart = now.toISOString().slice(0,10).replace(/-/g,'').slice(2);\n  const randPart = Math.floor(Math.random() * 9000) + 1000;\n  const prefixMap = {\n    order: 'ORD',\n    booking: 'BKG',\n    service_request: 'SRV',\n    purchase: 'PUR'\n  };\n  const prefix = prefixMap[input.transaction_type] || 'TXN';\n  const transactionId = `${prefix}_${datePart}_${randPart}`;\n  const invoiceId = tenant.enable_invoices ? `INV_${datePart}_${randPart}` : '';\n\n  const orderDate = now.toISOString().slice(0,19).replace('T', ' ');\n  const totalQty = cleanItems.reduce((s, it) => s + it.qty, 0);\n  const itemsText = cleanItems.map(it =>\n    `${it.name} ×${it.qty} = ${it.line_total} ${tenant.currency}`\n  ).join('\\n');\n\n  return {\n    json: {\n      // Tenant passthrough\n      tenant: tenant,\n\n      // IDs\n      transaction_id: transactionId,\n      invoice_id: invoiceId,\n      transaction_type: input.transaction_type || 'order',\n\n      // Customer\n      customer_id: customer.id,\n      customer_name: customer.name,\n      customer_phone: customer.phone,\n      remote_jid: customer.remote_jid || `${customer.phone}@s.whatsapp.net`,\n\n      // Transaction details\n      address_or_location: input.address_or_location || '',\n      scheduled_at: input.scheduled_at || null,\n      payment_method: input.payment_method || 'cash',\n      notes: input.notes || '',\n      coupon_code: input.coupon_code || '',\n      custom_fields: input.custom_fields || {},\n\n      // Items\n      items: cleanItems,\n      items_count: cleanItems.length,\n      items_text: itemsText,\n      total_qty: totalQty,\n\n      // Money\n      subtotal: subtotal,\n      delivery_fee: deliveryFee,\n      discount_pct: discountPct,\n      discount_amount: discountAmount,\n      final_price: finalPrice,\n      tax_pct: taxPct,\n      tax_amount: taxAmount,\n      total_with_tax: totalWithTax,\n      currency: tenant.currency,\n\n      // Meta\n      order_date: orderDate,\n      created_at: now.toISOString()\n    }\n  };\n} catch (e) {\n  throw new Error('VALIDATE_AND_PREPARE failed: ' + e.message);\n}"
+      },
+      "id": "49385688-3fd6-45ec-b00e-1d5247300d47",
+      "name": "VALIDATE_AND_PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -672,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.tenant.sheets_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $json.tenant.sheet_orders }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Order ID": "={{ $json.transaction_id }}",
+            "Customer ID": "={{ $json.customer_id }}",
+            "Customer Name": "={{ $json.customer_name }}",
+            "Customer Phone": "={{ $json.customer_phone }}",
+            "Transaction Type": "={{ $json.transaction_type }}",
+            "Item": "={{ $json.items_text }}",
+            "Quantity": "={{ $json.total_qty }}",
+            "Subtotal": "={{ $json.subtotal }}",
+            "Delivery Fee": "={{ $json.delivery_fee }}",
+            "Discount %": "={{ $json.discount_pct }}",
+            "Discount Amount": "={{ $json.discount_amount }}",
+            "Tax %": "={{ $json.tax_pct }}",
+            "Tax Amount": "={{ $json.tax_amount }}",
+            "Final Price": "={{ $json.final_price }}",
+            "Total With Tax": "={{ $json.total_with_tax }}",
+            "Currency": "={{ $json.currency }}",
+            "Address/Location": "={{ $json.address_or_location }}",
+            "Scheduled At": "={{ $json.scheduled_at }}",
+            "Payment Method": "={{ $json.payment_method }}",
+            "Coupon Code": "={{ $json.coupon_code }}",
+            "Notes": "={{ $json.notes }}",
+            "Status": "Confirmed",
+            "Order Date": "={{ $json.order_date }}",
+            "Created At": "={{ $json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "id": "8b1e8f73-e41d-4985-b416-659c52a35be5",
+      "name": "APPEND_ORDER_ROW",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -448,
+        96
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Jn4jQ7q52Yubhgwt",
+          "name": "Google Sheets account new Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "38a19493-79f8-406e-91be-93488d572dbb",
+              "leftValue": "={{ $('VALIDATE_AND_PREPARE').item.json.tenant.enable_invoices }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d6d60240-5d17-44b3-bb83-116cf27c1c61",
+      "name": "ENABLE_INVOICE?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('VALIDATE_AND_PREPARE').item.json.tenant.sheets_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('VALIDATE_AND_PREPARE').item.json.tenant.sheet_invoices }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Invoice ID": "={{ $('VALIDATE_AND_PREPARE').item.json.invoice_id }}",
+            "Customer ID": "={{ $('VALIDATE_AND_PREPARE').item.json.customer_id }}",
+            "Customer Name": "={{ $('VALIDATE_AND_PREPARE').item.json.customer_name }}",
+            "Order ID": "={{ $('VALIDATE_AND_PREPARE').item.json.transaction_id }}",
+            "Amount": "={{ $('VALIDATE_AND_PREPARE').item.json.final_price }}",
+            "Tax %": "={{ $('VALIDATE_AND_PREPARE').item.json.tax_pct }}",
+            "Tax Amount": "={{ $('VALIDATE_AND_PREPARE').item.json.tax_amount }}",
+            "Total Amount": "={{ $('VALIDATE_AND_PREPARE').item.json.total_with_tax }}",
+            "Currency": "={{ $('VALIDATE_AND_PREPARE').item.json.currency }}",
+            "Issue Date": "={{ $('VALIDATE_AND_PREPARE').item.json.order_date }}",
+            "Status": "Issued",
+            "Notes": "=فاتورة — {{ $('VALIDATE_AND_PREPARE').item.json.items_count }} صنف"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "id": "da118e38-9e0e-4796-a433-67b881f638b0",
+      "name": "APPEND_INVOICE",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Jn4jQ7q52Yubhgwt",
+          "name": "Google Sheets account new Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('VALIDATE_AND_PREPARE').item.json.tenant.sheets_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('VALIDATE_AND_PREPARE').item.json.tenant.sheet_customers }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Customer ID": "={{ $('VALIDATE_AND_PREPARE').item.json.customer_id }}",
+            "Last Contact Date": "={{ $('VALIDATE_AND_PREPARE').item.json.order_date }}",
+            "Last Order ID": "={{ $('VALIDATE_AND_PREPARE').item.json.transaction_id }}",
+            "Last Order Status": "Confirmed",
+            "Last Order Date": "={{ $('VALIDATE_AND_PREPARE').item.json.order_date }}"
+          },
+          "matchingColumns": [
+            "Customer ID"
+          ],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "id": "43404252-9ac0-4dbe-bfe1-48961a9331d6",
+      "name": "UPDATE_CUSTOMER",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        96
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Jn4jQ7q52Yubhgwt",
+          "name": "Google Sheets account new Email"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// BUILD CONFIRMATION MESSAGES (Customer + Admin)\n// Adapts message style based on transaction_type\n// ============================================================\nconst o = $input.first().json;\n\nconst itemsLines = o.items.map(it =>\n  `• ${it.name} × ${it.qty} = ${it.line_total} ${o.currency}`\n).join('\\n');\n\nconst paymentLabel = {\n  cash: '💵 كاش عند الاستلام',\n  online: '💳 دفع إلكتروني',\n  transfer: '💰 تحويل بنكي',\n  card: '💳 بطاقة ائتمانية',\n  wallet: '📱 محفظة إلكترونية'\n}[o.payment_method] || `💰 ${o.payment_method}`;\n\n// Build customer message based on transaction type\nconst typeLabels = {\n  order: { title: 'تم تأكيد طلبك', emoji: '✅', addr_label: '📍 العنوان', time_label: '🛵 وقت التوصيل المتوقع: 30-60 دقيقة' },\n  booking: { title: 'تم تأكيد حجزك', emoji: '📅', addr_label: '📍 المكان', time_label: o.scheduled_at ? `🕐 الموعد: ${o.scheduled_at}` : '' },\n  service_request: { title: 'تم استلام طلبك', emoji: '🛠️', addr_label: '📍 الموقع', time_label: '⏳ هنتواصل معاك في أقرب وقت' },\n  purchase: { title: 'تم تأكيد شرائك', emoji: '🛒', addr_label: '📍 عنوان الشحن', time_label: '📦 وقت التوصيل: 2-5 أيام عمل' }\n};\nconst labels = typeLabels[o.transaction_type] || typeLabels.order;\n\nlet customerMsg = `${labels.emoji} *${labels.title} بنجاح!*\\n\\n`;\ncustomerMsg += `🧾 رقم العملية: *${o.transaction_id}*\\n`;\ncustomerMsg += `👤 ${o.customer_name}\\n\\n`;\ncustomerMsg += `📋 *التفاصيل:*\\n${itemsLines}\\n\\n`;\ncustomerMsg += `💰 *الحساب:*\\n`;\ncustomerMsg += `- المجموع: ${o.subtotal} ${o.currency}\\n`;\nif (o.delivery_fee > 0) customerMsg += `- التوصيل: ${o.delivery_fee} ${o.currency}\\n`;\nif (o.discount_amount > 0) customerMsg += `- الخصم: -${o.discount_amount} ${o.currency}\\n`;\nif (o.tax_amount > 0) customerMsg += `- الضريبة (${o.tax_pct}%): ${o.tax_amount} ${o.currency}\\n`;\ncustomerMsg += `- *الإجمالي: ${o.total_with_tax || o.final_price} ${o.currency}*\\n\\n`;\nif (o.address_or_location) customerMsg += `${labels.addr_label}: ${o.address_or_location}\\n`;\ncustomerMsg += `${paymentLabel}\\n`;\nif (o.notes) customerMsg += `📝 ملاحظات: ${o.notes}\\n`;\nif (labels.time_label) customerMsg += `\\n${labels.time_label}\\n`;\ncustomerMsg += `\\nنشكر ثقتك في *${o.tenant.business_name}* 🌹`;\n\n// Admin notification\nlet adminMsg = `🆕 *${labels.title} جديد — ${o.transaction_id}*\\n\\n`;\nadminMsg += `👤 ${o.customer_name} | 📱 ${o.customer_phone}\\n`;\nif (o.address_or_location) adminMsg += `${labels.addr_label}: ${o.address_or_location}\\n`;\nadminMsg += `\\n${itemsLines}\\n\\n`;\nadminMsg += `💰 الإجمالي: *${o.total_with_tax || o.final_price} ${o.currency}*\\n`;\nadminMsg += `${paymentLabel}\\n`;\nif (o.notes) adminMsg += `📝 ${o.notes}\\n`;\nadminMsg += `\\n🕐 ${o.order_date}`;\n\nreturn {\n  json: {\n    ...o,\n    customer_msg: customerMsg,\n    admin_msg: adminMsg\n  }\n};"
+      },
+      "id": "1c53ac13-18b0-4213-894e-76e39de2a22d",
+      "name": "BUILD_CONFIRMATION_MSG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $json.tenant.instance_name }}",
+        "remoteJid": "={{ $json.remote_jid }}",
+        "messageText": "={{ $json.customer_msg }}",
+        "options_message": {}
+      },
+      "id": "2bb09ff8-9be3-4f43-8649-8efab6b68918",
+      "name": "SEND_CUSTOMER_CONFIRMATION",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        672,
+        0
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $json.tenant.instance_name }}",
+        "remoteJid": "={{ $json.tenant.admin_whatsapp }}@s.whatsapp.net",
+        "messageText": "={{ $json.admin_msg }}",
+        "options_message": {}
+      },
+      "id": "f19d5d22-e038-4e8f-a08b-7903e9ce9c1f",
+      "name": "NOTIFY_ADMIN",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        672,
+        192
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// RETURN SUCCESS RESPONSE TO CALLING AGENT\n// ============================================================\nconst o = $input.first().json;\n\nreturn {\n  json: {\n    success: true,\n    transaction_id: o.transaction_id,\n    invoice_id: o.invoice_id || '',\n    transaction_type: o.transaction_type,\n    final_price: o.total_with_tax || o.final_price,\n    currency: o.currency,\n    items_count: o.items_count,\n    message: `تم حفظ العملية ${o.transaction_id} بنجاح بإجمالي ${o.total_with_tax || o.final_price} ${o.currency}. تم إبلاغ العميل والإدارة.`\n  }\n};"
+      },
+      "id": "1b625e83-b9ff-4d5a-acad-6d0144599623",
+      "name": "RETURN_SUCCESS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        96
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "shared": [
+    {
+      "updatedAt": "2026-06-08T12:12:57.256Z",
+      "createdAt": "2026-06-08T12:12:57.256Z",
+      "role": "workflow:owner",
+      "workflowId": "4UJrPVyoLgZ4d28l",
+      "projectId": "AMCsil8RzcKs4p4h"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-06-08T12:13:44.114Z",
+  "versionId": "7e23159f-9e17-4a4d-a898-c48ee55d893a"
+}

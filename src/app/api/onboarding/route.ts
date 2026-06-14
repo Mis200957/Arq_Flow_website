@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateOrderId } from "@/lib/utils";
+import { notifyNewPayment } from "@/lib/telegram";
 import type { Json } from "@/lib/database.types";
 
 const productSchema = z.object({
@@ -165,17 +166,21 @@ export async function POST(req: Request) {
 
   // payment record
   const amount = Number(plan.setup_fee_egp) + Number(plan.monthly_fee_egp);
-  const { error: payErr } = await supabase.from("payments").insert({
-    business_id: bid,
-    plan_id: d.plan_id,
-    payment_type: "setup",
-    method: d.payment_method,
-    amount_egp: amount,
-    transaction_ref: d.transaction_ref,
-    screenshot_path: d.screenshot_path,
-    status: "pending",
-  });
-  if (payErr) {
+  const { data: paymentRow, error: payErr } = await supabase
+    .from("payments")
+    .insert({
+      business_id: bid,
+      plan_id: d.plan_id,
+      payment_type: "setup",
+      method: d.payment_method,
+      amount_egp: amount,
+      transaction_ref: d.transaction_ref,
+      screenshot_path: d.screenshot_path,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+  if (payErr || !paymentRow) {
     console.error("payment insert failed", payErr);
     return NextResponse.json({ error: "Could not record payment" }, { status: 500 });
   }
@@ -262,6 +267,33 @@ export async function POST(req: Request) {
     level: "info",
     payload: { order_id, plan: d.plan_id, amount },
   });
+
+  // Telegram: notify admin with screenshot + Approve/Reject buttons.
+  // Best-effort — never block onboarding on a notification failure.
+  try {
+    let screenshotUrl: string | null = null;
+    if (d.screenshot_path) {
+      const { data: signed } = await supabase.storage
+        .from("payment-screenshots")
+        .createSignedUrl(d.screenshot_path, 3600);
+      screenshotUrl = signed?.signedUrl ?? null;
+    }
+    await notifyNewPayment({
+      paymentId: paymentRow.id,
+      orderId: order_id,
+      businessName: d.business_name,
+      businessType: d.business_type,
+      planId: d.plan_id,
+      amountEgp: amount,
+      method: d.payment_method,
+      contactName: d.owner_name,
+      contactPhone: d.contact_phone,
+      transactionRef: d.transaction_ref,
+      screenshotUrl,
+    });
+  } catch (e) {
+    console.error("telegram notify failed", e);
+  }
 
   return NextResponse.json({ ok: true, order_id, business_id: bid });
 }

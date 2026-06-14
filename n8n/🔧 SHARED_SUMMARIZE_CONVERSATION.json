@@ -1,0 +1,307 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "SUMMARIZE_PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SUMMARIZE_PREPARE": {
+      "main": [
+        [
+          {
+            "node": "FETCH_HISTORY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FETCH_HISTORY": {
+      "main": [
+        [
+          {
+            "node": "BUILD_SUMMARY_PROMPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_SUMMARY_PROMPT": {
+      "main": [
+        [
+          {
+            "node": "SUMMARIZE_AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Haiku Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "SUMMARIZE_AI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SUMMARIZE_AI": {
+      "main": [
+        [
+          {
+            "node": "EXTRACT_SUMMARY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EXTRACT_SUMMARY": {
+      "main": [
+        [
+          {
+            "node": "SAVE_SUMMARY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SAVE_SUMMARY": {
+      "main": [
+        [
+          {
+            "node": "RETURN_SUMMARY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-06-08T12:15:58.896Z",
+  "id": "Oc5DlbCEALNsl1dF",
+  "isArchived": false,
+  "meta": null,
+  "name": "🔧 SHARED_SUMMARIZE_CONVERSATION",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"sheets_id\": \"1xxx...\", \"sheet_conv_history\": \"Conversation_History\", \"sheet_customers\": \"Customers\"}, \"customer_id\": \"CUST_260606_001\", \"customer_name\": \"محمد\", \"fetch_limit\": 20}"
+      },
+      "id": "119df3dc-1dd6-4617-adf7-3c6075d8937d",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nif (!input.tenant) throw new Error('Missing tenant');\nif (!input.customer_id) throw new Error('Missing customer_id');\n\nreturn {\n  json: {\n    tenant: input.tenant,\n    customer_id: input.customer_id,\n    customer_name: input.customer_name || '',\n    fetch_limit: input.fetch_limit || 20\n  }\n};"
+      },
+      "id": "33b836cb-3249-4c59-bf68-ff784de54975",
+      "name": "SUMMARIZE_PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.tenant.sheets_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $json.tenant.sheet_conv_history }}",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Customer ID",
+              "lookupValue": "={{ $json.customer_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "800300c6-86f4-42fa-b4da-21821b3538c3",
+      "name": "FETCH_HISTORY",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        0
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Jn4jQ7q52Yubhgwt",
+          "name": "Google Sheets account new Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const messages = $input.all().map(i => i.json);\nconst ctx = $('SUMMARIZE_PREPARE').first().json;\n\nif (messages.length === 0) {\n  return { json: { ...ctx, summary: 'لا توجد محادثات سابقة', no_messages: true } };\n}\n\nconst formatted = messages.slice(-20).map(m => {\n  const time = m['Timestamp'] || '?';\n  const userMsg = (m['Customer Message'] || '').slice(0, 150);\n  const botMsg = (m['AI Response'] || '').slice(0, 150);\n  return `[${time}]\\nالعميل: ${userMsg}\\nالبوت: ${botMsg}`;\n}).join('\\n\\n');\n\nconst promptText = `لخص المحادثة دي في 200 كلمة بحد أقصى. ركز على:\n1. النقاط الأساسية اللي العميل اتكلم فيها\n2. الطلبات أو الشكاوى لو في\n3. حالة العميل العامة (راضي، عصبي، عادي)\n4. أي تفاصيل مهمة (مواعيد، أسعار، عناوين)\n\nاكتب الملخص بالعربي. ابدأ مباشرة بدون مقدمة.\n\nالمحادثة:\n${formatted}`;\n\nreturn {\n  json: {\n    ...ctx,\n    prompt_text: promptText,\n    message_count: messages.length,\n    no_messages: false\n  }\n};"
+      },
+      "id": "5e80bfbf-7840-454c-a17c-1f811288a6d6",
+      "name": "BUILD_SUMMARY_PROMPT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt_text }}",
+        "options": {
+          "systemMessage": "أنت محلل محادثات. مهمتك تلخيص المحادثات بدقة وإيجاز."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        896,
+        0
+      ],
+      "id": "0bfab548-a0d1-44e8-aa77-faadfbffa128",
+      "name": "SUMMARIZE_AI"
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-haiku-4.5",
+        "options": {
+          "maxTokens": 500,
+          "temperature": 0.3
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        896,
+        192
+      ],
+      "id": "24d464a5-61eb-453d-be59-bd9d85ac71db",
+      "name": "Haiku Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "ZUuFFfPUwfHYOctj",
+          "name": "فاروق"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiOutput = $input.first().json;\nconst ctx = $('BUILD_SUMMARY_PROMPT').first().json;\n\nlet summary = '';\nif (typeof aiOutput.output === 'string') summary = aiOutput.output;\nelse if (aiOutput.text) summary = aiOutput.text;\nelse if (aiOutput.choices?.[0]?.message?.content) summary = aiOutput.choices[0].message.content;\n\nsummary = summary.trim().slice(0, 1500);\n\nreturn {\n  json: {\n    tenant: ctx.tenant,\n    customer_id: ctx.customer_id,\n    summary: summary,\n    summarized_at: new Date().toISOString().slice(0,19).replace('T', ' '),\n    message_count: ctx.message_count\n  }\n};"
+      },
+      "id": "b1c327e9-e13e-4dee-b9fa-c9545ea8aaa6",
+      "name": "EXTRACT_SUMMARY",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.tenant.sheets_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $json.tenant.sheet_customers }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Customer ID": "={{ $json.customer_id }}",
+            "Conversation Summary": "={{ $json.summary }}",
+            "Summary Updated At": "={{ $json.summarized_at }}"
+          },
+          "matchingColumns": [
+            "Customer ID"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "9ea37792-aa9d-4eb0-9773-8b60ad5cdb5c",
+      "name": "SAVE_SUMMARY",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1488,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Jn4jQ7q52Yubhgwt",
+          "name": "Google Sheets account new Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { success: true, summary: $('EXTRACT_SUMMARY').first().json.summary, message_count: $('EXTRACT_SUMMARY').first().json.message_count } };"
+      },
+      "id": "807ba297-2e14-4846-9ef9-055235ff0498",
+      "name": "RETURN_SUMMARY",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "shared": [
+    {
+      "updatedAt": "2026-06-08T12:15:58.896Z",
+      "createdAt": "2026-06-08T12:15:58.896Z",
+      "role": "workflow:owner",
+      "workflowId": "Oc5DlbCEALNsl1dF",
+      "projectId": "AMCsil8RzcKs4p4h"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-06-08T12:16:07.939Z",
+  "versionId": "33e39cf8-90a7-4d94-8c32-56fb1fc7a321"
+}

@@ -1,0 +1,106 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "SEND_PRESENCE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND_PRESENCE": {
+      "main": [
+        [
+          {
+            "node": "RETURN_SUCCESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-06-08T12:14:59.839Z",
+  "id": "mJAK1gvtrbryJsUB",
+  "isArchived": false,
+  "meta": null,
+  "name": "🔧 SHARED_SEND_PRESENCE",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"instance_name\": \"ConvoX Ai\", \"remote_jid\": \"201234567890@s.whatsapp.net\", \"delay_ms\": 3000}"
+      },
+      "id": "3fca146d-0b85-4ecc-baf1-7d6ae8af11fc",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat-api",
+        "operation": "send-presence",
+        "instanceName": "={{ $json.instance_name }}",
+        "remoteJid": "={{ $json.remote_jid }}",
+        "delay": "={{ $json.delay_ms || 3000 }}"
+      },
+      "id": "354d44be-ab7d-4a54-a5c4-5f62e6b8c2aa",
+      "name": "SEND_PRESENCE",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { success: true, message: 'Presence sent' } };"
+      },
+      "id": "4dfb9098-dd34-4fd7-ae6b-e099d16f6208",
+      "name": "RETURN_SUCCESS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "shared": [
+    {
+      "updatedAt": "2026-06-08T12:14:59.839Z",
+      "createdAt": "2026-06-08T12:14:59.839Z",
+      "role": "workflow:owner",
+      "workflowId": "mJAK1gvtrbryJsUB",
+      "projectId": "AMCsil8RzcKs4p4h"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-06-08T12:14:59.839Z",
+  "versionId": "b01d325f-4992-4ced-9673-a67f1c568df6"
+}

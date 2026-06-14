@@ -35,7 +35,7 @@ export async function GET(
   }
 
   const { data: signedData, error } = await db.storage
-    .from("payments")
+    .from("payment-screenshots")
     .createSignedUrl(payment.screenshot_path, 3600);
 
   if (error || !signedData) {

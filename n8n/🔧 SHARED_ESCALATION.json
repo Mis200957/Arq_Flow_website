@@ -1,0 +1,196 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "ESCALATION_PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ESCALATION_PREPARE": {
+      "main": [
+        [
+          {
+            "node": "ALERT_ADMIN_WHATSAPP",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "LOG_ESCALATION",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ALERT_ADMIN_WHATSAPP": {
+      "main": [
+        [
+          {
+            "node": "RETURN_SUCCESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LOG_ESCALATION": {
+      "main": [
+        [
+          {
+            "node": "RETURN_SUCCESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-06-08T12:14:25.616Z",
+  "id": "oubJjWLRvTglbmdy",
+  "isArchived": false,
+  "meta": null,
+  "name": "🔧 SHARED_ESCALATION",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"sheets_id\": \"1xxx...\", \"business_name\": \"مطعم السدة\", \"instance_name\": \"ConvoX Ai\", \"admin_whatsapp\": \"201090220773\", \"sheet_escalation_log\": \"Escalation_Log\", \"telegram_chat_id\": \"\"}, \"customer\": {\"id\": \"CUST_001\", \"name\": \"محمد\", \"phone\": \"201234567890\"}, \"reason\": \"complaint\", \"customer_message\": \"الأكل كان بارد\", \"context_summary\": \"العميل طلب 3 مرات قبل كده، الـ Sentiment Score = -2\"}"
+      },
+      "id": "5ef73b46-bdc7-4a41-84a1-7b324f6733d8",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -448,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst tenant = input.tenant;\n\nif (!tenant || !tenant.admin_whatsapp) throw new Error('Missing tenant.admin_whatsapp');\n\nconst reason = input.reason || 'customer_request';\nconst customerMsg = input.customer_message || '';\nconst contextSummary = input.context_summary || '';\n\nconst reasonLabels = {\n  customer_request: 'طلب العميل التحدث مع موظف',\n  complaint: 'شكوى من العميل',\n  out_of_scope: 'استفسار خارج نطاق البوت',\n  negative_sentiment: 'حالة عاطفية سلبية',\n  technical_issue: 'مشكلة تقنية',\n  vip_priority: 'عميل VIP'\n};\n\nconst reasonText = reasonLabels[reason] || reason;\nconst escalationId = `ESC_${new Date().toISOString().slice(0,10).replace(/-/g,'')}_${Math.floor(Math.random() * 9000) + 1000}`;\n\nconst adminAlert = `🚨 *تنبيه تصعيد — ${tenant.business_name}*\n\n🆔 رقم التصعيد: ${escalationId}\n👤 العميل: ${input.customer?.name || 'غير محدد'}\n📞 الرقم: ${input.customer?.phone || 'غير محدد'}\n\n💬 آخر رسالة:\n${customerMsg.slice(0, 200)}\n\n📌 السبب: ${reasonText}\n\n${contextSummary ? '📋 سياق:\\n' + contextSummary : ''}\n\n🕐 ${new Date().toISOString().slice(0,19).replace('T', ' ')}\n\n⚠️ تواصل مع العميل في أسرع وقت.`;\n\nconst customerReply = `لحظة من فضلك يا فندم 🙏\\nهحوّلك دلوقتي لزميل من فريق *${tenant.business_name}* يساعدك بشكل أفضل.\\nهيتواصل معاك في أقرب وقت ✨`;\n\nreturn {\n  json: {\n    tenant: tenant,\n    escalation_id: escalationId,\n    customer: input.customer || {},\n    reason: reason,\n    reason_text: reasonText,\n    customer_message: customerMsg,\n    context_summary: contextSummary,\n    admin_alert: adminAlert,\n    customer_reply: customerReply,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "bdcc4896-88b8-4155-a129-48dcc68dc7c9",
+      "name": "ESCALATION_PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $json.tenant.instance_name }}",
+        "remoteJid": "={{ $json.tenant.admin_whatsapp }}@s.whatsapp.net",
+        "messageText": "={{ $json.admin_alert }}",
+        "options_message": {}
+      },
+      "id": "fc10b287-d9cc-4c61-97b0-3ad0f2ccc491",
+      "name": "ALERT_ADMIN_WHATSAPP",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('ESCALATION_PREPARE').item.json.tenant.sheets_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('ESCALATION_PREPARE').item.json.tenant.sheet_escalation_log }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Escalation ID": "={{ $('ESCALATION_PREPARE').item.json.escalation_id }}",
+            "Customer ID": "={{ $('ESCALATION_PREPARE').item.json.customer.id }}",
+            "Customer Name": "={{ $('ESCALATION_PREPARE').item.json.customer.name }}",
+            "Customer Phone": "={{ $('ESCALATION_PREPARE').item.json.customer.phone }}",
+            "Timestamp": "={{ $('ESCALATION_PREPARE').item.json.timestamp }}",
+            "Reason": "={{ $('ESCALATION_PREPARE').item.json.reason_text }}",
+            "Customer Message": "={{ $('ESCALATION_PREPARE').item.json.customer_message }}",
+            "Context Summary": "={{ $('ESCALATION_PREPARE').item.json.context_summary }}",
+            "Admin Notified": "TRUE",
+            "Resolved": "FALSE"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {
+          "cellFormat": "USER_ENTERED"
+        }
+      },
+      "id": "c53942c4-8523-4287-9e48-90a49cc4354d",
+      "name": "LOG_ESCALATION",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        192
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Jn4jQ7q52Yubhgwt",
+          "name": "Google Sheets account new Email"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn {\n  json: {\n    success: true,\n    escalation_id: input.escalation_id,\n    message: input.customer_reply\n  }\n};"
+      },
+      "id": "ed3bc5fc-53b9-4b41-a048-f096c57fd69e",
+      "name": "RETURN_SUCCESS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        96
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "shared": [
+    {
+      "updatedAt": "2026-06-08T12:14:25.616Z",
+      "createdAt": "2026-06-08T12:14:25.616Z",
+      "role": "workflow:owner",
+      "workflowId": "oubJjWLRvTglbmdy",
+      "projectId": "AMCsil8RzcKs4p4h"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-06-08T12:14:25.616Z",
+  "versionId": "40261547-0ad6-4508-8896-a73f56aebd3c"
+}

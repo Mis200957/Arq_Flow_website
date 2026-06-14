@@ -1,0 +1,197 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "SEND_LINK_PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND_LINK_PREPARE": {
+      "main": [
+        [
+          {
+            "node": "FETCH_LINKS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FETCH_LINKS": {
+      "main": [
+        [
+          {
+            "node": "BUILD_LINK_MESSAGE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_LINK_MESSAGE": {
+      "main": [
+        [
+          {
+            "node": "SEND_LINK_TO_CUSTOMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND_LINK_TO_CUSTOMER": {
+      "main": [
+        [
+          {
+            "node": "RETURN_SUCCESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-06-08T12:14:00.365Z",
+  "id": "jExb5PYrZyTJxKKd",
+  "isArchived": false,
+  "meta": null,
+  "name": "🔧 SHARED_SEND_LINK",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"sheets_id\": \"1xxx...\", \"business_name\": \"مطعم السدة\", \"instance_name\": \"ConvoX Ai\", \"sheet_links\": \"Links\"}, \"customer_jid\": \"201234567890@s.whatsapp.net\", \"link_type\": \"menu\", \"link_name\": \"Menu_Link\", \"custom_message\": null}"
+      },
+      "id": "92d6e2c4-c699-4ef5-b773-ec6686801a6b",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build link message based on link_type and tenant\nconst input = $input.first().json;\nconst tenant = input.tenant;\n\nif (!tenant || !tenant.sheets_id) throw new Error('Missing tenant');\nif (!input.customer_jid) throw new Error('Missing customer_jid');\n\nconst linkType = input.link_type || 'menu';\n\n// Default messages per link type\nconst defaultMessages = {\n  menu: `🍽️ *تفضل المنيو يا فندم*\\n\\n{{LINK}}\\n\\nأي صنف يعجبك أنا هنا 🌹`,\n  catalog: `📦 *تفضل الكتالوج*\\n\\n{{LINK}}\\n\\nأي منتج تحب تعرف عنه أكثر؟ ✨`,\n  booking: `📅 *احجز موعدك الآن*\\n\\n{{LINK}}\\n\\nلو احتجت مساعدة في الحجز قولي 😊`,\n  payment: `💳 *رابط الدفع*\\n\\n{{LINK}}\\n\\nبعد الدفع، أبعتلي صورة التأكيد علشان نأكد الطلب 🌹`,\n  other: `🔗 {{LINK}}`\n};\n\nconst messageTemplate = input.custom_message || defaultMessages[linkType] || defaultMessages.other;\n\nreturn {\n  json: {\n    tenant: tenant,\n    customer_jid: input.customer_jid,\n    link_type: linkType,\n    link_name_in_sheet: input.link_name || (linkType.charAt(0).toUpperCase() + linkType.slice(1) + '_Link'),\n    message_template: messageTemplate\n  }\n};"
+      },
+      "id": "bd6bca76-c2bf-42ae-881c-333cbe6bca75",
+      "name": "SEND_LINK_PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.tenant.sheets_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $json.tenant.sheet_links }}",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": []
+        },
+        "options": {}
+      },
+      "id": "e4437e5a-2c1a-40fa-8aab-7e5c704e5dcb",
+      "name": "FETCH_LINKS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Jn4jQ7q52Yubhgwt",
+          "name": "Google Sheets account new Email"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fetch link URL from sheet and build final message\nconst input = $('SEND_LINK_PREPARE').first().json;\nconst sheetData = $input.all().map(i => i.json);\n\nconst targetLinkName = input.link_name_in_sheet;\nconst matched = sheetData.find(row => \n  String(row['Link Name'] || '').trim().toLowerCase() === targetLinkName.toLowerCase()\n);\n\nif (!matched || !matched['Link URL']) {\n  // Fallback if link not found\n  return {\n    json: {\n      ...input,\n      final_message: `عذراً، الرابط غير متوفر حالياً. تواصل معنا مباشرة 🙏`,\n      link_found: false\n    }\n  };\n}\n\nconst finalMessage = input.message_template.replace('{{LINK}}', matched['Link URL']);\n\nreturn {\n  json: {\n    ...input,\n    link_url: matched['Link URL'],\n    final_message: finalMessage,\n    link_found: true\n  }\n};"
+      },
+      "id": "0933e168-96ac-48c3-ae83-7b55b92d1dd3",
+      "name": "BUILD_LINK_MESSAGE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $json.tenant.instance_name }}",
+        "remoteJid": "={{ $json.customer_jid }}",
+        "messageText": "={{ $json.final_message }}",
+        "options_message": {}
+      },
+      "id": "fa4a4207-15bd-4309-b902-10e67e7b276d",
+      "name": "SEND_LINK_TO_CUSTOMER",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        896,
+        0
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nreturn {\n  json: {\n    success: input.link_found,\n    link_type: input.link_type,\n    message: input.link_found ? 'تم إرسال الرابط للعميل' : 'الرابط غير موجود في قاعدة البيانات'\n  }\n};"
+      },
+      "id": "14217928-9abe-49cf-bfd0-9cd5b4ce36d8",
+      "name": "RETURN_SUCCESS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "shared": [
+    {
+      "updatedAt": "2026-06-08T12:14:00.365Z",
+      "createdAt": "2026-06-08T12:14:00.365Z",
+      "role": "workflow:owner",
+      "workflowId": "jExb5PYrZyTJxKKd",
+      "projectId": "AMCsil8RzcKs4p4h"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-06-08T12:14:08.680Z",
+  "versionId": "1d935025-7753-4561-b668-77049e87a528"
+}
