@@ -6,8 +6,7 @@
   --color-brand-teal: #2a6072;
   --color-brand-sky: #6ba0ac;
   --color-brand-cream: #eeedd2;
-  --font-sans: "IBM Plex Sans Arabic", "IBM Plex Sans", system-ui, sans-serif;
-  --font-display: "Marhey", "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --font-sans: "Cairo", "Inter", system-ui, sans-serif;
 }
 
 /* ===== Dark-first design tokens ===== */
@@ -41,13 +40,8 @@ body {
   font-feature-settings: "ss01", "cv01";
 }
 
-[dir="rtl"] body { font-family: "IBM Plex Sans Arabic", "IBM Plex Sans", system-ui, sans-serif; }
-[dir="ltr"] body { font-family: "IBM Plex Sans", "IBM Plex Sans Arabic", system-ui, sans-serif; }
-
-/* Display font (Marhey) for headings — works for both Arabic & Latin */
-h1, h2, h3, .font-display {
-  font-family: var(--font-display);
-}
+[dir="rtl"] body { font-family: "Cairo", "Tajawal", system-ui, sans-serif; }
+[dir="ltr"] body { font-family: "Inter", "Cairo", system-ui, sans-serif; }
 
 ::selection { background: rgba(107, 160, 172, 0.4); }
 
