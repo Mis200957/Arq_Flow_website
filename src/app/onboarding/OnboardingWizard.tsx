@@ -70,16 +70,27 @@ export function OnboardingHeader() {
    ============================================================ */
 type L = { ar: string; en: string };
 
+// Business types drive the entire module-based platform (see src/lib/modules).
+// Each value maps to an industry template that configures dashboard modules,
+// the AI prompt, and the knowledge-base structure. Existing values are kept for
+// backward compatibility; "other" intentionally has no template and falls back
+// to the full default dashboard.
 const BUSINESS_TYPES: { value: string; label: L }[] = [
   { value: "restaurant", label: { ar: "مطعم", en: "Restaurant" } },
-  { value: "clinic", label: { ar: "عيادة", en: "Clinic" } },
-  { value: "store", label: { ar: "محل تجاري", en: "Store" } },
   { value: "ecommerce", label: { ar: "متجر إلكتروني", en: "E-commerce" } },
-  { value: "real_estate", label: { ar: "عقارات", en: "Real Estate" } },
-  { value: "gym", label: { ar: "جيم / نادي رياضي", en: "Gym" } },
+  { value: "store", label: { ar: "محل تجاري", en: "Store" } },
+  { value: "clinic", label: { ar: "عيادة", en: "Clinic" } },
   { value: "medical_center", label: { ar: "مركز طبي", en: "Medical Center" } },
+  { value: "pharmacy", label: { ar: "صيدلية", en: "Pharmacy" } },
   { value: "hotel", label: { ar: "فندق", en: "Hotel" } },
-  { value: "company", label: { ar: "شركة", en: "Company" } },
+  { value: "gym", label: { ar: "جيم / نادي رياضي", en: "Gym" } },
+  { value: "salon", label: { ar: "صالون / مركز تجميل", en: "Salon" } },
+  { value: "real_estate", label: { ar: "عقارات", en: "Real Estate" } },
+  { value: "educational_center", label: { ar: "مركز تعليمي", en: "Educational Center" } },
+  { value: "lawyer", label: { ar: "مكتب محاماة", en: "Lawyer Office" } },
+  { value: "car_service", label: { ar: "خدمة سيارات", en: "Car Service" } },
+  { value: "service_company", label: { ar: "شركة خدمات", en: "Service Company" } },
+  { value: "company", label: { ar: "شركة / نشاط عام", en: "Company" } },
   { value: "other", label: { ar: "أخرى", en: "Other" } },
 ];
 

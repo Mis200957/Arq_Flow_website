@@ -6,14 +6,15 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
 import {
-  MessageSquare, ShoppingCart, Users, AlertTriangle,
-  BookOpen, Package, ArrowRight,
+  MessageSquare, ShoppingCart, Users, AlertTriangle, ArrowRight,
 } from "lucide-react";
 import { StatCard, Badge } from "@/components/ui";
 import { useT, useLang } from "@/lib/i18n";
 import { cn, formatEGP, timeAgo, STATUS_BADGE } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/database.types";
+import { resolveModules } from "@/lib/modules";
+import { getIcon } from "@/lib/modules/icons";
 
 type UsageCounter = Tables<"usage_counters">;
 type Business = Tables<"businesses">;
@@ -91,6 +92,16 @@ export default function OverviewClient({
   const [usage, setUsage] = useState(initialUsage);
   const supabase = useMemo(() => createClient(), []);
 
+  // Industry-aware overview: quick actions + which panels to show
+  // are driven by the business type. Legacy/unknown types keep the
+  // current behaviour (orders shown, commerce quick actions).
+  const { quickActions, nav } = useMemo(
+    () => resolveModules(business.business_type),
+    [business.business_type]
+  );
+  const availableQuickActions = quickActions.filter((m) => m.available);
+  const showOrders = nav.some((m) => m.key === "orders" && m.available);
+
   useEffect(() => {
     const channel = supabase
       .channel("usage:" + business.id)
@@ -140,11 +151,13 @@ export default function OverviewClient({
           }
           icon={<MessageSquare className="w-5 h-5" />}
         />
-        <StatCard
-          label={t.ordersToday}
-          value={ordersToday}
-          icon={<ShoppingCart className="w-5 h-5" />}
-        />
+        {showOrders && (
+          <StatCard
+            label={t.ordersToday}
+            value={ordersToday}
+            icon={<ShoppingCart className="w-5 h-5" />}
+          />
+        )}
         <StatCard
           label={t.customers}
           value={totalCustomers.toLocaleString()}
@@ -183,31 +196,27 @@ export default function OverviewClient({
           </ResponsiveContainer>
         </div>
 
-        {/* Quick actions */}
+        {/* Quick actions — industry-aware */}
         <div className="card p-5">
           <h3 className="font-bold mb-4">{t.quickActions}</h3>
           <div className="space-y-2">
-            <Link href="/dashboard/knowledge-base" className="flex items-center gap-3 p-3 rounded-xl hover:bg-[rgba(238,237,210,0.06)] transition-colors group">
-              <div className="w-8 h-8 rounded-lg bg-[rgba(107,160,172,0.12)] flex items-center justify-center">
-                <BookOpen className="w-4 h-4 text-accent" />
-              </div>
-              <span className="text-sm font-medium flex-1">{t.addFaq}</span>
-              <ArrowRight className={cn("w-4 h-4 text-muted group-hover:text-accent transition-colors", lang === "ar" ? "rotate-180" : "")} />
-            </Link>
-            <Link href="/dashboard/products" className="flex items-center gap-3 p-3 rounded-xl hover:bg-[rgba(238,237,210,0.06)] transition-colors group">
-              <div className="w-8 h-8 rounded-lg bg-[rgba(107,160,172,0.12)] flex items-center justify-center">
-                <Package className="w-4 h-4 text-accent" />
-              </div>
-              <span className="text-sm font-medium flex-1">{t.addProduct}</span>
-              <ArrowRight className={cn("w-4 h-4 text-muted group-hover:text-accent transition-colors", lang === "ar" ? "rotate-180" : "")} />
-            </Link>
-            <Link href="/dashboard/conversations" className="flex items-center gap-3 p-3 rounded-xl hover:bg-[rgba(238,237,210,0.06)] transition-colors group">
-              <div className="w-8 h-8 rounded-lg bg-[rgba(107,160,172,0.12)] flex items-center justify-center">
-                <MessageSquare className="w-4 h-4 text-accent" />
-              </div>
-              <span className="text-sm font-medium flex-1">{t.viewConvs}</span>
-              <ArrowRight className={cn("w-4 h-4 text-muted group-hover:text-accent transition-colors", lang === "ar" ? "rotate-180" : "")} />
-            </Link>
+            {availableQuickActions.map((mod) => {
+              const Icon = getIcon(mod.icon);
+              const label = lang === "ar" ? mod.label.ar : mod.label.en;
+              return (
+                <Link
+                  key={mod.key}
+                  href={mod.href}
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-[rgba(238,237,210,0.06)] transition-colors group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-[rgba(107,160,172,0.12)] flex items-center justify-center">
+                    <Icon className="w-4 h-4 text-accent" />
+                  </div>
+                  <span className="text-sm font-medium flex-1">{label}</span>
+                  <ArrowRight className={cn("w-4 h-4 text-muted group-hover:text-accent transition-colors", lang === "ar" ? "rotate-180" : "")} />
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -215,7 +224,7 @@ export default function OverviewClient({
       {/* Recent rows */}
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Recent messages */}
-        <div className="card p-5">
+        <div className={cn("card p-5", !showOrders && "lg:col-span-2")}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold">{t.recentConvs}</h3>
             <Link href="/dashboard/conversations" className="text-xs text-accent hover:underline">{t.viewAll}</Link>
@@ -240,28 +249,30 @@ export default function OverviewClient({
           )}
         </div>
 
-        {/* Recent orders */}
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold">{t.recentOrders}</h3>
-            <Link href="/dashboard/orders" className="text-xs text-accent hover:underline">{t.viewAll}</Link>
-          </div>
-          {recentOrders.length === 0 ? (
-            <p className="text-muted text-sm">{t.noOrders}</p>
-          ) : (
-            <div className="space-y-3">
-              {recentOrders.map((o) => (
-                <div key={o.id} className="flex items-center gap-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{o.order_number}</p>
-                    <p className="text-xs text-muted">{formatEGP(o.total_egp, lang)}</p>
-                  </div>
-                  <Badge variant={STATUS_BADGE[o.status] ?? "neutral"}>{o.status}</Badge>
-                </div>
-              ))}
+        {/* Recent orders — only for industries that use the Orders module */}
+        {showOrders && (
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold">{t.recentOrders}</h3>
+              <Link href="/dashboard/orders" className="text-xs text-accent hover:underline">{t.viewAll}</Link>
             </div>
-          )}
-        </div>
+            {recentOrders.length === 0 ? (
+              <p className="text-muted text-sm">{t.noOrders}</p>
+            ) : (
+              <div className="space-y-3">
+                {recentOrders.map((o) => (
+                  <div key={o.id} className="flex items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{o.order_number}</p>
+                      <p className="text-xs text-muted">{formatEGP(o.total_egp, lang)}</p>
+                    </div>
+                    <Badge variant={STATUS_BADGE[o.status] ?? "neutral"}>{o.status}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

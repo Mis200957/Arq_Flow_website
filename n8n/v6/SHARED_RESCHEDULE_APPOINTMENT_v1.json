@@ -1,0 +1,130 @@
+{
+  "name": "🔧 SHARED_RESCHEDULE_APPOINTMENT_v1",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\":{\"business_id\":\"uuid\"},\"appointment_id\":\"uuid\",\"new_starts_at\":\"2026-06-21T12:00:00\",\"new_ends_at\":null}"
+      },
+      "id": "77ff6fe2-3652-4c7c-acc4-1e8b04fc6380",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const t=i.tenant||{};\nif(!t.business_id) throw new Error('Missing tenant.business_id');\nif(!i.appointment_id) throw new Error('Missing appointment_id');\nif(!i.new_starts_at) throw new Error('Missing new_starts_at');\nconst body={starts_at:i.new_starts_at,status:'scheduled'}; if(i.new_ends_at) body.ends_at=i.new_ends_at;\nconst url='https://zjathejcdkpxjyvululp.supabase.co/rest/v1/appointments?id=eq.'+i.appointment_id+'&business_id=eq.'+t.business_id;\nreturn {json:{url,appointment_id:i.appointment_id,new_starts_at:i.new_starts_at,body}};"
+      },
+      "id": "53560679-a008-4e68-aa0a-88d0eb2a48f3",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('PREPARE').first().json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('PREPARE').first().json.body) }}"
+      },
+      "id": "e823229a-03e1-4321-a1a9-467efb140512",
+      "name": "RESCHEDULE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out=$input.first().json;const r=Array.isArray(out)?out[0]:out;const ok=!!(r&&r.id);const p=$('PREPARE').first().json;\nreturn {json:{success:ok,appointment_id:p.appointment_id,new_starts_at:p.new_starts_at,message: ok?('تمت إعادة جدولة الموعد ✅ إلى '+p.new_starts_at):'تعذّرت إعادة الجدولة.'}};"
+      },
+      "id": "b008c51e-3f3f-4859-b8e4-2d3b68ecbf96",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "RESCHEDULE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RESCHEDULE": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

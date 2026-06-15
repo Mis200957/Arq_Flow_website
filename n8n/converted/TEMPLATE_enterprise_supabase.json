@@ -417,42 +417,14 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "instance_name": "={{ $('WEBHOOK_TRIGGER').item.json.body.instance }}",
-            "remote_jid": "={{ $json.remote_jid }}",
-            "delay_ms": 20000
+            "instance_name": "={{ $('CLIENT_CONFIG').first().json.instance_name }}",
+            "remote_jid": "={{ $('NORMALIZE_INPUT').first().json.remote_jid }}",
+            "delay_ms": "={{ 2000 }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "instance_name",
-              "displayName": "instance_name",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "remote_jid",
-              "displayName": "remote_jid",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "delay_ms",
-              "displayName": "delay_ms",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number"
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
-          "convertFieldsToString": true
+          "convertFieldsToString": false
         },
         "options": {
           "waitForSubWorkflow": false
@@ -791,92 +763,15 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "tenant": "={{ { business_name: $('CLIENT_CONFIG').first().json.business_name, order_id: $('CLIENT_CONFIG').first().json.order_id, plan_id: $('CLIENT_CONFIG').first().json.plan_id, plan_tier: $('CLIENT_CONFIG').first().json.plan_tier } }}",
-            "customer_id": "={{ $('BUILD_CUSTOMER').item.json.customer_id }}",
-            "customer_name": "={{ $('BUILD_CUSTOMER').item.json.customer_name }}",
-            "customer_phone": "={{ $('BUILD_CUSTOMER').item.json.sender_id }}",
-            "model": "={{ $json.model }}",
-            "input_tokens": "={{ $json.estimated_input_tokens }}",
-            "output_tokens": "={{ $json.estimated_output_tokens }}",
-            "operation_type": "chat"
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id, plan_id: $('CLIENT_CONFIG').first().json.plan_tier } }}",
+            "model": "={{ $('CLIENT_CONFIG').first().json.openrouter_model }}",
+            "input_tokens": "={{ $json.estimated_input_tokens || 100 }}",
+            "output_tokens": "={{ $json.estimated_output_tokens || 200 }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "tenant",
-              "displayName": "tenant",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "customer_id",
-              "displayName": "customer_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "customer_name",
-              "displayName": "customer_name",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "customer_phone",
-              "displayName": "customer_phone",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "model",
-              "displayName": "model",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "input_tokens",
-              "displayName": "input_tokens",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number"
-            },
-            {
-              "id": "output_tokens",
-              "displayName": "output_tokens",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number"
-            },
-            {
-              "id": "operation_type",
-              "displayName": "operation_type",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
-          "convertFieldsToString": true
+          "convertFieldsToString": false
         },
         "options": {}
       },
@@ -1036,42 +931,14 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "instance_name": "={{ $('WEBHOOK_TRIGGER').item.json.body.instance }}",
+            "instance_name": "={{ $('CLIENT_CONFIG').first().json.instance_name }}",
             "remote_jid": "={{ $('NORMALIZE_INPUT').first().json.remote_jid }}",
-            "delay_ms": "={{ ($json.delay_before_ms || 0) + ($json.typing_duration_ms || 1500) }}"
+            "delay_ms": "={{ 1500 }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "instance_name",
-              "displayName": "instance_name",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "remote_jid",
-              "displayName": "remote_jid",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "delay_ms",
-              "displayName": "delay_ms",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number"
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
-          "convertFieldsToString": true
+          "convertFieldsToString": false
         },
         "options": {
           "waitForSubWorkflow": true
@@ -1134,18 +1001,23 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "tenant": "={{ { sheets_id: $('CLIENT_CONFIG').first().json.sheets_spreadsheet_id, sheet_conv_history: $('CLIENT_CONFIG').first().json.sheet_conv_history } }}",
-            "customer_id": "={{ $('BUILD_CUSTOMER').first().json.customer_id }}",
-            "customer_name": "={{ $('BUILD_CUSTOMER').first().json.customer_name }}",
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id } }}",
+            "customer": "={{ { phone: $('NORMALIZE_INPUT').first().json.sender_id, name: $('BUILD_CUSTOMER').first().json.customer_name } }}",
             "customer_message": "={{ $('NORMALIZE_INPUT').first().json.message_text }}",
             "ai_response": "={{ $('BUILD_FINAL_REPLY').first().json.final_reply }}",
             "intent": "general",
-            "sentiment_score": "={{ $('SENTIMENT_ANALYSIS').first().json.sentiment_score }}",
-            "sentiment_label": "={{ $('SENTIMENT_ANALYSIS').first().json.sentiment_label }}",
-            "escalated": "={{ $('BUILD_FINAL_REPLY').first().json.escalated }}",
-            "response_time_sec": "={{ Math.round((Date.now() - $('NORMALIZE_INPUT').first().json.start_time) / 1000) }}",
-            "model_used": "={{ $('CLIENT_CONFIG').first().json.openrouter_model }}"
-          }
+            "sentiment_score": "={{ $('SENTIMENT_ANALYSIS').first().json.sentiment_score || 0 }}",
+            "escalated": "={{ $('BUILD_FINAL_REPLY').first().json.escalated || false }}",
+            "input_tokens": "={{ $('QUOTA_PREPARE').first().json.estimated_input_tokens || 0 }}",
+            "output_tokens": "={{ $('QUOTA_PREPARE').first().json.estimated_output_tokens || 0 }}",
+            "cost_egp": "={{ ($('CHECK_QUOTA').first().json.cost_egp) || 0 }}",
+            "model": "={{ $('CLIENT_CONFIG').first().json.openrouter_model }}",
+            "wa_message_id": "={{ $('NORMALIZE_INPUT').first().json.wa_message_id || '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {
           "waitForSubWorkflow": false
@@ -1243,10 +1115,14 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "tenant": "={{ { sheets_id: $('CLIENT_CONFIG').first().json.sheets_spreadsheet_id, sheet_conv_history: $('CLIENT_CONFIG').first().json.sheet_conv_history, sheet_customers: $('CLIENT_CONFIG').first().json.sheet_customers } }}",
-            "customer_id": "={{ $('BUILD_CUSTOMER').first().json.customer_id }}",
-            "fetch_limit": 20
-          }
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id } }}",
+            "customer": "={{ { phone: $('NORMALIZE_INPUT').first().json.sender_id } }}",
+            "fetch_limit": "={{ 20 }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {
           "waitForSubWorkflow": false
@@ -1304,9 +1180,14 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "tenant": "={{ { sheets_id: $('CLIENT_CONFIG').first().json.sheets_spreadsheet_id, sheet_customers: $('CLIENT_CONFIG').first().json.sheet_customers, sheet_conv_history: $('CLIENT_CONFIG').first().json.sheet_conv_history } }}",
-            "customer_id": "={{ $('BUILD_CUSTOMER').first().json.customer_id }}"
-          }
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id } }}",
+            "customer": "={{ { phone: $('NORMALIZE_INPUT').first().json.sender_id } }}",
+            "history_limit": "={{ 100 }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         },
         "options": {
           "waitForSubWorkflow": false
@@ -1434,110 +1315,20 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "escalated": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('escalated', ``, 'boolean') }}",
-            "intent_confidence": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('intent_confidence', ``, 'number') }}",
-            "sentiment_score": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sentiment_score', ``, 'number') }}",
-            "tenant": "={{ { sheets_id: $('CLIENT_CONFIG').first().json.sheets_spreadsheet_id, sheet_conv_history: $('CLIENT_CONFIG').first().json.sheet_conv_history } }}",
-            "customer_id": "={{ $('BUILD_CUSTOMER').first().json.customer_id }}",
-            "customer_name": "={{ $('BUILD_CUSTOMER').first().json.customer_name }}",
-            "customer_message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('customer_message', ``, 'string') }}",
-            "ai_response": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ai_response', ``, 'string') }}",
-            "intent": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('intent', ``, 'string') }}",
-            "model_used": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('model_used', ``, 'string') }}"
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id } }}",
+            "customer": "={{ { phone: $('NORMALIZE_INPUT').first().json.sender_id, name: $('BUILD_CUSTOMER').first().json.customer_name } }}",
+            "customer_message": "={{ $fromAI('message','رسالة العميل','string') }}",
+            "ai_response": "={{ $fromAI('response','رد البوت','string') }}",
+            "intent": "={{ $fromAI('intent','تصنيف نية العميل','string') }}",
+            "sentiment_score": "={{ 0 }}",
+            "escalated": "={{ false }}",
+            "input_tokens": "={{ 0 }}",
+            "output_tokens": "={{ 0 }}",
+            "cost_egp": "={{ 0 }}",
+            "model": "={{ $('CLIENT_CONFIG').first().json.openrouter_model }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "tenant",
-              "displayName": "tenant",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "customer_id",
-              "displayName": "customer_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "customer_name",
-              "displayName": "customer_name",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "customer_message",
-              "displayName": "customer_message",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "ai_response",
-              "displayName": "ai_response",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "intent",
-              "displayName": "intent",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "intent_confidence",
-              "displayName": "intent_confidence",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number"
-            },
-            {
-              "id": "sentiment_score",
-              "displayName": "sentiment_score",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number"
-            },
-            {
-              "id": "escalated",
-              "displayName": "escalated",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "boolean"
-            },
-            {
-              "id": "model_used",
-              "displayName": "model_used",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         }
@@ -1562,59 +1353,12 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "tenant": "={{ { sheets_id: $('CLIENT_CONFIG').first().json.sheets_spreadsheet_id, business_name: $('CLIENT_CONFIG').first().json.business_name, instance_name: $('CLIENT_CONFIG').first().json.instance_name, sheet_links: $('CLIENT_CONFIG').first().json.sheet_links } }}",
-            "customer_jid": "={{ $('WEBHOOK_TRIGGER').item.json.body.data.key.remoteJid }}",
-            "custom_message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('custom_message', ``, 'string') }}",
-            "link_name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('link_name', ``, 'string') }}",
-            "link_type": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('link_type', ``, 'string') }}"
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id, instance_name: $('CLIENT_CONFIG').first().json.instance_name } }}",
+            "customer_jid": "={{ $('NORMALIZE_INPUT').first().json.remote_jid }}",
+            "category": "={{ $fromAI('category','نوع الرابط: menu/catalog/booking/payment/location','string') }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "tenant",
-              "displayName": "tenant",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "customer_jid",
-              "displayName": "customer_jid",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "link_type",
-              "displayName": "link_type",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "link_name",
-              "displayName": "link_name",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "custom_message",
-              "displayName": "custom_message",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         }
@@ -1714,60 +1458,11 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "tenant": "={{ { sheets_id: $('CLIENT_CONFIG').first().json.sheets_spreadsheet_id, sheet_orders: $('CLIENT_CONFIG').first().json.sheet_orders, sheet_customers: $('CLIENT_CONFIG').first().json.sheet_customers, business_name: $('CLIENT_CONFIG').first().json.business_name, instance_name: $('CLIENT_CONFIG').first().json.instance_name, admin_whatsapp: $('CLIENT_CONFIG').first().json.admin_whatsapp, currency: $('CLIENT_CONFIG').first().json.currency, tax_pct: $('CLIENT_CONFIG').first().json.tax_pct } }}",
-            "customer": "={{ { id: $('BUILD_CUSTOMER').first().json.customer_id, name: $('BUILD_CUSTOMER').first().json.customer_name, phone: $('BUILD_CUSTOMER').first().json.sender_id, remote_jid: $('BUILD_CUSTOMER').first().json.sender_id + '@s.whatsapp.net' } }}",
-            "order_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('order_id', ``, 'string') }}",
-            "cancellation_reason": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('cancellation_reason', ``, 'string') }}",
-            "notes": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('notes', ``, 'string') }}"
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id } }}",
+            "order_number": "={{ $fromAI('order_number','رقم الطلب','string') }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "tenant",
-              "displayName": "tenant",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "customer",
-              "displayName": "customer",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "order_id",
-              "displayName": "order_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "cancellation_reason",
-              "displayName": "cancellation_reason",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "notes",
-              "displayName": "notes",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         }
@@ -1792,60 +1487,13 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "tenant": "={{ { sheets_id: $('CLIENT_CONFIG').first().json.sheets_spreadsheet_id, sheet_orders: $('CLIENT_CONFIG').first().json.sheet_orders, sheet_customers: $('CLIENT_CONFIG').first().json.sheet_customers, business_name: $('CLIENT_CONFIG').first().json.business_name, instance_name: $('CLIENT_CONFIG').first().json.instance_name, admin_whatsapp: $('CLIENT_CONFIG').first().json.admin_whatsapp, currency: $('CLIENT_CONFIG').first().json.currency, tax_pct: $('CLIENT_CONFIG').first().json.tax_pct } }}",
-            "customer": "={{ { id: $('BUILD_CUSTOMER').first().json.customer_id, name: $('BUILD_CUSTOMER').first().json.customer_name, phone: $('BUILD_CUSTOMER').first().json.sender_id, remote_jid: $('BUILD_CUSTOMER').first().json.sender_id + '@s.whatsapp.net' } }}",
-            "order_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('order_id', ``, 'string') }}",
-            "modifications": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('modifications', ``, 'json') }}",
-            "modification_reason": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('modification_reason', ``, 'string') }}"
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id } }}",
+            "order_number": "={{ $fromAI('order_number','رقم الطلب','string') }}",
+            "items": "={{ $fromAI('items','الأصناف الجديدة [{name,qty,price}]','json') }}",
+            "notes": "={{ $fromAI('notes','تعديلات','string') }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "tenant",
-              "displayName": "tenant",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "customer",
-              "displayName": "customer",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "order_id",
-              "displayName": "order_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "modifications",
-              "displayName": "modifications",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "modification_reason",
-              "displayName": "modification_reason",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         }
@@ -1870,40 +1518,11 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "tenant": "={{ { sheets_id: $('CLIENT_CONFIG').first().json.sheets_spreadsheet_id, sheet_orders: $('CLIENT_CONFIG').first().json.sheet_orders, business_name: $('CLIENT_CONFIG').first().json.business_name } }}",
-            "customer": "={{ { id: $('BUILD_CUSTOMER').first().json.customer_id, name: $('BUILD_CUSTOMER').first().json.customer_name, phone: $('BUILD_CUSTOMER').first().json.sender_id, remote_jid: $('BUILD_CUSTOMER').first().json.sender_id + '@s.whatsapp.net' } }}",
-            "order_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('order_id', ``, 'string') }}"
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id } }}",
+            "order_number": "={{ $fromAI('order_number','رقم الطلب','string') }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "tenant",
-              "displayName": "tenant",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "customer",
-              "displayName": "customer",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "order_id",
-              "displayName": "order_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         }
@@ -1928,60 +1547,11 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "tenant": "={{ { sheets_id: $('CLIENT_CONFIG').first().json.sheets_spreadsheet_id, sheet_coupons: $('CLIENT_CONFIG').first().json.sheet_coupons, business_name: $('CLIENT_CONFIG').first().json.business_name, instance_name: $('CLIENT_CONFIG').first().json.instance_name } }}",
-            "customer": "={{ { id: $('BUILD_CUSTOMER').first().json.customer_id, name: $('BUILD_CUSTOMER').first().json.customer_name, phone: $('BUILD_CUSTOMER').first().json.sender_id, remote_jid: $('BUILD_CUSTOMER').first().json.sender_id + '@s.whatsapp.net' } }}",
-            "promo_code": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('promo_code', ``, 'string') }}",
-            "custom_message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('custom_message', ``, 'string') }}",
-            "occasion": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('occasion', ``, 'string') }}"
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id, instance_name: $('CLIENT_CONFIG').first().json.instance_name } }}",
+            "customer_jid": "={{ $('NORMALIZE_INPUT').first().json.remote_jid }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "tenant",
-              "displayName": "tenant",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "customer",
-              "displayName": "customer",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "promo_code",
-              "displayName": "promo_code",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "custom_message",
-              "displayName": "custom_message",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "occasion",
-              "displayName": "occasion",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         }
@@ -2006,40 +1576,11 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "tenant": "={{ { sheets_id: $('CLIENT_CONFIG').first().json.sheets_spreadsheet_id, sheet_stock: $('CLIENT_CONFIG').first().json.sheet_stock } }}",
-            "item_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('item_id', ``, 'string') }}",
-            "item_name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('item_name', ``, 'string') }}"
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id } }}",
+            "product_name": "={{ $fromAI('product_name','اسم المنتج','string') }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "tenant",
-              "displayName": "tenant",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "item_id",
-              "displayName": "item_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "item_name",
-              "displayName": "item_name",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         }
@@ -2064,60 +1605,10 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "tenant": "={{ { sheets_id: $('CLIENT_CONFIG').first().json.sheets_spreadsheet_id, sheet_reviews: $('CLIENT_CONFIG').first().json.sheet_reviews } }}",
-            "customer_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('customer_id', ``, 'string') }}",
-            "order_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('order_id', ``, 'string') }}",
-            "limit": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('limit', ``, 'number') }}",
-            "min_rating": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('min_rating', ``, 'number') }}"
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id } }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "tenant",
-              "displayName": "tenant",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "customer_id",
-              "displayName": "customer_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "order_id",
-              "displayName": "order_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "limit",
-              "displayName": "limit",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number"
-            },
-            {
-              "id": "min_rating",
-              "displayName": "min_rating",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number"
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         }
@@ -2166,120 +1657,17 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "delivery_fee": "={{ $fromAI('delivery_fee', 'delivery fee in EGP (0 if no delivery)', 'number') }}",
-            "discount_pct": "={{ $fromAI('discount_pct', 'discount percentage 0-100 (0 if none)', 'number') }}",
-            "customer": "={{ { id: $('BUILD_CUSTOMER').first().json.customer_id, name: $('BUILD_CUSTOMER').first().json.customer_name, phone: $('BUILD_CUSTOMER').first().json.sender_id, remote_jid: $('BUILD_CUSTOMER').first().json.sender_id + '@s.whatsapp.net' } }}",
-            "transaction_type": "={{ $fromAI('transaction_type', 'one of: order | booking | service_request | purchase', 'string') }}",
-            "tenant": "={{ { sheets_id: $('CLIENT_CONFIG').first().json.sheets_spreadsheet_id, business_name: $('CLIENT_CONFIG').first().json.business_name, currency: $('CLIENT_CONFIG').first().json.currency, tax_pct: $('CLIENT_CONFIG').first().json.tax_pct, admin_whatsapp: $('CLIENT_CONFIG').first().json.admin_whatsapp, instance_name: $('WEBHOOK_TRIGGER').item.json.body.instance, domain_type: $('CLIENT_CONFIG').first().json.domain_type, enable_invoices: $('CLIENT_CONFIG').first().json.enable_invoices, sheet_orders: $('CLIENT_CONFIG').first().json.sheet_orders, sheet_invoices: $('CLIENT_CONFIG').first().json.sheet_invoices, sheet_customers: $('CLIENT_CONFIG').first().json.sheet_customers } }}",
-            "items": "={{ $fromAI('items', 'REQUIRED non-empty array. Each item: {name (string), qty (number), unit_price (number)}. Example: [{\"name\":\"كنافة\",\"qty\":2,\"unit_price\":127.19}]. NEVER send empty array.', 'json') }}",
-            "address_or_location": "={{ $fromAI('address_or_location', 'full delivery address or pickup location', 'string') }}",
-            "payment_method": "={{ $fromAI('payment_method', 'one of: cash | online | transfer | card | wallet', 'string') }}",
-            "coupon_code": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('coupon_code', ``, 'string') }}",
-            "notes": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('notes', ``, 'string') }}"
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id, instance_name: $('CLIENT_CONFIG').first().json.instance_name, admin_whatsapp: $('CLIENT_CONFIG').first().json.admin_whatsapp, tax_pct: $('CLIENT_CONFIG').first().json.tax_pct } }}",
+            "customer": "={{ { phone: $('NORMALIZE_INPUT').first().json.sender_id, name: $('BUILD_CUSTOMER').first().json.customer_name } }}",
+            "type": "={{ $fromAI('type','نوع الطلب: order/booking/pickup','string') }}",
+            "items": "={{ $fromAI('items','مصفوفة الأصناف [{name,qty,price}]','json') }}",
+            "delivery_fee": "={{ $fromAI('delivery_fee','رسوم التوصيل','number') }}",
+            "payment_method": "={{ $fromAI('payment_method','طريقة الدفع','string') }}",
+            "delivery_address": "={{ $fromAI('delivery_address','عنوان التوصيل','string') }}",
+            "notes": "={{ $fromAI('notes','ملاحظات','string') }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "tenant",
-              "displayName": "tenant",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object",
-              "removed": false
-            },
-            {
-              "id": "transaction_type",
-              "displayName": "transaction_type",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "customer",
-              "displayName": "customer",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object",
-              "removed": false
-            },
-            {
-              "id": "items",
-              "displayName": "items",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "array",
-              "removed": false
-            },
-            {
-              "id": "address_or_location",
-              "displayName": "address_or_location",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "payment_method",
-              "displayName": "payment_method",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "delivery_fee",
-              "displayName": "delivery_fee",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number",
-              "removed": false
-            },
-            {
-              "id": "discount_pct",
-              "displayName": "discount_pct",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "number",
-              "removed": false
-            },
-            {
-              "id": "coupon_code",
-              "displayName": "coupon_code",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "notes",
-              "displayName": "notes",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         }
@@ -2304,60 +1692,14 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "tenant": "={{ { sheets_id: $('CLIENT_CONFIG').first().json.sheets_spreadsheet_id, business_name: $('CLIENT_CONFIG').first().json.business_name, instance_name: $('WEBHOOK_TRIGGER').item.json.body.instance, admin_whatsapp: $('CLIENT_CONFIG').first().json.admin_whatsapp, sheet_escalation_log: $('CLIENT_CONFIG').first().json.sheet_escalation_log } }}",
-            "customer": "={{ { id: $('BUILD_CUSTOMER').first().json.customer_id, name: $('BUILD_CUSTOMER').first().json.customer_name, phone: $('BUILD_CUSTOMER').first().json.sender_id, remote_jid: $('BUILD_CUSTOMER').first().json.sender_id + '@s.whatsapp.net' } }}",
-            "reason": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('reason', ``, 'string') }}",
-            "customer_message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('customer_message', ``, 'string') }}",
-            "context_summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('context_summary', ``, 'string') }}"
+            "tenant": "={{ { business_id: $('CLIENT_CONFIG').first().json.business_id, instance_name: $('CLIENT_CONFIG').first().json.instance_name, admin_whatsapp: $('CLIENT_CONFIG').first().json.admin_whatsapp, business_name: $('CLIENT_CONFIG').first().json.business_name } }}",
+            "customer": "={{ { phone: $('NORMALIZE_INPUT').first().json.sender_id, name: $('BUILD_CUSTOMER').first().json.customer_name } }}",
+            "reason": "={{ $fromAI('reason','سبب التصعيد: complaint/customer_request/out_of_scope','string') }}",
+            "customer_message": "={{ $('NORMALIZE_INPUT').first().json.message_text }}",
+            "context_summary": "={{ $fromAI('context_summary','ملخص قصير للموقف','string') }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "tenant",
-              "displayName": "tenant",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "customer",
-              "displayName": "customer",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "object"
-            },
-            {
-              "id": "reason",
-              "displayName": "reason",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "customer_message",
-              "displayName": "customer_message",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            },
-            {
-              "id": "context_summary",
-              "displayName": "context_summary",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string"
-            }
-          ],
+          "schema": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         }

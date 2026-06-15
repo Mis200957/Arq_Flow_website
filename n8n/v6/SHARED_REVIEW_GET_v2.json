@@ -1,0 +1,123 @@
+{
+  "name": "🔧 SHARED_REVIEW_GET_v2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"business_id\": \"uuid\"}}"
+      },
+      "id": "1c8774ba-b3ac-40a2-a5b6-8845243a6e7e",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const t=i.tenant||{};\nif(!t.business_id) throw new Error('Missing business_id');\nreturn {json:{business_id:t.business_id}};"
+      },
+      "id": "f6bedfad-0d97-4417-9714-c11ce99317e3",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://zjathejcdkpxjyvululp.supabase.co/rest/v1/knowledge_base?select=question,answer&business_id=eq.{{ $('PREPARE').first().json.business_id }}&kind=eq.review&active=eq.true&limit=5",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8ff507d1-0595-44fc-8c34-b7f98f7bf6f4",
+      "name": "GET_REVIEWS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows=$input.all().map(x=>x.json).filter(r=>r&&r.answer);\nif(!rows.length) return {json:{success:true,count:0,message:'لسه مفيش تقييمات متاحة.'}};\nreturn {json:{success:true,count:rows.length,\n  message:rows.map(r=>'⭐ '+(r.answer||'')).join('\\n')}};"
+      },
+      "id": "2852d082-5541-46b9-85af-724ab8205000",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "GET_REVIEWS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_REVIEWS": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

@@ -1,0 +1,129 @@
+{
+  "name": "🔧 SHARED_ORDER_CANCEL_v2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"business_id\": \"uuid\"}, \"order_number\": \"ORD-2606-0001\"}"
+      },
+      "id": "b2cd0101-2224-43cc-b706-5b109866c124",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const t=i.tenant||{};\nif(!t.business_id) throw new Error('Missing business_id');\nif(!i.order_number) throw new Error('Missing order_number');\nreturn {json:{business_id:t.business_id,order_number:i.order_number}};"
+      },
+      "id": "a89a4a2c-52bc-4600-b24e-0911807e73a7",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://zjathejcdkpxjyvululp.supabase.co/rest/v1/orders?business_id=eq.{{ $('PREPARE').first().json.business_id }}&order_number=eq.{{ $('PREPARE').first().json.order_number }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({status:'cancelled', updated_at:new Date().toISOString()}) }}"
+      },
+      "id": "0dead153-08cc-44e3-9fc6-2058b3e23b16",
+      "name": "CANCEL_ORDER",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "let r=$json; if(Array.isArray(r)) r=r[0];\nconst ok = r && r.id;\nreturn {json:{success:!!ok, order_number:$('PREPARE').first().json.order_number,\n  message: ok?('تم إلغاء الطلب '+r.order_number):'الطلب غير موجود'}};"
+      },
+      "id": "36ae74fe-91d8-487a-9b9d-982ba2559449",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "CANCEL_ORDER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CANCEL_ORDER": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

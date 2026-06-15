@@ -5,21 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard,
-  MessageSquare,
-  ShoppingCart,
-  Users,
-  BarChart3,
-  BookOpen,
-  Package,
-  Wrench,
-  Send,
-  Phone,
   Bot,
-  Receipt,
-  Crown,
-  FolderOpen,
-  Settings,
   Bell,
   Menu,
   X,
@@ -34,6 +20,8 @@ import { useLang, useT } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/database.types";
 import { ToastProvider } from "@/components/ui/Toast";
+import { resolveModules, getModuleByPath } from "@/lib/modules";
+import { getIcon } from "@/lib/modules/icons";
 
 type Profile = Tables<"profiles">;
 type Business = Tables<"businesses">;
@@ -44,42 +32,6 @@ interface Props {
   unreadCount: number;
   children: React.ReactNode;
 }
-
-const NAV_ITEMS = [
-  { href: "/dashboard/overview", icon: LayoutDashboard, ar: "نظرة عامة", en: "Overview" },
-  { href: "/dashboard/conversations", icon: MessageSquare, ar: "المحادثات", en: "Conversations" },
-  { href: "/dashboard/orders", icon: ShoppingCart, ar: "الطلبات", en: "Orders" },
-  { href: "/dashboard/customers", icon: Users, ar: "العملاء", en: "Customers" },
-  { href: "/dashboard/analytics", icon: BarChart3, ar: "الإحصائيات", en: "Analytics" },
-  { href: "/dashboard/knowledge-base", icon: BookOpen, ar: "قاعدة المعرفة", en: "Knowledge Base" },
-  { href: "/dashboard/products", icon: Package, ar: "المنتجات", en: "Products" },
-  { href: "/dashboard/services", icon: Wrench, ar: "الخدمات", en: "Services" },
-  { href: "/dashboard/broadcasts", icon: Send, ar: "الإذاعة", en: "Broadcasts" },
-  { href: "/dashboard/whatsapp", icon: Phone, ar: "واتساب", en: "WhatsApp" },
-  { href: "/dashboard/ai-settings", icon: Bot, ar: "إعدادات الذكاء", en: "AI Settings" },
-  { href: "/dashboard/invoices", icon: Receipt, ar: "الفواتير", en: "Invoices" },
-  { href: "/dashboard/subscription", icon: Crown, ar: "الاشتراك", en: "Subscription" },
-  { href: "/dashboard/files", icon: FolderOpen, ar: "الملفات", en: "Files" },
-  { href: "/dashboard/settings", icon: Settings, ar: "الإعدادات", en: "Settings" },
-];
-
-const PAGE_TITLES: Record<string, { ar: string; en: string }> = {
-  "/dashboard/overview": { ar: "نظرة عامة", en: "Overview" },
-  "/dashboard/conversations": { ar: "المحادثات", en: "Conversations" },
-  "/dashboard/orders": { ar: "الطلبات", en: "Orders" },
-  "/dashboard/customers": { ar: "العملاء", en: "Customers" },
-  "/dashboard/analytics": { ar: "الإحصائيات", en: "Analytics" },
-  "/dashboard/knowledge-base": { ar: "قاعدة المعرفة", en: "Knowledge Base" },
-  "/dashboard/products": { ar: "المنتجات", en: "Products" },
-  "/dashboard/services": { ar: "الخدمات", en: "Services" },
-  "/dashboard/broadcasts": { ar: "الإذاعة", en: "Broadcasts" },
-  "/dashboard/whatsapp": { ar: "واتساب", en: "WhatsApp" },
-  "/dashboard/ai-settings": { ar: "إعدادات الذكاء", en: "AI Settings" },
-  "/dashboard/invoices": { ar: "الفواتير", en: "Invoices" },
-  "/dashboard/subscription": { ar: "الاشتراك", en: "Subscription" },
-  "/dashboard/files": { ar: "الملفات", en: "Files" },
-  "/dashboard/settings": { ar: "الإعدادات", en: "Settings" },
-};
 
 function ProvisioningPlaceholder({ business, lang }: { business: Business; lang: "ar" | "en" }) {
   const t = {
@@ -161,7 +113,18 @@ export default function DashboardShell({ profile, business, unreadCount: initial
   const isProvisioning =
     business.status === "provisioning" || business.status === "pending_approval";
 
-  const pageTitle = PAGE_TITLES[pathname] ?? { ar: "لوحة التحكم", en: "Dashboard" };
+  // Dynamic, industry-aware navigation. Unknown/legacy business types
+  // fall back to the full current navigation (100% backward compatible).
+  const { nav } = useMemo(
+    () => resolveModules(business.business_type),
+    [business.business_type]
+  );
+
+  const activeModule = getModuleByPath(pathname, business.business_type);
+  const pageTitle = activeModule?.label ?? { ar: "لوحة التحكم", en: "Dashboard" };
+
+  // bilingual "Soon" pill for modules whose page hasn't shipped yet
+  const soonLabel = lang === "ar" ? "قريباً" : "Soon";
 
   // Stable supabase instance — must not be recreated on every render
   const supabase = useMemo(() => createClient(), []);
@@ -252,12 +215,34 @@ export default function DashboardShell({ profile, business, unreadCount: initial
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto p-3 space-y-0.5">
-          {NAV_ITEMS.map(({ href, icon: Icon, ar, en }) => {
-            const active = pathname === href || pathname.startsWith(href + "/");
+          {nav.map((mod) => {
+            const Icon = getIcon(mod.icon);
+            const label = lang === "ar" ? mod.label.ar : mod.label.en;
+
+            // Modules whose page hasn't shipped yet render as a polished,
+            // non-navigating "Soon" item — so the sidebar never 404s.
+            if (!mod.available) {
+              return (
+                <div
+                  key={mod.key}
+                  aria-disabled="true"
+                  title={soonLabel}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted/60 cursor-default select-none"
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{label}</span>
+                  <span className="ms-auto shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-[rgba(238,237,210,0.07)] text-muted">
+                    {soonLabel}
+                  </span>
+                </div>
+              );
+            }
+
+            const active = pathname === mod.href || pathname.startsWith(mod.href + "/");
             return (
               <Link
-                key={href}
-                href={href}
+                key={mod.key}
+                href={mod.href}
                 onClick={() => setSidebarOpen(false)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
@@ -267,7 +252,7 @@ export default function DashboardShell({ profile, business, unreadCount: initial
                 )}
               >
                 <Icon className="w-4 h-4 shrink-0" />
-                <span className="truncate">{lang === "ar" ? ar : en}</span>
+                <span className="truncate">{label}</span>
                 {active && (
                   <ChevronRight
                     className={cn("w-3 h-3 ms-auto shrink-0", dir === "rtl" ? "rotate-180" : "")}

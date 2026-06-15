@@ -3,6 +3,7 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateOrderId } from "@/lib/utils";
 import { notifyNewPayment } from "@/lib/telegram";
+import { buildIndustryPromptContext } from "@/lib/modules/ai";
 import type { Json } from "@/lib/database.types";
 
 const productSchema = z.object({
@@ -260,12 +261,16 @@ export async function POST(req: Request) {
     );
   }
 
+  // Industry template context so n8n provisions an industry-aware bot
+  // (dashboard modules, AI prompt, KB structure all derive from business_type).
+  const industry = buildIndustryPromptContext(d.business_type);
+
   await supabase.from("automation_logs").insert({
     business_id: bid,
     workflow: "onboarding",
     event: "submission_received",
     level: "info",
-    payload: { order_id, plan: d.plan_id, amount },
+    payload: { order_id, plan: d.plan_id, amount, business_type: d.business_type, industry },
   });
 
   // Telegram: notify admin with screenshot + Approve/Reject buttons.
