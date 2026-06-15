@@ -46,60 +46,65 @@ export const INDUSTRY_MODULES: ModuleDef[] = [
   { key: "services",        href: "/dashboard/services",        icon: "Wrench",       group: "industry", available: true,  label: { ar: "الخدمات",     en: "Services" } },
 
   /* ---- commerce extensions (soon) ---- */
-  { key: "categories",      href: "/dashboard/categories",      icon: "Tag",          group: "industry", available: false, label: { ar: "التصنيفات",   en: "Categories" } },
-  { key: "inventory",       href: "/dashboard/inventory",       icon: "Boxes",        group: "industry", available: false, label: { ar: "المخزون",     en: "Inventory" } },
-  { key: "delivery",        href: "/dashboard/delivery",        icon: "Truck",        group: "industry", available: false, label: { ar: "التوصيل",     en: "Delivery" } },
-  { key: "promotions",      href: "/dashboard/promotions",      icon: "Percent",      group: "industry", available: false, label: { ar: "العروض",      en: "Promotions" } },
-  { key: "coupons",         href: "/dashboard/coupons",         icon: "Ticket",       group: "industry", available: false, label: { ar: "الكوبونات",   en: "Coupons" } },
+  { key: "categories",      href: "/dashboard/categories",      icon: "Tag",          group: "industry", available: true, label: { ar: "التصنيفات",   en: "Categories" } },
+  { key: "inventory",       href: "/dashboard/inventory",       icon: "Boxes",        group: "industry", available: true, label: { ar: "المخزون",     en: "Inventory" } },
+  { key: "delivery",        href: "/dashboard/delivery",        icon: "Truck",        group: "industry", available: true, label: { ar: "التوصيل",     en: "Delivery" } },
+  { key: "promotions",      href: "/dashboard/promotions",      icon: "Percent",      group: "industry", available: true, label: { ar: "العروض",      en: "Promotions" } },
+  { key: "coupons",         href: "/dashboard/coupons",         icon: "Ticket",       group: "industry", available: true, label: { ar: "الكوبونات",   en: "Coupons" } },
 
   /* ---- clinic / medical ---- */
-  { key: "appointments",    href: "/dashboard/appointments",    icon: "CalendarDays", group: "industry", available: false, label: { ar: "المواعيد",            en: "Appointments" } },
-  { key: "doctors",         href: "/dashboard/doctors",         icon: "Stethoscope",  group: "industry", available: false, label: { ar: "الأطباء",             en: "Doctors" } },
-  { key: "patients",        href: "/dashboard/patients",        icon: "HeartPulse",   group: "industry", available: false, label: { ar: "المرضى",              en: "Patients" } },
-  { key: "medical-services",href: "/dashboard/medical-services",icon: "ClipboardPlus",group: "industry", available: false, label: { ar: "الخدمات الطبية",      en: "Medical Services" } },
-  { key: "consultations",   href: "/dashboard/consultations",   icon: "ClipboardList",group: "industry", available: false, label: { ar: "طلبات الاستشارة",     en: "Consultation Requests" } },
-  { key: "waiting-queue",   href: "/dashboard/waiting-queue",   icon: "Clock",        group: "industry", available: false, label: { ar: "قائمة الانتظار",      en: "Waiting Queue" } },
-  { key: "follow-ups",      href: "/dashboard/follow-ups",      icon: "CalendarCheck",group: "industry", available: false, label: { ar: "المتابعات",           en: "Follow-ups" } },
+  { key: "appointments",    href: "/dashboard/appointments",    icon: "CalendarDays", group: "industry", available: true, label: { ar: "المواعيد",            en: "Appointments" } },
+  { key: "doctors",         href: "/dashboard/doctors",         icon: "Stethoscope",  group: "industry", available: true, label: { ar: "الأطباء",             en: "Doctors" } },
+  { key: "patients",        href: "/dashboard/patients",        icon: "HeartPulse",   group: "industry", available: true, label: { ar: "المرضى",              en: "Patients" } },
+  { key: "medical-services",href: "/dashboard/medical-services",icon: "ClipboardPlus",group: "industry", available: true, label: { ar: "الخدمات الطبية",      en: "Medical Services" } },
+  { key: "consultations",   href: "/dashboard/consultations",   icon: "ClipboardList",group: "industry", available: true, label: { ar: "طلبات الاستشارة",     en: "Consultation Requests" } },
+  { key: "waiting-queue",   href: "/dashboard/waiting-queue",   icon: "Clock",        group: "industry", available: true, label: { ar: "قائمة الانتظار",      en: "Waiting Queue" } },
+  { key: "follow-ups",      href: "/dashboard/follow-ups",      icon: "CalendarCheck",group: "industry", available: true, label: { ar: "المتابعات",           en: "Follow-ups" } },
 
   /* ---- hotel ---- */
-  { key: "rooms",           href: "/dashboard/rooms",           icon: "BedDouble",    group: "industry", available: false, label: { ar: "الغرف",         en: "Rooms" } },
-  { key: "reservations",    href: "/dashboard/reservations",    icon: "CalendarDays", group: "industry", available: false, label: { ar: "الحجوزات",      en: "Reservations" } },
-  { key: "guests",          href: "/dashboard/guests",          icon: "Users",        group: "industry", available: false, label: { ar: "النزلاء",       en: "Guests" } },
-  { key: "room-status",     href: "/dashboard/room-status",     icon: "DoorOpen",     group: "industry", available: false, label: { ar: "حالة الغرف",    en: "Room Status" } },
+  { key: "rooms",           href: "/dashboard/rooms",           icon: "BedDouble",    group: "industry", available: true, label: { ar: "الغرف",         en: "Rooms" } },
+  { key: "reservations",    href: "/dashboard/reservations",    icon: "CalendarDays", group: "industry", available: true, label: { ar: "الحجوزات",      en: "Reservations" } },
+  { key: "guests",          href: "/dashboard/guests",          icon: "Users",        group: "industry", available: true, label: { ar: "النزلاء",       en: "Guests" } },
+  { key: "room-status",     href: "/dashboard/room-status",     icon: "DoorOpen",     group: "industry", available: true, label: { ar: "حالة الغرف",    en: "Room Status" } },
 
   /* ---- gym ---- */
-  { key: "memberships",     href: "/dashboard/memberships",     icon: "CreditCard",   group: "industry", available: false, label: { ar: "العضويات",      en: "Memberships" } },
-  { key: "trainers",        href: "/dashboard/trainers",        icon: "Dumbbell",     group: "industry", available: false, label: { ar: "المدربون",      en: "Trainers" } },
-  { key: "classes",         href: "/dashboard/classes",         icon: "CalendarDays", group: "industry", available: false, label: { ar: "الحصص",         en: "Classes" } },
-  { key: "attendance",      href: "/dashboard/attendance",      icon: "ClipboardCheck",group:"industry", available: false, label: { ar: "الحضور",        en: "Attendance" } },
+  { key: "memberships",     href: "/dashboard/memberships",     icon: "CreditCard",   group: "industry", available: true, label: { ar: "العضويات",      en: "Memberships" } },
+  { key: "trainers",        href: "/dashboard/trainers",        icon: "Dumbbell",     group: "industry", available: true, label: { ar: "المدربون",      en: "Trainers" } },
+  { key: "classes",         href: "/dashboard/classes",         icon: "CalendarDays", group: "industry", available: true, label: { ar: "الحصص",         en: "Classes" } },
+  { key: "attendance",      href: "/dashboard/attendance",      icon: "ClipboardCheck",group:"industry", available: true, label: { ar: "الحضور",        en: "Attendance" } },
 
   /* ---- salon ---- */
-  { key: "staff",           href: "/dashboard/staff",           icon: "UserCog",      group: "industry", available: false, label: { ar: "الفريق",        en: "Staff" } },
-  { key: "working-hours",   href: "/dashboard/working-hours",   icon: "Clock",        group: "industry", available: false, label: { ar: "مواعيد العمل",  en: "Working Hours" } },
+  { key: "staff",           href: "/dashboard/staff",           icon: "UserCog",      group: "industry", available: true, label: { ar: "الفريق",        en: "Staff" } },
+  { key: "working-hours",   href: "/dashboard/working-hours",   icon: "Clock",        group: "industry", available: true, label: { ar: "مواعيد العمل",  en: "Working Hours" } },
 
   /* ---- real estate ---- */
-  { key: "properties",        href: "/dashboard/properties",        icon: "Building2", group: "industry", available: false, label: { ar: "العقارات",          en: "Properties" } },
-  { key: "property-requests", href: "/dashboard/property-requests", icon: "ClipboardList", group: "industry", available: false, label: { ar: "طلبات العقارات",   en: "Property Requests" } },
-  { key: "visits",            href: "/dashboard/visits",            icon: "MapPin",    group: "industry", available: false, label: { ar: "المعاينات",         en: "Visits" } },
-  { key: "agents",            href: "/dashboard/agents",            icon: "UserCog",   group: "industry", available: false, label: { ar: "المندوبون",         en: "Agents" } },
-  { key: "property-categories",href:"/dashboard/property-categories",icon: "Tag",      group: "industry", available: false, label: { ar: "تصنيفات العقارات",  en: "Property Categories" } },
+  { key: "properties",        href: "/dashboard/properties",        icon: "Building2", group: "industry", available: true, label: { ar: "العقارات",          en: "Properties" } },
+  { key: "property-requests", href: "/dashboard/property-requests", icon: "ClipboardList", group: "industry", available: true, label: { ar: "طلبات العقارات",   en: "Property Requests" } },
+  { key: "visits",            href: "/dashboard/visits",            icon: "MapPin",    group: "industry", available: true, label: { ar: "المعاينات",         en: "Visits" } },
+  { key: "agents",            href: "/dashboard/agents",            icon: "UserCog",   group: "industry", available: true, label: { ar: "المندوبون",         en: "Agents" } },
+  { key: "property-categories",href:"/dashboard/property-categories",icon: "Tag",      group: "industry", available: true, label: { ar: "تصنيفات العقارات",  en: "Property Categories" } },
 
   /* ---- educational center ---- */
-  { key: "courses",         href: "/dashboard/courses",         icon: "GraduationCap",group: "industry", available: false, label: { ar: "الكورسات",      en: "Courses" } },
-  { key: "students",        href: "/dashboard/students",        icon: "Users",        group: "industry", available: false, label: { ar: "الطلاب",        en: "Students" } },
-  { key: "teachers",        href: "/dashboard/teachers",        icon: "UserCog",      group: "industry", available: false, label: { ar: "المدرسون",      en: "Teachers" } },
+  { key: "courses",         href: "/dashboard/courses",         icon: "GraduationCap",group: "industry", available: true, label: { ar: "الكورسات",      en: "Courses" } },
+  { key: "students",        href: "/dashboard/students",        icon: "Users",        group: "industry", available: true, label: { ar: "الطلاب",        en: "Students" } },
+  { key: "teachers",        href: "/dashboard/teachers",        icon: "UserCog",      group: "industry", available: true, label: { ar: "المدرسون",      en: "Teachers" } },
 
   /* ---- lawyer office ---- */
-  { key: "cases",           href: "/dashboard/cases",           icon: "Scale",        group: "industry", available: false, label: { ar: "القضايا",       en: "Cases" } },
-  { key: "clients",         href: "/dashboard/clients",         icon: "Briefcase",    group: "industry", available: false, label: { ar: "الموكلون",      en: "Clients" } },
-  { key: "documents",       href: "/dashboard/documents",       icon: "FileText",     group: "industry", available: false, label: { ar: "المستندات",     en: "Documents" } },
+  { key: "cases",           href: "/dashboard/cases",           icon: "Scale",        group: "industry", available: true, label: { ar: "القضايا",       en: "Cases" } },
+  { key: "clients",         href: "/dashboard/clients",         icon: "Briefcase",    group: "industry", available: true, label: { ar: "الموكلون",      en: "Clients" } },
+  { key: "documents",       href: "/dashboard/documents",       icon: "FileText",     group: "industry", available: true, label: { ar: "المستندات",     en: "Documents" } },
 
   /* ---- service company / car service ---- */
-  { key: "work-orders",     href: "/dashboard/work-orders",     icon: "ClipboardList",group: "industry", available: false, label: { ar: "أوامر الشغل",   en: "Work Orders" } },
-  { key: "technicians",     href: "/dashboard/technicians",     icon: "Wrench",       group: "industry", available: false, label: { ar: "الفنيون",       en: "Technicians" } },
-  { key: "scheduling",      href: "/dashboard/scheduling",      icon: "CalendarDays", group: "industry", available: false, label: { ar: "الجدولة",       en: "Scheduling" } },
-  { key: "service-requests",href: "/dashboard/service-requests",icon: "ClipboardList",group: "industry", available: false, label: { ar: "طلبات الخدمة",   en: "Service Requests" } },
+  { key: "work-orders",     href: "/dashboard/work-orders",     icon: "ClipboardList",group: "industry", available: true, label: { ar: "أوامر الشغل",   en: "Work Orders" } },
+  { key: "technicians",     href: "/dashboard/technicians",     icon: "Wrench",       group: "industry", available: true, label: { ar: "الفنيون",       en: "Technicians" } },
+  { key: "scheduling",      href: "/dashboard/scheduling",      icon: "CalendarDays", group: "industry", available: true, label: { ar: "الجدولة",       en: "Scheduling" } },
+  { key: "service-requests",href: "/dashboard/service-requests",icon: "ClipboardList",group: "industry", available: true, label: { ar: "طلبات الخدمة",   en: "Service Requests" } },
 ];
+
+/* NOTE: every industry module below is backed either by a static page
+   (orders/products/services) or by a resource descriptor in
+   src/lib/modules/resources.ts (rendered via /dashboard/[module]).
+   So all modules are `available: true` — no "Soon" placeholders remain. */
 
 /** All modules, indexed by key. */
 export const ALL_MODULES: ModuleDef[] = [...CORE_MODULES, ...INDUSTRY_MODULES];
