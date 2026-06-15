@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { buildIndustryPromptContext } from "@/lib/modules/ai";
+import type { Json } from "@/lib/database.types";
 
 export async function POST() {
   const supabase = await createClient();
@@ -26,7 +27,7 @@ export async function POST() {
       requested_by: user.id,
       business_type: business.business_type,
       industry,
-    },
+    } as unknown as Json,
   });
 
   return NextResponse.json({ success: true, message: "Prompt regeneration queued" });

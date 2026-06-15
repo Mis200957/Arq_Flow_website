@@ -270,7 +270,7 @@ export async function POST(req: Request) {
     workflow: "onboarding",
     event: "submission_received",
     level: "info",
-    payload: { order_id, plan: d.plan_id, amount, business_type: d.business_type, industry },
+    payload: { order_id, plan: d.plan_id, amount, business_type: d.business_type, industry } as unknown as Json,
   });
 
   // Telegram: notify admin with screenshot + Approve/Reject buttons.
