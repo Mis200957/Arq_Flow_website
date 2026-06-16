@@ -56,6 +56,9 @@ import {
   Hotel,
   Scissors,
   Sparkles,
+  Gauge,
+  Bell,
+  Activity,
   type LucideIcon,
 } from "lucide-react";
 
@@ -108,6 +111,9 @@ const ICONS: Record<string, LucideIcon> = {
   Hotel,
   Scissors,
   Sparkles,
+  Gauge,
+  Bell,
+  Activity,
 };
 
 /** Resolve an icon key to a lucide component, with a safe fallback. */

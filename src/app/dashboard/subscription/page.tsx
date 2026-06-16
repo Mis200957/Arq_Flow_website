@@ -11,7 +11,7 @@ export default async function SubscriptionPage() {
     .from("businesses").select("*").eq("owner_id", user.id).single();
   if (!business) redirect("/onboarding");
 
-  const [{ data: subscription }, { data: plan }, { data: usage }] = await Promise.all([
+  const [{ data: subscription }, { data: plan }, { data: usage }, { data: payments }, { data: invoices }] = await Promise.all([
     supabase.from("subscriptions").select("*").eq("business_id", business.id).maybeSingle(),
     supabase.from("plans").select("*").eq("id", business.plan_id).single(),
     supabase
@@ -21,7 +21,18 @@ export default async function SubscriptionPage() {
       .order("period_start", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase.from("payments").select("*").eq("business_id", business.id).order("created_at", { ascending: false }).limit(50),
+    supabase.from("invoices").select("*").eq("business_id", business.id).order("created_at", { ascending: false }).limit(50),
   ]);
 
-  return <SubscriptionClient business={business} subscription={subscription} plan={plan} usage={usage} />;
+  return (
+    <SubscriptionClient
+      business={business}
+      subscription={subscription}
+      plan={plan}
+      usage={usage}
+      payments={payments ?? []}
+      invoices={invoices ?? []}
+    />
+  );
 }
