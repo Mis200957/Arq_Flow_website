@@ -12,7 +12,7 @@ import { z } from "zod";
  * START the change. The change applies on admin payment approval.
  */
 const schema = z.object({
-  action: z.enum(["change_plan", "renew", "extra_messages", "addon", "cancel"]),
+  action: z.enum(["change_plan", "renew", "extra_messages", "addon", "cancel", "pause", "resume"]),
   plan_id: z.enum(["starter", "business", "enterprise"]).optional(),
   pack: z.string().max(60).optional(),
 });
@@ -23,6 +23,8 @@ const COPY: Record<string, { ar: string; en: string }> = {
   extra_messages: { ar: "طلب شراء رسائل إضافية", en: "Extra messages request" },
   addon: { ar: "طلب إضافة خدمة", en: "Add-on request" },
   cancel: { ar: "طلب إلغاء الاشتراك", en: "Cancellation request" },
+  pause: { ar: "طلب إيقاف الاشتراك مؤقتاً", en: "Pause request" },
+  resume: { ar: "طلب استئناف الاشتراك", en: "Resume request" },
 };
 
 export async function POST(req: Request) {

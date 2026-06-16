@@ -2,6 +2,7 @@ import "server-only";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generatePassword } from "@/lib/utils";
+import type { TablesUpdate } from "@/lib/database.types";
 
 /**
  * Shared payment review logic. Used by BOTH the admin dashboard API routes
@@ -43,6 +44,14 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
   const business = payment.businesses;
   const plan = payment.plans;
   if (!business || !plan) return { ok: false, status: 500, error: "Orphaned payment" };
+
+  // Subscription-change payments (upgrade / renewal / extra messages) on an
+  // already-active business apply directly — update plan/quota/limits, no
+  // re-provisioning and no new credentials. The initial 'setup' payment keeps
+  // the full activation + Bot Factory flow below, unchanged.
+  if (payment.payment_type !== "setup" && business.owner_id && business.status === "active") {
+    return applySubscriptionPayment(payment, business, plan, actorId);
+  }
 
   // 1) approve payment
   await admin
@@ -231,6 +240,92 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
     factory_error: factoryError,
   };
 }
+
+/**
+ * Apply a subscription-change payment (upgrade / downgrade / renewal / extra
+ * messages) to an already-active business. Updates plan, quota, limits,
+ * subscription, invoice, notifies the client, and signals n8n to sync the bot
+ * config — all automatically on admin approval. No re-provisioning.
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+async function applySubscriptionPayment(
+  payment: any, business: any, plan: any, actorId: string
+): Promise<ApproveResult> {
+  const admin = createAdminClient();
+  const now = new Date().toISOString();
+
+  await admin.from("payments")
+    .update({ status: "approved", reviewed_by: actorId, reviewed_at: now })
+    .eq("id", payment.id);
+
+  // latest usage counter (authoritative quota for the current period)
+  const { data: counter } = await admin
+    .from("usage_counters").select("*").eq("business_id", business.id)
+    .order("period_start", { ascending: false }).limit(1).maybeSingle();
+
+  const notes = String(payment.notes ?? "");
+  const isExtra = /extra/i.test(notes);
+  const bizUpdate: TablesUpdate<"businesses"> = {};
+  let newLimit = counter?.message_limit ?? plan.message_limit;
+
+  if (isExtra) {
+    const m = notes.match(/(\d{3,6})/);
+    const add = m ? parseInt(m[1], 10) : plan.message_limit;
+    newLimit = (counter?.message_limit ?? plan.message_limit) + add;
+  } else {
+    // plan change or renewal → adopt the plan's tier + limit + fee
+    bizUpdate.plan_id = plan.id;
+    bizUpdate.monthly_fee_egp = plan.monthly_fee_egp;
+    newLimit = plan.message_limit;
+  }
+
+  const nextBilling = new Date();
+  nextBilling.setMonth(nextBilling.getMonth() + 1);
+  bizUpdate.next_billing_date = nextBilling.toISOString().slice(0, 10);
+  await admin.from("businesses").update(bizUpdate).eq("id", business.id);
+
+  if (counter) {
+    await admin.from("usage_counters").update({ message_limit: newLimit }).eq("id", counter.id);
+  }
+
+  await admin.from("subscriptions").update({
+    plan_id: plan.id, status: "active",
+    current_period_end: nextBilling.toISOString().slice(0, 10),
+  }).eq("business_id", business.id);
+
+  const invoiceNumber = `INV-${now.slice(2, 7).replace("-", "")}-${String(business.order_id ?? "").slice(-4)}`;
+  await admin.from("invoices").insert({
+    business_id: business.id, number: invoiceNumber, payment_id: payment.id,
+    amount_egp: payment.amount_egp, tax_egp: 0, total_egp: payment.amount_egp,
+    status: "paid", paid_at: now,
+  });
+
+  // signal n8n to sync the running bot's plan/limit (reuses automation router)
+  await admin.from("automation_logs").insert({
+    business_id: business.id, workflow: "bot_config_sync",
+    event: isExtra ? "extra_messages" : "plan_change", level: "info",
+    payload: { plan_id: plan.id, message_limit: newLimit, payment_id: payment.id },
+  });
+
+  await admin.from("notifications").insert({
+    user_id: business.owner_id, business_id: business.id, type: "subscription_applied",
+    title: "Subscription updated ✅",
+    body: `${isExtra ? "Extra messages added" : "Plan: " + (plan.name_ar ?? plan.name)} — limit ${newLimit.toLocaleString()}`,
+    link: "/dashboard/subscription",
+  });
+
+  await admin.from("audit_logs").insert({
+    actor_id: actorId, action: "subscription.apply", entity: "payments",
+    entity_id: payment.id, diff: { plan: plan.id, message_limit: newLimit, extra: isExtra },
+  });
+
+  return {
+    ok: true, credentials: null,
+    dashboard_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+    factory_triggered: false, factory_error: null,
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /** Reject a pending payment with an optional reason. */
 export async function rejectPayment(
