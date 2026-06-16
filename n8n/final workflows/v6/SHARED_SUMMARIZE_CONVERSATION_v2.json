@@ -1,0 +1,332 @@
+{
+  "name": "🔧 SHARED_SUMMARIZE_CONVERSATION_v2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"business_id\": \"00000000-0000-0000-0000-000000000000\"}, \"customer\": {\"phone\": \"201234567890\"}, \"fetch_limit\": 20}"
+      },
+      "id": "750a9b00-70ca-4da0-ab11-be769dbc626e",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i = $input.first().json;\nconst t = i.tenant || {};\nif (!t.business_id) throw new Error('Missing tenant.business_id');\nconst phone = String((i.customer && i.customer.phone) || '').replace(/[^0-9]/g, '');\nif (!phone) throw new Error('Missing customer.phone');\nreturn { json: { business_id: t.business_id, phone, fetch_limit: i.fetch_limit || 20,\n  customer_body: { business_id: t.business_id, phone, channel: 'whatsapp' } } };"
+      },
+      "id": "fee84910-4bfc-4ed3-90be-5df033df33a8",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/customers?on_conflict=business_id,phone",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('PREPARE').first().json.customer_body) }}"
+      },
+      "id": "9e38ae4d-1398-4d15-80fd-af74b3ae5baa",
+      "name": "GET_CUSTOMER",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/messages?select=direction,content,created_at&business_id=eq.{{ $('PREPARE').first().json.business_id }}&customer_id=eq.{{ $('GET_CUSTOMER').first().json.id }}&order=created_at.desc&limit={{ $('PREPARE').first().json.fetch_limit }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "52df0003-9248-49e2-8550-9898f7cdf3ae",
+      "name": "FETCH_HISTORY",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(x => x.json).filter(m => m && m.content);\nif (rows.length === 0) {\n  return { json: { no_messages: true, summary: 'لا توجد محادثات سابقة', prompt_text: '' } };\n}\nconst ordered = rows.slice().reverse();\nconst formatted = ordered.map(m => (m.direction === 'inbound' ? 'العميل: ' : 'البوت: ') + String(m.content||'').slice(0,200)).join('\\n');\nconst prompt_text = `لخص المحادثة دي في 200 كلمة بحد أقصى. ركز على:\\n1. النقاط الأساسية اللي العميل اتكلم فيها\\n2. الطلبات أو الشكاوى لو في\\n3. حالة العميل العامة (راضي، عصبي، عادي)\\n4. أي تفاصيل مهمة (مواعيد، أسعار، عناوين)\\n\\nاكتب الملخص بالعربي. ابدأ مباشرة بدون مقدمة.\\n\\nالمحادثة:\\n${formatted}`;\nreturn { json: { no_messages: false, message_count: rows.length, prompt_text } };"
+      },
+      "id": "6cfe2fff-07dc-49e0-953a-99ca61c03a22",
+      "name": "BUILD_SUMMARY_PROMPT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt_text }}",
+        "options": {
+          "systemMessage": "أنت محلل محادثات. مهمتك تلخيص المحادثات بدقة وإيجاز."
+        }
+      },
+      "id": "f513b208-c0ee-47ee-98f9-50752b4ba5f7",
+      "name": "SUMMARIZE_AI",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": "anthropic/claude-haiku-4.5",
+        "options": {
+          "maxTokens": 500,
+          "temperature": 0.3
+        }
+      },
+      "id": "a4fefdc8-775e-49e0-9ffb-2ba62ce3f8d1",
+      "name": "Haiku Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        200
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "ZUuFFfPUwfHYOctj",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ai = $input.first().json;\nlet s = '';\nif (typeof ai.output === 'string') s = ai.output;\nelse if (ai.text) s = ai.text;\nelse if (ai.output && ai.output[0] && ai.output[0].content && ai.output[0].content[0]) s = ai.output[0].content[0].text || '';\nelse if (ai.choices && ai.choices[0]) s = ai.choices[0].message.content || '';\ns = String(s).trim().slice(0, 1500);\nreturn { json: { summary: s, update_body: { conversation_summary: s, updated_at: new Date().toISOString() } } };"
+      },
+      "id": "431c7dac-43e1-463c-ad48-825f73d265c3",
+      "name": "EXTRACT_SUMMARY",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/customers?id=eq.{{ $('GET_CUSTOMER').first().json.id }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('EXTRACT_SUMMARY').first().json.update_body) }}"
+      },
+      "id": "8f92c648-12e8-42d7-8dbf-2540b7aee37e",
+      "name": "SAVE_SUMMARY",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: { success: true, summary: $('EXTRACT_SUMMARY').first().json.summary } };"
+      },
+      "id": "847bed72-faa3-4264-9dfe-812b6a4a4908",
+      "name": "RETURN_SUMMARY",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "GET_CUSTOMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_CUSTOMER": {
+      "main": [
+        [
+          {
+            "node": "FETCH_HISTORY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FETCH_HISTORY": {
+      "main": [
+        [
+          {
+            "node": "BUILD_SUMMARY_PROMPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_SUMMARY_PROMPT": {
+      "main": [
+        [
+          {
+            "node": "SUMMARIZE_AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SUMMARIZE_AI": {
+      "main": [
+        [
+          {
+            "node": "EXTRACT_SUMMARY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EXTRACT_SUMMARY": {
+      "main": [
+        [
+          {
+            "node": "SAVE_SUMMARY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SAVE_SUMMARY": {
+      "main": [
+        [
+          {
+            "node": "RETURN_SUMMARY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Haiku Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "SUMMARIZE_AI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

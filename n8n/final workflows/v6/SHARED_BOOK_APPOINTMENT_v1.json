@@ -1,0 +1,206 @@
+{
+  "name": "🔧 SHARED_BOOK_APPOINTMENT_v1",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\":{\"business_id\":\"uuid\"},\"phone\":\"201234567890\",\"name\":\"محمد\",\"doctor_id\":null,\"service_id\":null,\"starts_at\":\"2026-06-20T15:00:00\",\"ends_at\":null,\"notes\":null}"
+      },
+      "id": "dbe55ad1-993e-4bb6-bd71-d43f5ac60604",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const t=i.tenant||{};\nif(!t.business_id) throw new Error('Missing tenant.business_id');\nconst phone=String(i.phone||'').replace(/[^0-9]/g,'');\nif(!phone) throw new Error('Missing phone');\nif(!i.starts_at) throw new Error('Missing starts_at');\nconst customer_body={business_id:t.business_id,phone,name:i.name||null,channel:'whatsapp'};\nreturn {json:{business_id:t.business_id,phone,starts_at:i.starts_at,ends_at:i.ends_at||null,doctor_id:i.doctor_id||null,service_id:i.service_id||null,notes:i.notes||null,customer_body}};"
+      },
+      "id": "8c03aefe-fb33-48cd-942a-201b33edecee",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://zjathejcdkpxjyvululp.supabase.co/rest/v1/customers?on_conflict=business_id,phone",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('PREPARE').first().json.customer_body) }}"
+      },
+      "id": "19dd459d-7b88-4895-9410-ae7250d0102e",
+      "name": "UPSERT_CUSTOMER",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p=$('PREPARE').first().json;const c=$input.first().json;\nconst customer_id=Array.isArray(c)?(c[0]&&c[0].id):(c&&c.id);\nconst appt_body={business_id:p.business_id,customer_id:customer_id||null,doctor_id:p.doctor_id,service_id:p.service_id,starts_at:p.starts_at,ends_at:p.ends_at,status:'scheduled',source:'whatsapp',notes:p.notes};\nreturn {json:{customer_id:customer_id||null,appt_body}};"
+      },
+      "id": "ce086e8a-4ed5-4225-acd4-5ed013e28de9",
+      "name": "BUILD_APPT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://zjathejcdkpxjyvululp.supabase.co/rest/v1/appointments",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('BUILD_APPT').first().json.appt_body) }}"
+      },
+      "id": "db42c208-faf1-4df9-a55b-d071f7fdc01b",
+      "name": "INSERT_APPT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out=$input.first().json;const r=Array.isArray(out)?out[0]:out;const id=r&&r.id;const p=$('PREPARE').first().json;\nreturn {json:{success:!!id,appointment_id:id||null,starts_at:p.starts_at,\n message: id? ('تم حجز الموعد بنجاح ✅ رقم الحجز: '+id) : 'تعذّر إنشاء الحجز، حاول مرة أخرى.'}};"
+      },
+      "id": "f2731bad-873e-4d13-83f8-d8b19f73c0f5",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "UPSERT_CUSTOMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPSERT_CUSTOMER": {
+      "main": [
+        [
+          {
+            "node": "BUILD_APPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_APPT": {
+      "main": [
+        [
+          {
+            "node": "INSERT_APPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSERT_APPT": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
