@@ -112,8 +112,8 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
                 <span className="font-semibold">{formatEGP(plan.token_budget_egp, "en")}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted">Validity</span>
-                <span className="font-semibold">{plan.validity_days} days</span>
+                <span className="text-muted">Renewal</span>
+                <span className="font-semibold">Monthly</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted">AI Model</span>
@@ -182,12 +182,12 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
             <span className="font-bold text-accent">{formatEGP(budgetPreview, "en")}</span>
           </div>
 
-          <Field label="Validity (days)" required>
-            <input type="number" className="input-base" value={form.validity_days ?? ""} onChange={(e) => setForm((f) => ({ ...f, validity_days: Number(e.target.value) }))} />
-          </Field>
           <Field label="Setup Fee (EGP)" hint="One-time, first payment only">
             <input type="number" className="input-base" value={form.setup_fee_egp ?? ""} onChange={(e) => setForm((f) => ({ ...f, setup_fee_egp: Number(e.target.value) }))} />
           </Field>
+          <div className="rounded-xl bg-[rgba(238,237,210,0.04)] p-3 text-xs text-muted flex items-center">
+            Renewal: monthly (same day next calendar month)
+          </div>
 
           <Field label="AI Model">
             <input className="input-base" value={form.ai_model ?? ""} onChange={(e) => setForm((f) => ({ ...f, ai_model: e.target.value }))} />

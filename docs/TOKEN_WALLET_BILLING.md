@@ -2,15 +2,18 @@
 
 This replaces the old "monthly message quota" with a **prepaid EGP wallet**.
 The customer pays the package price; the bot replies until the wallet's token
-budget runs out **or** 30 days pass — whichever comes first.
+budget runs out **or** the one-month validity passes — whichever comes first.
+Renewals land on the same day of the next calendar month (e.g. the 15th → the 15th next month).
 
 ## The money model
 
 | Package (`plans.monthly_fee_egp`) | Your margin (`margin_egp`) | Token budget (`token_budget_egp`, auto) | Validity |
 |---|---|---|---|
-| 500 EGP  | 200 | 300  | 30 days |
-| 1100 EGP | 350 | 750  | 30 days |
-| 1500 EGP | 500 | 1000 | 30 days |
+| 500 EGP  | 200 | 300  | 1 month |
+| 1100 EGP | 350 | 750  | 1 month |
+| 1500 EGP | 500 | 1000 | 1 month |
+
+**Upgrade pricing:** an upgrade costs the **setup-fee difference** between the two plans **plus** the new package price. Example: Business (setup 4000) → Enterprise (setup 7000) = (7000 − 4000) + 1500 = **4500 EGP**. A renewal (same plan) is just the package price.
 
 - `token_budget_egp` is a **generated column** = `monthly_fee_egp − margin_egp`. You never set it directly.
 - All four numbers (price, margin, validity, setup fee) are editable per plan in **Admin → Plans**.
@@ -65,7 +68,7 @@ Use it to refresh the running bot's model/limits if the plan changed.
 1. Client opens **Dashboard → Subscription**, taps Renew or a plan card.
 2. Pays by InstaPay / Vodafone Cash / WE Pay, enters the 12-digit transaction ref, uploads the receipt.
 3. A `payments` row is created (`payment_type` = `renewal` or `upgrade`) and the admin is pinged on **Telegram** with Approve/Reject — identical to first-time onboarding.
-4. On approval → `wallet_topup()` runs: it **adds** the new budget, **rolls over** any unused balance, and resets validity to 30 days from today.
+4. On approval → `wallet_topup()` runs: it **adds** the new budget, **rolls over** any unused balance, and resets the expiry to the same day next calendar month.
 
 ## DB objects added
 - `plans.margin_egp`, `plans.validity_days`, `plans.token_budget_egp` (generated)

@@ -65,6 +65,7 @@ export default function SubscriptionClient({
       // payment modal
       payTitle: "ادفع وفعّل", payRenew: "تجديد", payUpgrade: "ترقية إلى",
       amountDue: "المبلغ المطلوب", chooseMethod: "اختر طريقة الدفع", transferTo: "حوّل على الرقم",
+      setupDiffL: "فرق رسوم التأسيس", pkgL: "رصيد الباقة",
       txRefL: "رقم العملية (12 رقم)", txRefHint: "هتلاقيه في رسالة تأكيد التحويل",
       shotL: "صورة إيصال التحويل", shotHint: "سكرين شوت من المحفظة أو البنك — مطلوبة",
       uploadCta: "ارفع الصورة", uploading: "جاري الرفع...", uploaded: "تم الرفع ✓", remove: "إزالة",
@@ -86,6 +87,7 @@ export default function SubscriptionClient({
       download: "Download", invoice: "Invoice", payment: "Payment",
       payTitle: "Pay & activate", payRenew: "Renew", payUpgrade: "Upgrade to",
       amountDue: "Amount due", chooseMethod: "Choose a payment method", transferTo: "Transfer to",
+      setupDiffL: "Setup-fee difference", pkgL: "Package balance",
       txRefL: "Transaction reference (12 digits)", txRefHint: "Found in your transfer confirmation",
       shotL: "Transfer screenshot", shotHint: "Screenshot from your wallet or bank app — required",
       uploadCta: "Upload screenshot", uploading: "Uploading...", uploaded: "Uploaded ✓", remove: "Remove",
@@ -181,8 +183,15 @@ export default function SubscriptionClient({
     success(lang === "ar" ? "تم إرسال الطلب" : "Request sent");
   }
 
-  const payAmount = payPlan ? Number(payPlan.monthly_fee_egp) : 0;
-  const isUpgradeIntent = payPlan ? payPlan.id !== business.plan_id : false;
+  // Renewal (same plan) = package price only. Upgrade (higher tier) = setup-fee
+  // difference + new package price. Downgrade = package price only.
+  const isSamePlan = payPlan ? payPlan.id === business.plan_id : false;
+  const isUpgradeIntent = payPlan ? (payPlan.tier_level ?? 0) > (plan?.tier_level ?? 0) : false;
+  const pkgPrice = payPlan ? Number(payPlan.monthly_fee_egp) : 0;
+  const setupDiff = isUpgradeIntent
+    ? Math.max(0, Number(payPlan?.setup_fee_egp ?? 0) - Number(plan?.setup_fee_egp ?? 0))
+    : 0;
+  const payAmount = pkgPrice + setupDiff;
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -306,7 +315,7 @@ export default function SubscriptionClient({
       </div>
 
       {/* Payment modal */}
-      <Modal open={!!payPlan} onClose={closePay} title={`${isUpgradeIntent ? t.payUpgrade + " " + pickName(payPlan) : t.payRenew} — ${pickName(payPlan)}`} wide>
+      <Modal open={!!payPlan} onClose={closePay} title={isSamePlan ? `${t.payRenew} — ${pickName(payPlan)}` : `${t.payUpgrade} ${pickName(payPlan)}`} wide>
         {submitted ? (
           <div className="space-y-4 text-center py-4">
             <CheckCircle className="w-12 h-12 text-[var(--success)] mx-auto" />
@@ -317,12 +326,20 @@ export default function SubscriptionClient({
         ) : (
           <div className="space-y-5">
             {/* amount */}
-            <div className="rounded-xl bg-[rgba(107,160,172,0.08)] border border-[var(--accent)]/30 p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted">{t.amountDue}</p>
-                <p className="text-2xl font-extrabold gradient-text">{formatEGP(payAmount, lang)}</p>
+            <div className="rounded-xl bg-[rgba(107,160,172,0.08)] border border-[var(--accent)]/30 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-muted">{t.amountDue}</p>
+                  <p className="text-2xl font-extrabold gradient-text">{formatEGP(payAmount, lang)}</p>
+                </div>
+                <p className="text-xs text-muted max-w-[50%] text-end">{t.rollover}</p>
               </div>
-              <p className="text-xs text-muted max-w-[55%] text-end">{t.rollover}</p>
+              {setupDiff > 0 && (
+                <div className="mt-3 pt-3 border-t border-[var(--border)] text-xs text-muted space-y-1">
+                  <div className="flex justify-between"><span>{t.setupDiffL}</span><span>{formatEGP(setupDiff, lang)}</span></div>
+                  <div className="flex justify-between"><span>{t.pkgL}</span><span>{formatEGP(pkgPrice, lang)}</span></div>
+                </div>
+              )}
             </div>
 
             {/* method */}

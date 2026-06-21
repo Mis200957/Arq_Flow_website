@@ -97,12 +97,13 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
   }
 
   // 3) business → provisioning, link owner
-  const validityDays = Number(plan.validity_days ?? 30);
   const tokenBudget = Number(
     plan.token_budget_egp ?? Number(plan.monthly_fee_egp) - Number(plan.margin_egp ?? 0)
   );
+  // Subscription runs for one calendar month (same day next month, e.g. 15th → 15th).
   const nextBilling = new Date();
-  nextBilling.setDate(nextBilling.getDate() + validityDays);
+  nextBilling.setMonth(nextBilling.getMonth() + 1);
+  const nextEnd = nextBilling.toISOString().slice(0, 10);
   await admin
     .from("businesses")
     .update({
@@ -139,7 +140,7 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
     b_id: business.id,
     add_budget: tokenBudget,
     add_wallet: Number(plan.monthly_fee_egp),
-    validity: validityDays,
+    new_end: nextEnd,
     msg_limit: Number(plan.message_limit ?? 0),
   });
 
@@ -172,7 +173,7 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
       // token-wallet billing
       package_price_egp: Number(plan.monthly_fee_egp),
       token_budget_egp: tokenBudget,
-      validity_days: validityDays,
+      expires_on: nextEnd,
     },
     business: {
       business_name: business.business_name,
@@ -279,25 +280,27 @@ async function applySubscriptionPayment(
     .update({ status: "approved", reviewed_by: actorId, reviewed_at: now })
     .eq("id", payment.id);
 
-  const validityDays = Number(plan.validity_days ?? 30);
   const tokenBudget = Number(
     plan.token_budget_egp ?? Number(plan.monthly_fee_egp) - Number(plan.margin_egp ?? 0)
   );
   const isPlanChange = String(plan.id) !== String(business.plan_id);
 
+  // New billing window = one calendar month from today (same day next month).
+  const nextBilling = new Date();
+  nextBilling.setMonth(nextBilling.getMonth() + 1);
+  const newEnd = nextBilling.toISOString().slice(0, 10);
+
   // Top up the wallet — the DB function rolls over any unused balance and
-  // extends the validity window from today.
+  // resets the validity window to one month from today.
   const { data: walletRows } = await admin.rpc("wallet_topup", {
     b_id: business.id,
     add_budget: tokenBudget,
     add_wallet: Number(plan.monthly_fee_egp),
-    validity: validityDays,
+    new_end: newEnd,
     msg_limit: Number(plan.message_limit ?? 0),
   });
   const wallet = Array.isArray(walletRows) ? walletRows[0] : walletRows;
-  const periodEnd =
-    wallet?.period_end ??
-    new Date(Date.now() + validityDays * 86400000).toISOString().slice(0, 10);
+  const periodEnd = wallet?.period_end ?? newEnd;
 
   // Adopt the (possibly new) plan, reactivate, set next billing to wallet expiry.
   const bizUpdate: TablesUpdate<"businesses"> = {

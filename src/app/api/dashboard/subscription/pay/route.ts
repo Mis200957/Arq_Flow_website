@@ -44,16 +44,20 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
 
-  // Target plan (renewal = same plan, upgrade/downgrade = different plan).
-  const { data: plan } = await admin
-    .from("plans")
-    .select("id, name, name_ar, monthly_fee_egp")
-    .eq("id", d.plan_id)
-    .single();
+  // Target plan (renewal = same plan, upgrade/downgrade = different plan) + current plan.
+  const [{ data: plan }, { data: currentPlan }] = await Promise.all([
+    admin.from("plans").select("id, name, name_ar, monthly_fee_egp, setup_fee_egp, tier_level").eq("id", d.plan_id).single(),
+    admin.from("plans").select("setup_fee_egp, tier_level").eq("id", business.plan_id).single(),
+  ]);
   if (!plan) return NextResponse.json({ error: "Unknown plan" }, { status: 422 });
 
   const isUpgrade = d.plan_id !== business.plan_id;
-  const amount = Number(plan.monthly_fee_egp); // package price only — no setup fee on renewal/upgrade
+  // Renewal = package (token) price only. Upgrade = setup-fee DIFFERENCE + new package price.
+  // (No setup-fee refund on a downgrade → difference floored at 0.)
+  const setupDiff = isUpgrade
+    ? Math.max(0, Number(plan.setup_fee_egp) - Number(currentPlan?.setup_fee_egp ?? 0))
+    : 0;
+  const amount = setupDiff + Number(plan.monthly_fee_egp);
 
   // idempotency: same transaction_ref already pending/approved → reject duplicate
   const { data: dupe } = await admin
@@ -80,7 +84,9 @@ export async function POST(req: Request) {
       transaction_ref: d.transaction_ref,
       screenshot_path: d.screenshot_path,
       status: "pending",
-      notes: isUpgrade ? `Upgrade to ${plan.id}` : `Renewal of ${plan.id}`,
+      notes: isUpgrade
+        ? `Upgrade to ${plan.id} — setup diff ${setupDiff} + package ${plan.monthly_fee_egp}`
+        : `Renewal of ${plan.id} — package ${plan.monthly_fee_egp}`,
     })
     .select("id")
     .single();

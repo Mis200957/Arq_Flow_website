@@ -3452,7 +3452,7 @@ export type Database = {
           add_wallet: number
           b_id: string
           msg_limit: number
-          validity: number
+          new_end: string
         }
         Returns: {
           balance_egp: number
