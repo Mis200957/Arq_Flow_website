@@ -45,11 +45,12 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
   const plan = payment.plans;
   if (!business || !plan) return { ok: false, status: 500, error: "Orphaned payment" };
 
-  // Subscription-change payments (upgrade / renewal / extra messages) on an
-  // already-active business apply directly — update plan/quota/limits, no
-  // re-provisioning and no new credentials. The initial 'setup' payment keeps
-  // the full activation + Bot Factory flow below, unchanged.
-  if (payment.payment_type !== "setup" && business.owner_id && business.status === "active") {
+  // Subscription-change payments (renewal / upgrade / top-up) on an already
+  // provisioned business (has an owner) apply directly — top up the wallet,
+  // adopt the new plan, no re-provisioning and no new credentials. This also
+  // reactivates a business whose wallet had lapsed. The initial 'setup' payment
+  // keeps the full activation + Bot Factory flow below, unchanged.
+  if (payment.payment_type !== "setup" && business.owner_id) {
     return applySubscriptionPayment(payment, business, plan, actorId);
   }
 
@@ -96,8 +97,12 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
   }
 
   // 3) business → provisioning, link owner
+  const validityDays = Number(plan.validity_days ?? 30);
+  const tokenBudget = Number(
+    plan.token_budget_egp ?? Number(plan.monthly_fee_egp) - Number(plan.margin_egp ?? 0)
+  );
   const nextBilling = new Date();
-  nextBilling.setMonth(nextBilling.getMonth() + 1);
+  nextBilling.setDate(nextBilling.getDate() + validityDays);
   await admin
     .from("businesses")
     .update({
@@ -128,6 +133,16 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
     paid_at: new Date().toISOString(),
   });
 
+  // 4b) provision the token wallet: balance_egp = real token budget (price − margin),
+  // wallet_egp = customer-facing package credit. Valid for the plan's validity window.
+  await admin.rpc("wallet_topup", {
+    b_id: business.id,
+    add_budget: tokenBudget,
+    add_wallet: Number(plan.monthly_fee_egp),
+    validity: validityDays,
+    msg_limit: Number(plan.message_limit ?? 0),
+  });
+
   // 5) gather tenant content for the factory payload
   const [{ data: kb }, { data: products }, { data: services }] = await Promise.all([
     admin.from("knowledge_base").select("kind, category, question, answer, language").eq("business_id", business.id),
@@ -154,6 +169,10 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
       message_limit: plan.message_limit,
       tools: plan.tools,
       media_support: plan.media_support,
+      // token-wallet billing
+      package_price_egp: Number(plan.monthly_fee_egp),
+      token_budget_egp: tokenBudget,
+      validity_days: validityDays,
     },
     business: {
       business_name: business.business_name,
@@ -242,10 +261,12 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
 }
 
 /**
- * Apply a subscription-change payment (upgrade / downgrade / renewal / extra
- * messages) to an already-active business. Updates plan, quota, limits,
- * subscription, invoice, notifies the client, and signals n8n to sync the bot
- * config — all automatically on admin approval. No re-provisioning.
+ * Apply a subscription-change payment (renewal / upgrade / downgrade / top-up)
+ * to an already-provisioned business. Tops up the token wallet (unused balance
+ * rolls over), adopts the target plan, extends validity, reactivates the
+ * business, writes the invoice, notifies the client, and signals n8n to sync
+ * the running bot config — all automatically on admin approval. No
+ * re-provisioning and no new credentials.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 async function applySubscriptionPayment(
@@ -258,39 +279,38 @@ async function applySubscriptionPayment(
     .update({ status: "approved", reviewed_by: actorId, reviewed_at: now })
     .eq("id", payment.id);
 
-  // latest usage counter (authoritative quota for the current period)
-  const { data: counter } = await admin
-    .from("usage_counters").select("*").eq("business_id", business.id)
-    .order("period_start", { ascending: false }).limit(1).maybeSingle();
+  const validityDays = Number(plan.validity_days ?? 30);
+  const tokenBudget = Number(
+    plan.token_budget_egp ?? Number(plan.monthly_fee_egp) - Number(plan.margin_egp ?? 0)
+  );
+  const isPlanChange = String(plan.id) !== String(business.plan_id);
 
-  const notes = String(payment.notes ?? "");
-  const isExtra = /extra/i.test(notes);
-  const bizUpdate: TablesUpdate<"businesses"> = {};
-  let newLimit = counter?.message_limit ?? plan.message_limit;
+  // Top up the wallet — the DB function rolls over any unused balance and
+  // extends the validity window from today.
+  const { data: walletRows } = await admin.rpc("wallet_topup", {
+    b_id: business.id,
+    add_budget: tokenBudget,
+    add_wallet: Number(plan.monthly_fee_egp),
+    validity: validityDays,
+    msg_limit: Number(plan.message_limit ?? 0),
+  });
+  const wallet = Array.isArray(walletRows) ? walletRows[0] : walletRows;
+  const periodEnd =
+    wallet?.period_end ??
+    new Date(Date.now() + validityDays * 86400000).toISOString().slice(0, 10);
 
-  if (isExtra) {
-    const m = notes.match(/(\d{3,6})/);
-    const add = m ? parseInt(m[1], 10) : plan.message_limit;
-    newLimit = (counter?.message_limit ?? plan.message_limit) + add;
-  } else {
-    // plan change or renewal → adopt the plan's tier + limit + fee
-    bizUpdate.plan_id = plan.id;
-    bizUpdate.monthly_fee_egp = plan.monthly_fee_egp;
-    newLimit = plan.message_limit;
-  }
-
-  const nextBilling = new Date();
-  nextBilling.setMonth(nextBilling.getMonth() + 1);
-  bizUpdate.next_billing_date = nextBilling.toISOString().slice(0, 10);
+  // Adopt the (possibly new) plan, reactivate, set next billing to wallet expiry.
+  const bizUpdate: TablesUpdate<"businesses"> = {
+    plan_id: plan.id,
+    monthly_fee_egp: plan.monthly_fee_egp,
+    next_billing_date: periodEnd,
+    status: "active",
+  };
   await admin.from("businesses").update(bizUpdate).eq("id", business.id);
-
-  if (counter) {
-    await admin.from("usage_counters").update({ message_limit: newLimit }).eq("id", counter.id);
-  }
 
   await admin.from("subscriptions").update({
     plan_id: plan.id, status: "active",
-    current_period_end: nextBilling.toISOString().slice(0, 10),
+    current_period_end: periodEnd,
   }).eq("business_id", business.id);
 
   const invoiceNumber = `INV-${now.slice(2, 7).replace("-", "")}-${String(business.order_id ?? "").slice(-4)}`;
@@ -300,23 +320,28 @@ async function applySubscriptionPayment(
     status: "paid", paid_at: now,
   });
 
-  // signal n8n to sync the running bot's plan/limit (reuses automation router)
+  // signal n8n to sync the running bot's plan + wallet (reuses automation router)
   await admin.from("automation_logs").insert({
     business_id: business.id, workflow: "bot_config_sync",
-    event: isExtra ? "extra_messages" : "plan_change", level: "info",
-    payload: { plan_id: plan.id, message_limit: newLimit, payment_id: payment.id },
+    event: isPlanChange ? "plan_change" : "renewal", level: "info",
+    payload: {
+      plan_id: plan.id, payment_id: payment.id,
+      balance_egp: wallet?.balance_egp ?? null, wallet_egp: wallet?.wallet_egp ?? null,
+      expires_on: periodEnd,
+    },
   });
 
   await admin.from("notifications").insert({
     user_id: business.owner_id, business_id: business.id, type: "subscription_applied",
-    title: "Subscription updated ✅",
-    body: `${isExtra ? "Extra messages added" : "Plan: " + (plan.name_ar ?? plan.name)} — limit ${newLimit.toLocaleString()}`,
+    title: "تم تفعيل اشتراكك ✅",
+    body: `${isPlanChange ? "الباقة: " + (plan.name_ar ?? plan.name) + " — " : ""}رصيدك اتجدد، صالح حتى ${periodEnd}`,
     link: "/dashboard/subscription",
   });
 
   await admin.from("audit_logs").insert({
     actor_id: actorId, action: "subscription.apply", entity: "payments",
-    entity_id: payment.id, diff: { plan: plan.id, message_limit: newLimit, extra: isExtra },
+    entity_id: payment.id,
+    diff: { plan: plan.id, plan_change: isPlanChange, balance_egp: wallet?.balance_egp ?? null, expires_on: periodEnd },
   });
 
   return {

@@ -5,15 +5,15 @@ import Link from "next/link";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
 } from "recharts";
-import { MessageSquare, Gauge, Wallet, CalendarClock, Crown, AlertTriangle, ArrowRight, TrendingUp } from "lucide-react";
+import { MessageSquare, Gauge, Wallet, CalendarClock, Crown, AlertTriangle, TrendingUp } from "lucide-react";
 import { StatCard } from "@/components/ui";
 import { useT, useLang } from "@/lib/i18n";
-import { cn, formatEGP } from "@/lib/utils";
+import { cn, formatEGP, formatDate } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/database.types";
 
 type Counter = Tables<"usage_counters">;
-interface PlanRow { id: string; name: string; name_ar: string; message_limit: number; monthly_fee_egp: number }
+interface PlanRow { id: string; name: string; name_ar: string; monthly_fee_egp: number }
 interface Props {
   businessId: string;
   current: Counter | null;
@@ -26,27 +26,28 @@ export default function UsageClient({ businessId, current: initialCurrent, histo
   const { lang } = useLang();
   const t = useT({
     ar: {
-      plan: "الباقة الحالية", used: "الرسائل المستخدمة", remaining: "المتبقي", cost: "تكلفة الذكاء",
-      estDays: "أيام متبقية (تقديري)", monthly: "الاستهلاك الشهري", daily: "النشاط آخر ٣٠ يوم",
-      ofLimit: "من الحد", day: "يوم", messages: "رسالة", limitReached: "لقد وصلت إلى حد رسائلك",
-      warn75: "اقترب استهلاكك من الحد — راجع باقتك", warn90: "أوشكت رسائلك على الانتهاء",
-      upgrade: "ترقية الباقة", buyMore: "شراء رسائل إضافية", noData: "لا توجد بيانات بعد",
-      thisPeriod: "هذه الفترة", inbound: "واردة", outbound: "صادرة",
+      plan: "الباقة الحالية", balance: "الرصيد المتبقي", consumed: "المستهلك", validity: "الصلاحية",
+      daysLeft: "أيام متبقية", monthly: "استهلاك الفترات", daily: "النشاط آخر ٣٠ يوم",
+      ofWallet: "من رصيد الباقة", day: "يوم", messages: "رسالة",
+      depleted: "خلص رصيدك", expired: "انتهت صلاحية باقتك",
+      warn75: "قرب رصيدك يخلص — راجع باقتك", warn90: "رصيدك أوشك على الانتهاء",
+      upgrade: "ترقية الباقة", renew: "تجديد الاشتراك", noData: "لا توجد بيانات بعد",
+      thisPeriod: "هذه الفترة", validUntil: "صالح حتى",
     },
     en: {
-      plan: "Current Plan", used: "Messages Used", remaining: "Remaining", cost: "AI Cost",
-      estDays: "Est. Days Left", monthly: "Monthly Usage", daily: "Last 30 Days Activity",
-      ofLimit: "of limit", day: "day", messages: "messages", limitReached: "You've reached your message limit",
-      warn75: "You're approaching your limit — review your plan", warn90: "Your messages are almost out",
-      upgrade: "Upgrade Plan", buyMore: "Buy Extra Messages", noData: "No data yet",
-      thisPeriod: "this period", inbound: "Inbound", outbound: "Outbound",
+      plan: "Current Plan", balance: "Remaining balance", consumed: "Consumed", validity: "Validity",
+      daysLeft: "Days left", monthly: "Usage by period", daily: "Last 30 Days Activity",
+      ofWallet: "of package balance", day: "day", messages: "messages",
+      depleted: "Balance used up", expired: "Package validity expired",
+      warn75: "Your balance is running low — review your plan", warn90: "Your balance is almost out",
+      upgrade: "Upgrade Plan", renew: "Renew subscription", noData: "No data yet",
+      thisPeriod: "this period", validUntil: "Valid until",
     },
   });
 
   const [current, setCurrent] = useState(initialCurrent);
   const supabase = useMemo(() => createClient(), []);
 
-  // Realtime usage updates
   useEffect(() => {
     const ch = supabase
       .channel("usage-page:" + businessId)
@@ -56,25 +57,21 @@ export default function UsageClient({ businessId, current: initialCurrent, histo
     return () => { supabase.removeChannel(ch); };
   }, [businessId, supabase]);
 
-  // Evaluate thresholds (best-effort, server inserts notifications + logs automation)
   useEffect(() => {
     fetch("/api/dashboard/usage/check", { method: "POST" }).catch(() => {});
   }, []);
 
-  const limit = current?.message_limit ?? plan?.message_limit ?? 0;
-  const used = current?.messages_used ?? 0;
-  const remaining = Math.max(0, limit - used);
-  const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
-  const cost = current?.cost_egp ?? 0;
-
-  const estDays = useMemo(() => {
-    if (!current?.period_start || used <= 0) return null;
-    const start = new Date(current.period_start).getTime();
-    const daysElapsed = Math.max(1, (Date.now() - start) / 86400000);
-    const rate = used / daysElapsed;
-    if (rate <= 0) return null;
-    return Math.max(0, Math.round(remaining / rate));
-  }, [current?.period_start, used, remaining]);
+  // wallet math (display in package-price EGP; enforcement uses real budget)
+  const balance = Number(current?.balance_egp ?? 0);
+  const consumed = Number(current?.cost_egp ?? 0);
+  const walletTotal = Number(current?.wallet_egp ?? 0);
+  const pct = balance > 0 ? Math.min(100, Math.round((consumed / balance) * 100)) : 0;
+  const remainingDisplay = balance > 0 ? Math.max(0, walletTotal * (1 - consumed / balance)) : 0;
+  const consumedDisplay = Math.max(0, walletTotal - remainingDisplay);
+  const expiry = current?.period_end ?? null;
+  const daysLeft = expiry ? Math.ceil((new Date(expiry).getTime() - Date.now()) / 86400000) : null;
+  const expired = daysLeft != null && daysLeft < 0;
+  const depleted = balance > 0 && consumed >= balance;
 
   const dailyData = useMemo(() => {
     const days: Record<string, number> = {};
@@ -93,11 +90,17 @@ export default function UsageClient({ businessId, current: initialCurrent, histo
   }, [messages, lang]);
 
   const monthlyData = useMemo(
-    () => history.map((h) => ({
-      label: new Date(h.period_start).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB", { month: "short", year: "2-digit" }),
-      used: h.messages_used,
-      limit: h.message_limit,
-    })),
+    () => history.map((h) => {
+      const bal = Number(h.balance_egp ?? 0);
+      const cst = Number(h.cost_egp ?? 0);
+      const wal = Number(h.wallet_egp ?? 0);
+      const usedDisplay = bal > 0 ? Math.min(wal, wal * (cst / bal)) : 0;
+      return {
+        label: new Date(h.period_start).toLocaleDateString(lang === "ar" ? "ar-EG" : "en-GB", { month: "short", day: "numeric" }),
+        used: Math.round(usedDisplay),
+        total: Math.round(wal),
+      };
+    }),
     [history, lang]
   );
 
@@ -106,19 +109,19 @@ export default function UsageClient({ businessId, current: initialCurrent, histo
 
   return (
     <div className="space-y-6">
-      {/* Threshold banner */}
-      {pct >= 75 && (
+      {/* Banner */}
+      {(pct >= 75 || expired) && (
         <div className={cn(
           "card p-4 flex flex-wrap items-center gap-3 border",
-          pct >= 100 ? "border-[var(--danger)] bg-[rgba(248,113,113,0.08)]" : pct >= 90 ? "border-[var(--danger)] bg-[rgba(248,113,113,0.06)]" : "border-[var(--warning)] bg-[rgba(251,191,36,0.06)]"
+          expired || depleted ? "border-[var(--danger)] bg-[rgba(248,113,113,0.08)]" : pct >= 90 ? "border-[var(--danger)] bg-[rgba(248,113,113,0.06)]" : "border-[var(--warning)] bg-[rgba(251,191,36,0.06)]"
         )}>
-          <AlertTriangle className={cn("w-5 h-5 shrink-0", pct >= 90 ? "text-[var(--danger)]" : "text-[var(--warning)]")} />
+          <AlertTriangle className={cn("w-5 h-5 shrink-0", pct >= 90 || expired ? "text-[var(--danger)]" : "text-[var(--warning)]")} />
           <span className="text-sm font-semibold flex-1">
-            {pct >= 100 ? t.limitReached : pct >= 90 ? t.warn90 : t.warn75} ({pct}%)
+            {expired ? t.expired : depleted ? t.depleted : pct >= 90 ? t.warn90 : t.warn75}{!expired && ` (${pct}%)`}
           </span>
           <div className="flex gap-2">
-            <Link href="/dashboard/subscription?action=extra" className="btn-outline !py-1.5 text-sm">{t.buyMore}</Link>
-            <Link href="/dashboard/subscription?action=upgrade" className="btn-primary !py-1.5 text-sm flex items-center gap-1.5"><Crown className="w-4 h-4" /> {t.upgrade}</Link>
+            <Link href="/dashboard/subscription" className="btn-outline !py-1.5 text-sm">{t.renew}</Link>
+            <Link href="/dashboard/subscription" className="btn-primary !py-1.5 text-sm flex items-center gap-1.5"><Crown className="w-4 h-4" /> {t.upgrade}</Link>
           </div>
         </div>
       )}
@@ -126,25 +129,27 @@ export default function UsageClient({ businessId, current: initialCurrent, histo
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label={t.plan} value={planName} icon={<Crown className="w-5 h-5" />}
-          hint={plan ? <span>{formatEGP(plan.monthly_fee_egp, lang)} / {lang === "ar" ? "شهر" : "mo"}</span> : null} />
-        <StatCard label={t.used} value={`${used.toLocaleString()} / ${limit.toLocaleString()}`} icon={<MessageSquare className="w-5 h-5" />}
+          hint={plan ? <span>{formatEGP(plan.monthly_fee_egp, lang)}</span> : null} />
+        <StatCard label={t.balance} value={formatEGP(remainingDisplay, lang)} icon={<Wallet className="w-5 h-5" />}
           hint={
             <div className="mt-2 space-y-1">
-              <div className="flex justify-between text-xs"><span>{pct}%</span><span>{t.ofLimit}</span></div>
+              <div className="flex justify-between text-xs"><span>{pct}%</span><span>{t.ofWallet}</span></div>
               <div className="h-1.5 rounded-full bg-[rgba(238,237,210,0.1)] overflow-hidden">
                 <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: barColor }} />
               </div>
             </div>
           } />
-        <StatCard label={t.remaining} value={remaining.toLocaleString()} icon={<Gauge className="w-5 h-5" />} />
-        <StatCard label={t.estDays} value={estDays != null ? `${estDays} ${t.day}` : "—"} icon={<CalendarClock className="w-5 h-5" />} />
+        <StatCard label={t.consumed} value={formatEGP(consumedDisplay, lang)} icon={<Gauge className="w-5 h-5" />} />
+        <StatCard label={t.validity} value={daysLeft != null && !expired ? `${daysLeft} ${t.day}` : (expired ? t.expired : "—")}
+          icon={<CalendarClock className="w-5 h-5" />}
+          hint={expiry ? <span>{t.validUntil} {formatDate(expiry, lang)}</span> : null} />
       </div>
 
       {/* Daily activity */}
       <div className="card p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold flex items-center gap-2"><TrendingUp className="w-4 h-4 text-accent" /> {t.daily}</h3>
-          <span className="text-sm text-muted flex items-center gap-1.5"><Wallet className="w-4 h-4" /> {formatEGP(cost, lang)} {t.thisPeriod}</span>
+          <span className="text-sm text-muted flex items-center gap-1.5"><MessageSquare className="w-4 h-4" /> {current?.messages_used?.toLocaleString() ?? 0} {t.messages} {t.thisPeriod}</span>
         </div>
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={dailyData} margin={{ left: -20, right: 8, top: 4 }}>
@@ -163,7 +168,7 @@ export default function UsageClient({ businessId, current: initialCurrent, histo
         </ResponsiveContainer>
       </div>
 
-      {/* Monthly history */}
+      {/* Period history (EGP consumed) */}
       <div className="card p-5">
         <h3 className="font-bold mb-4">{t.monthly}</h3>
         {monthlyData.length === 0 ? (
@@ -175,9 +180,9 @@ export default function UsageClient({ businessId, current: initialCurrent, histo
               <XAxis dataKey="label" tick={{ fill: "var(--fg-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "var(--fg-muted)", fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
               <Tooltip contentStyle={{ background: "var(--bg-solid)", border: "1px solid var(--border)", borderRadius: "0.75rem", color: "var(--fg)" }} cursor={{ fill: "rgba(238,237,210,0.05)" }} />
-              <Bar dataKey="used" radius={[6, 6, 0, 0]} name={t.used}>
+              <Bar dataKey="used" radius={[6, 6, 0, 0]} name={t.consumed}>
                 {monthlyData.map((d, i) => (
-                  <Cell key={i} fill={d.limit && d.used / d.limit >= 0.9 ? "var(--danger)" : d.limit && d.used / d.limit >= 0.75 ? "var(--warning)" : "var(--accent)"} />
+                  <Cell key={i} fill={d.total && d.used / d.total >= 0.9 ? "var(--danger)" : d.total && d.used / d.total >= 0.75 ? "var(--warning)" : "var(--accent)"} />
                 ))}
               </Bar>
             </BarChart>

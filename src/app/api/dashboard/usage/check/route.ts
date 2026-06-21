@@ -25,24 +25,24 @@ export async function POST() {
 
   const { data: counter } = await supabase
     .from("usage_counters")
-    .select("messages_used, message_limit, period_start, period_end")
+    .select("messages_used, message_limit, balance_egp, cost_egp, period_start, period_end")
     .eq("business_id", business.id)
     .order("period_start", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (!counter || !counter.message_limit) {
+  if (!counter || !counter.balance_egp) {
     return NextResponse.json({ ok: true, pct: 0, fired: [] });
   }
 
-  const pct = Math.round((counter.messages_used / counter.message_limit) * 100);
+  const pct = Math.round((Number(counter.cost_egp) / Number(counter.balance_egp)) * 100);
   const admin = createAdminClient();
   const fired: number[] = [];
 
   const COPY: Record<number, { ar: string; en: string }> = {
-    75: { ar: "وصلت رسائلك إلى 75% من الحد الشهري", en: "You've used 75% of your monthly messages" },
-    90: { ar: "وصلت رسائلك إلى 90% — قد تنفد قريباً", en: "You've used 90% — messages may run out soon" },
-    100: { ar: "نفدت رسائلك لهذا الشهر — قم بالترقية أو شراء رسائل إضافية", en: "You're out of messages this month — upgrade or buy extra" },
+    75: { ar: "استهلكت 75% من رصيد باقتك", en: "You've used 75% of your package balance" },
+    90: { ar: "استهلكت 90% من رصيدك — قرب يخلص", en: "You've used 90% of your balance — it may run out soon" },
+    100: { ar: "خلص رصيد باقتك — جدّد أو رقّي الباقة عشان البوت يفضل شغال", en: "Your balance is used up — renew or upgrade to keep the bot running" },
   };
 
   for (const th of [75, 90, 100]) {
@@ -74,7 +74,8 @@ export async function POST() {
       level: th >= 100 ? "warn" : "info",
       payload: {
         threshold: th, pct,
-        messages_used: counter.messages_used, message_limit: counter.message_limit,
+        cost_egp: counter.cost_egp, balance_egp: counter.balance_egp,
+        messages_used: counter.messages_used,
         period_start: counter.period_start, period_end: counter.period_end,
         channels: ["dashboard", "whatsapp", "email"],
         whatsapp: business.whatsapp_number ?? business.contact_phone ?? null,

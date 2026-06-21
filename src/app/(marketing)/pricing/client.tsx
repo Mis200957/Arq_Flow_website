@@ -16,19 +16,19 @@ function FeesExplainer() {
   const t = useT({
     ar: {
       badge: "إزاي بتدفع",
-      title: "رسوم تأسيس مرة واحدة + اشتراك شهري — وخلاص",
+      title: "رسوم تأسيس مرة واحدة + رصيد محادثات — وخلاص",
       setupH: "رسوم التأسيس (مرة واحدة)",
       setupP: "دي تكلفة بناء وكيلك الخاص: تجهيز قاعدة المعرفة من بيانات نشاطك، إنشاء مسار الأتمتة الخاص بيك، ربط الواتساب، وتسليمك لوحة التحكم. بتتدفع مرة واحدة بس عند الاشتراك.",
-      monthlyH: "الاشتراك الشهري",
-      monthlyP: "ده مقابل تشغيل البوت: رسائل الذكاء الاصطناعي حسب حد باقتك، استضافة وكيلك ومحرك الأتمتة، والدعم الفني. تقدر تلغي في أي وقت من غير أي غرامات.",
+      monthlyH: "رصيد المحادثات",
+      monthlyP: "بتدفع قيمة الباقة فتتحول لرصيد ذكاء اصطناعي، والبوت بيرد من الرصيد ده لحد ما يخلص أو تعدّي ٣٠ يوم — أيهما أقرب. تقدر تجدد أو ترقّي في أي وقت، وأي رصيد متبقي بيتجمّع.",
     },
     en: {
       badge: "How you pay",
-      title: "One setup fee + a monthly subscription — that's it",
+      title: "One setup fee + a conversation balance — that's it",
       setupH: "Setup fee (one time)",
       setupP: "This covers building your private agent: preparing the knowledge base from your business data, creating your dedicated automation flow, connecting WhatsApp, and handing over your dashboard. Paid once at subscription.",
-      monthlyH: "Monthly subscription",
-      monthlyP: "This keeps the bot running: AI messages up to your plan's limit, hosting for your agent and automation engine, and technical support. Cancel anytime with no penalties.",
+      monthlyH: "Conversation balance",
+      monthlyP: "You pay the package price, which becomes an AI credit balance. The bot replies from that balance until it runs out or 30 days pass — whichever comes first. Renew or upgrade anytime, and any leftover balance rolls over.",
     },
   });
 
@@ -103,20 +103,20 @@ function PricingFaq() {
       title: "أسئلة شائعة عن الدفع والباقات",
       items: [
         {
-          q: "لو خلّصت رسائل باقتي قبل نهاية الشهر؟",
-          a: "هنبعتلك تنبيه قبل ما توصل للحد بوقت كافي، وتقدر تترقى لباقة أعلى في أي لحظة — الترقية بتتحسب بفرق السعر بس من غير رسوم تأسيس جديدة.",
+          q: "لو خلص رصيدي قبل آخر الـ٣٠ يوم؟",
+          a: "هنبعتلك تنبيهات قبل ما الرصيد يخلص. والبوت بيقف يرد لما الرصيد يخلص أو تعدّي ٣٠ يوم. تقدر تجدد أو ترقّي في أي لحظة بنفس طريقة الدفع، والرصيد المتبقي بيتجمّع مع الجديد.",
         },
         {
           q: "هل أقدر أغيّر الباقة بعدين؟",
-          a: "أيوه، تقدر تترقى أو تنزل لباقة تانية من أول الشهر اللي بعده. رسوم التأسيس بتتدفع مرة واحدة بس مهما غيّرت الباقات.",
+          a: "أيوه، تقدر تترقى أو تنزل لباقة تانية في أي وقت — بتدفع قيمة الباقة الجديدة بس، من غير رسوم تأسيس جديدة، وأي رصيد متبقي بيتضاف للرصيد الجديد.",
         },
         {
           q: "إيه سياسة الاسترداد؟",
-          a: "رسوم التأسيس غير قابلة للاسترداد بعد ما يتم تجهيز وكيلك وتشغيله، لأنها مقابل شغل بيتنفذ فعلاً. الاشتراك الشهري تقدر تلغيه في أي وقت ومش هيتجدد الشهر اللي بعده.",
+          a: "رسوم التأسيس غير قابلة للاسترداد بعد ما يتم تجهيز وكيلك وتشغيله، لأنها مقابل شغل بيتنفذ فعلاً. رصيد المحادثات بيتستهلك بالاستخدام وصالح ٣٠ يوم من تاريخ الدفع.",
         },
         {
           q: "هل في رسوم مخفية أو تكلفة بالدولار؟",
-          a: "لأ. كل التكاليف معلنة بالجنيه المصري في الصفحة دي: رسوم التأسيس والاشتراك الشهري. مفيش رسوم لكل رسالة، ومفيش مفاجآت بسعر صرف.",
+          a: "لأ. بتدفع قيمة الباقة بالجنيه المصري وهي رصيدك، والبوت بيرد من الرصيد ده. مفيش رسوم مخفية ولا مفاجآت بسعر صرف.",
         },
       ],
     },
@@ -125,20 +125,20 @@ function PricingFaq() {
       title: "Common questions about payment and plans",
       items: [
         {
-          q: "What if I use up my plan's messages before the month ends?",
-          a: "We notify you well before you hit the limit, and you can upgrade to a higher plan at any moment — upgrades are charged as the price difference only, with no new setup fee.",
+          q: "What if my balance runs out before the 30 days end?",
+          a: "We notify you before the balance runs low. The bot stops replying once the balance is used up or 30 days pass. You can renew or upgrade anytime using the same payment flow, and any leftover balance rolls over.",
         },
         {
           q: "Can I change my plan later?",
-          a: "Yes, you can upgrade or downgrade starting from the next month. The setup fee is paid only once, no matter how many times you switch plans.",
+          a: "Yes, you can upgrade or downgrade anytime — you only pay the new package price, with no new setup fee, and any leftover balance is added to the new one.",
         },
         {
           q: "What is the refund policy?",
-          a: "The setup fee is non-refundable once your agent has been provisioned and activated, since it pays for work that's actually performed. The monthly subscription can be cancelled anytime and simply won't renew next month.",
+          a: "The setup fee is non-refundable once your agent has been provisioned and activated, since it pays for work that's actually performed. The conversation balance is consumed by usage and is valid for 30 days from payment.",
         },
         {
           q: "Are there hidden fees or dollar-based costs?",
-          a: "No. All costs are published in Egyptian pounds on this page: the setup fee and the monthly subscription. No per-message fees, and no exchange-rate surprises.",
+          a: "No. You pay the package price in EGP and that's your balance — the bot replies from it. No hidden fees and no exchange-rate surprises.",
         },
       ],
     },
@@ -159,12 +159,12 @@ export default function PricingClient() {
     ar: {
       badge: "الأسعار",
       title: "باقة لكل حجم بيزنس — وكلها بالجنيه",
-      sub: "اختار الباقة، ادفع رسوم التأسيس + أول شهر، وبوتك يشتغل في دقايق. تقدر تلغي الاشتراك الشهري في أي وقت.",
+      sub: "اختار الباقة، ادفع رسوم التأسيس + رصيد الباقة، وبوتك يشتغل في دقايق. البوت بيرد من رصيدك (صالح ٣٠ يوم) وتقدر تجدد أو ترقّي في أي وقت.",
     },
     en: {
       badge: "Pricing",
       title: "A plan for every business size — all in EGP",
-      sub: "Pick a plan, pay the setup fee + first month, and your bot is live in minutes. Cancel the monthly subscription anytime.",
+      sub: "Pick a plan, pay the setup fee + the package balance, and your bot is live in minutes. The bot replies from your balance (valid 30 days) — renew or upgrade anytime.",
     },
   });
 

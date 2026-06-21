@@ -22,16 +22,17 @@ export default function SettingsClient({ settingsMap, admins: initialAdmins }: P
   const { success, error } = useToast();
   const [saving, setSaving] = useState<string | null>(null);
 
-  // Payment settings
-  const [instapay, setInstapay] = useState(String(settingsMap["payment_instapay"] ?? ""));
-  const [vodafone, setVodafone] = useState(String(settingsMap["payment_vodafone"] ?? ""));
-  const [wepay, setWepay] = useState(String(settingsMap["payment_wepay"] ?? ""));
+  // Payment settings — stored as a single `payment_accounts` jsonb object
+  const acct = (settingsMap["payment_accounts"] ?? {}) as Record<string, unknown>;
+  const [instapay, setInstapay] = useState(String(acct.instapay ?? settingsMap["payment_instapay"] ?? ""));
+  const [vodafone, setVodafone] = useState(String(acct.vodafone_cash ?? settingsMap["payment_vodafone"] ?? ""));
+  const [wepay, setWepay] = useState(String(acct.wepay ?? settingsMap["payment_wepay"] ?? ""));
 
   // General settings
   const [n8nWebhook, setN8nWebhook] = useState(String(settingsMap["n8n_factory_webhook"] ?? ""));
   const [supportWhatsapp, setSupportWhatsapp] = useState(String(settingsMap["support_whatsapp"] ?? ""));
   const [taxRate, setTaxRate] = useState(String(settingsMap["tax_rate"] ?? "0.14"));
-  const [usdRate, setUsdRate] = useState(String(settingsMap["usd_to_egp_rate"] ?? "50"));
+  const [usdRate, setUsdRate] = useState(String(settingsMap["usd_to_egp"] ?? "50"));
   const [maintenanceMode, setMaintenanceMode] = useState(settingsMap["maintenance_mode"] === true);
 
   // Admin management
@@ -59,23 +60,15 @@ export default function SettingsClient({ settingsMap, admins: initialAdmins }: P
   async function savePaymentSettings() {
     setSaving("payments");
     try {
-      await Promise.all([
-        fetch("/api/admin/settings", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: "payment_instapay", value: instapay }),
+      const res = await fetch("/api/admin/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: "payment_accounts",
+          value: { instapay, vodafone_cash: vodafone, wepay },
         }),
-        fetch("/api/admin/settings", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: "payment_vodafone", value: vodafone }),
-        }),
-        fetch("/api/admin/settings", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ key: "payment_wepay", value: wepay }),
-        }),
-      ]);
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
       success("Payment accounts saved");
     } catch (e) {
       error("Save failed", (e as Error).message);
@@ -216,8 +209,8 @@ export default function SettingsClient({ settingsMap, admins: initialAdmins }: P
                 onChange={(e) => setUsdRate(e.target.value)}
               />
               <button
-                onClick={() => saveSetting("usd_to_egp_rate", Number(usdRate), "USD Rate")}
-                disabled={saving === "usd_to_egp_rate"}
+                onClick={() => saveSetting("usd_to_egp", Number(usdRate), "USD Rate")}
+                disabled={saving === "usd_to_egp"}
                 className="btn-outline shrink-0"
               >
                 <Save className="w-4 h-4" />

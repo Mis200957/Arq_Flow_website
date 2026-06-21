@@ -52,8 +52,8 @@ export default function OverviewClient({
   const { lang } = useLang();
   const t = useT({
     ar: {
-      messagesUsed: "الرسائل المستخدمة",
-      limit: "الحد",
+      messagesUsed: "الرصيد المتبقي",
+      limit: "مستهلك",
       ordersToday: "طلبات اليوم",
       customers: "إجمالي العملاء",
       escalations: "تصعيدات غير محلولة",
@@ -70,8 +70,8 @@ export default function OverviewClient({
       of: "من",
     },
     en: {
-      messagesUsed: "Messages Used",
-      limit: "Limit",
+      messagesUsed: "Remaining balance",
+      limit: "consumed",
       ordersToday: "Orders Today",
       customers: "Total Customers",
       escalations: "Unresolved Escalations",
@@ -116,9 +116,12 @@ export default function OverviewClient({
     return () => { supabase.removeChannel(channel); };
   }, [business.id, supabase]);
 
-  const usedPct = usage
-    ? Math.min(100, Math.round((usage.messages_used / usage.message_limit) * 100))
-    : 0;
+  const wBalance = Number(usage?.balance_egp ?? 0);
+  const wConsumed = Number(usage?.cost_egp ?? 0);
+  const wWallet = Number(usage?.wallet_egp ?? 0);
+  const usedPct = wBalance > 0 ? Math.min(100, Math.round((wConsumed / wBalance) * 100)) : 0;
+  const wRemaining = wBalance > 0 ? Math.max(0, wWallet * (1 - wConsumed / wBalance)) : 0;
+  const wConsumedDisplay = Math.max(0, wWallet - wRemaining);
 
   const chartData = buildWeekChart(weekMessages, lang);
   const maxMessages = Math.max(...chartData.map((d) => d.count), 1);
@@ -129,13 +132,13 @@ export default function OverviewClient({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label={t.messagesUsed}
-          value={usage ? `${usage.messages_used.toLocaleString()} / ${usage.message_limit.toLocaleString()}` : "—"}
+          value={usage ? formatEGP(wRemaining, lang) : "—"}
           hint={
             usage ? (
               <div className="mt-2 space-y-1">
                 <div className="flex justify-between text-xs">
                   <span>{usedPct}%</span>
-                  <span>{t.limit}: {usage.message_limit.toLocaleString()}</span>
+                  <span>{t.limit}: {formatEGP(wConsumedDisplay, lang)}</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-[rgba(238,237,210,0.1)] overflow-hidden">
                   <div

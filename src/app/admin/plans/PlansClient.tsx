@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Edit3, Users, Package } from "lucide-react";
+import { Edit3, Users, Star } from "lucide-react";
 import { Modal, Field, Badge } from "@/components/ui";
 import { formatEGP } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
@@ -12,8 +12,12 @@ type Plan = {
   name_ar: string;
   setup_fee_egp: number;
   monthly_fee_egp: number;
+  margin_egp: number;
+  validity_days: number;
+  token_budget_egp: number;
   message_limit: number;
   ai_model: string;
+  fallback_model: string;
   max_tokens: number;
   memory_window: number;
   features: unknown;
@@ -21,13 +25,14 @@ type Plan = {
   active: boolean;
   highlighted: boolean;
   tier_level: number;
-  fallback_model: string;
 };
 
 interface Props {
   plans: Plan[];
   subscriberCounts: Record<string, number>;
 }
+
+const num = (v: unknown) => (v === "" || v === undefined || v === null ? 0 : Number(v));
 
 export default function PlansClient({ plans: initial, subscriberCounts }: Props) {
   const [plans, setPlans] = useState(initial);
@@ -38,20 +43,17 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
 
   function openEdit(plan: Plan) {
     setEditingPlan(plan);
-    setForm({
-      setup_fee_egp: plan.setup_fee_egp,
-      monthly_fee_egp: plan.monthly_fee_egp,
-      message_limit: plan.message_limit,
-      ai_model: plan.ai_model,
-      max_tokens: plan.max_tokens,
-      memory_window: plan.memory_window,
-      features: plan.features,
-      features_ar: plan.features_ar,
-    });
+    setForm({ ...plan });
   }
+
+  const budgetPreview = Math.max(0, num(form.monthly_fee_egp) - num(form.margin_egp));
 
   async function save() {
     if (!editingPlan) return;
+    if (num(form.margin_egp) > num(form.monthly_fee_egp)) {
+      error("Margin cannot exceed the package price");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch(`/api/admin/plans/${editingPlan.id}`, {
@@ -60,7 +62,7 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
         body: JSON.stringify(form),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed");
-      const updated = { ...editingPlan, ...form } as Plan;
+      const updated = { ...editingPlan, ...form, token_budget_egp: budgetPreview } as Plan;
       setPlans((prev) => prev.map((p) => (p.id === editingPlan.id ? updated : p)));
       success("Plan updated");
       setEditingPlan(null);
@@ -77,13 +79,12 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
         {plans.map((plan) => (
           <div
             key={plan.id}
-            className={`card p-6 space-y-4 relative ${plan.highlighted ? "border-accent/40" : ""}`}
+            className={`card p-6 space-y-4 relative ${plan.highlighted ? "border-accent/40" : ""} ${!plan.active ? "opacity-60" : ""}`}
           >
-            {plan.highlighted && (
-              <div className="absolute top-4 end-4">
-                <Badge variant="accent">Highlighted</Badge>
-              </div>
-            )}
+            <div className="absolute top-4 end-4 flex gap-1.5">
+              {plan.highlighted && <Badge variant="accent">Highlighted</Badge>}
+              {!plan.active && <Badge variant="danger">Inactive</Badge>}
+            </div>
 
             <div>
               <h3 className="text-xl font-bold">{plan.name}</h3>
@@ -92,35 +93,38 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
 
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-[rgba(238,237,210,0.04)] rounded-xl p-3">
-                <p className="text-xs text-muted mb-1">Setup Fee</p>
-                <p className="font-bold">{formatEGP(plan.setup_fee_egp, "en")}</p>
+                <p className="text-xs text-muted mb-1">Package Price</p>
+                <p className="font-bold">{formatEGP(plan.monthly_fee_egp, "en")}</p>
               </div>
               <div className="bg-[rgba(238,237,210,0.04)] rounded-xl p-3">
-                <p className="text-xs text-muted mb-1">Monthly</p>
-                <p className="font-bold">{formatEGP(plan.monthly_fee_egp, "en")}</p>
+                <p className="text-xs text-muted mb-1">Setup Fee</p>
+                <p className="font-bold">{formatEGP(plan.setup_fee_egp, "en")}</p>
               </div>
             </div>
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted">Messages/month</span>
-                <span className="font-semibold">{plan.message_limit.toLocaleString()}</span>
+                <span className="text-muted">Your margin</span>
+                <span className="font-semibold text-[var(--success)]">{formatEGP(plan.margin_egp, "en")}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">Token budget</span>
+                <span className="font-semibold">{formatEGP(plan.token_budget_egp, "en")}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">Validity</span>
+                <span className="font-semibold">{plan.validity_days} days</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted">AI Model</span>
                 <span className="font-mono text-xs font-semibold">{plan.ai_model}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted">Max Tokens</span>
-                <span className="font-semibold">{plan.max_tokens.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted">Memory Window</span>
-                <span className="font-semibold">{plan.memory_window}</span>
+                <span className="text-muted">Max Tokens / Memory</span>
+                <span className="font-semibold">{plan.max_tokens.toLocaleString()} / {plan.memory_window}</span>
               </div>
             </div>
 
-            {/* Features */}
             {Array.isArray(plan.features) && (plan.features as string[]).length > 0 && (
               <div>
                 <p className="text-xs text-muted uppercase font-semibold mb-2">Features</p>
@@ -137,17 +141,13 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
               </div>
             )}
 
-            {/* Subscribers */}
             <div className="flex items-center gap-2 text-sm border-t border-app pt-3">
               <Users className="w-4 h-4 text-muted" />
               <span className="text-muted">Subscribers:</span>
               <span className="font-bold text-accent">{subscriberCounts[plan.id] ?? 0}</span>
             </div>
 
-            <button
-              onClick={() => openEdit(plan)}
-              className="btn-outline w-full text-sm"
-            >
+            <button onClick={() => openEdit(plan)} className="btn-outline w-full text-sm">
               <Edit3 className="w-4 h-4" />
               Edit Plan
             </button>
@@ -163,80 +163,84 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
         wide
       >
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Setup Fee (EGP)" required>
-            <input
-              type="number"
-              className="input-base"
-              value={form.setup_fee_egp ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, setup_fee_egp: Number(e.target.value) }))}
-            />
+          <Field label="Name (EN)">
+            <input className="input-base" value={form.name ?? ""} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
           </Field>
-          <Field label="Monthly Fee (EGP)" required>
-            <input
-              type="number"
-              className="input-base"
-              value={form.monthly_fee_egp ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, monthly_fee_egp: Number(e.target.value) }))}
-            />
+          <Field label="Name (AR)">
+            <input className="input-base" value={form.name_ar ?? ""} onChange={(e) => setForm((f) => ({ ...f, name_ar: e.target.value }))} />
           </Field>
-          <Field label="Message Limit">
-            <input
-              type="number"
-              className="input-base"
-              value={form.message_limit ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, message_limit: Number(e.target.value) }))}
-            />
+
+          <Field label="Package Price (EGP)" required hint="What the customer pays each top-up">
+            <input type="number" className="input-base" value={form.monthly_fee_egp ?? ""} onChange={(e) => setForm((f) => ({ ...f, monthly_fee_egp: Number(e.target.value) }))} />
           </Field>
+          <Field label="Your Margin (EGP)" required hint="Your profit per package">
+            <input type="number" className="input-base" value={form.margin_egp ?? ""} onChange={(e) => setForm((f) => ({ ...f, margin_egp: Number(e.target.value) }))} />
+          </Field>
+
+          <div className="sm:col-span-2 rounded-xl bg-[rgba(107,160,172,0.08)] border border-[var(--accent)]/30 p-3 flex items-center justify-between text-sm">
+            <span className="text-muted">Token budget (consumed by the bot) = Price − Margin</span>
+            <span className="font-bold text-accent">{formatEGP(budgetPreview, "en")}</span>
+          </div>
+
+          <Field label="Validity (days)" required>
+            <input type="number" className="input-base" value={form.validity_days ?? ""} onChange={(e) => setForm((f) => ({ ...f, validity_days: Number(e.target.value) }))} />
+          </Field>
+          <Field label="Setup Fee (EGP)" hint="One-time, first payment only">
+            <input type="number" className="input-base" value={form.setup_fee_egp ?? ""} onChange={(e) => setForm((f) => ({ ...f, setup_fee_egp: Number(e.target.value) }))} />
+          </Field>
+
           <Field label="AI Model">
-            <input
-              type="text"
-              className="input-base"
-              value={form.ai_model ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, ai_model: e.target.value }))}
-            />
+            <input className="input-base" value={form.ai_model ?? ""} onChange={(e) => setForm((f) => ({ ...f, ai_model: e.target.value }))} />
           </Field>
+          <Field label="Fallback Model">
+            <input className="input-base" value={form.fallback_model ?? ""} onChange={(e) => setForm((f) => ({ ...f, fallback_model: e.target.value }))} />
+          </Field>
+
           <Field label="Max Tokens">
-            <input
-              type="number"
-              className="input-base"
-              value={form.max_tokens ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, max_tokens: Number(e.target.value) }))}
-            />
+            <input type="number" className="input-base" value={form.max_tokens ?? ""} onChange={(e) => setForm((f) => ({ ...f, max_tokens: Number(e.target.value) }))} />
           </Field>
           <Field label="Memory Window">
-            <input
-              type="number"
-              className="input-base"
-              value={form.memory_window ?? ""}
-              onChange={(e) => setForm((f) => ({ ...f, memory_window: Number(e.target.value) }))}
-            />
+            <input type="number" className="input-base" value={form.memory_window ?? ""} onChange={(e) => setForm((f) => ({ ...f, memory_window: Number(e.target.value) }))} />
           </Field>
+
+          <Field label="Tier Level" hint="Order (1=lowest)">
+            <input type="number" className="input-base" value={form.tier_level ?? ""} onChange={(e) => setForm((f) => ({ ...f, tier_level: Number(e.target.value) }))} />
+          </Field>
+          <Field label="Message Limit (legacy / reference)">
+            <input type="number" className="input-base" value={form.message_limit ?? ""} onChange={(e) => setForm((f) => ({ ...f, message_limit: Number(e.target.value) }))} />
+          </Field>
+
+          <div className="flex items-center gap-6 sm:col-span-2">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={!!form.active} onChange={(e) => setForm((f) => ({ ...f, active: e.target.checked }))} />
+              Active (shown to customers)
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={!!form.highlighted} onChange={(e) => setForm((f) => ({ ...f, highlighted: e.target.checked }))} />
+              <Star className="w-3.5 h-3.5 text-accent" /> Highlighted
+            </label>
+          </div>
+
           <div className="sm:col-span-2">
-            <Field label="Features (JSON array)" hint='e.g. ["Feature 1", "Feature 2"]'>
+            <Field label="Features (JSON array, EN)" hint='e.g. ["Feature 1", "Feature 2"]'>
               <textarea
-                className="input-base min-h-[100px] font-mono text-xs resize-y"
+                className="input-base min-h-[90px] font-mono text-xs resize-y"
                 value={typeof form.features === "string" ? form.features : JSON.stringify(form.features ?? [], null, 2)}
                 onChange={(e) => {
-                  try {
-                    setForm((f) => ({ ...f, features: JSON.parse(e.target.value) }));
-                  } catch {
-                    setForm((f) => ({ ...f, features: e.target.value as unknown }));
-                  }
+                  try { setForm((f) => ({ ...f, features: JSON.parse(e.target.value) })); }
+                  catch { setForm((f) => ({ ...f, features: e.target.value as unknown })); }
                 }}
               />
             </Field>
           </div>
           <div className="sm:col-span-2">
-            <Field label="Features Arabic (JSON array)">
+            <Field label="Features (JSON array, AR)">
               <textarea
-                className="input-base min-h-[100px] font-mono text-xs resize-y"
+                className="input-base min-h-[90px] font-mono text-xs resize-y"
                 value={typeof form.features_ar === "string" ? form.features_ar : JSON.stringify(form.features_ar ?? [], null, 2)}
                 onChange={(e) => {
-                  try {
-                    setForm((f) => ({ ...f, features_ar: JSON.parse(e.target.value) }));
-                  } catch {
-                    setForm((f) => ({ ...f, features_ar: e.target.value as unknown }));
-                  }
+                  try { setForm((f) => ({ ...f, features_ar: JSON.parse(e.target.value) })); }
+                  catch { setForm((f) => ({ ...f, features_ar: e.target.value as unknown })); }
                 }}
               />
             </Field>

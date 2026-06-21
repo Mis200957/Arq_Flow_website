@@ -134,17 +134,17 @@ export function PlanCard({
   const t = useT({
     ar: {
       setup: "رسوم تأسيس لمرة واحدة",
-      monthly: "شهرياً",
+      monthly: "للباقة",
       subscribe: "اشترك الآن",
       popular: "الأكثر طلباً",
-      msgs: "رسالة ذكية شهرياً",
+      msgs: "رصيد محادثات ذكية · صلاحية ٣٠ يوم",
     },
     en: {
       setup: "one-time setup fee",
-      monthly: "/ month",
+      monthly: "/ package",
       subscribe: "Subscribe Now",
       popular: "Most Popular",
-      msgs: "AI messages / month",
+      msgs: "AI conversation credit · 30-day validity",
     },
   });
 
@@ -173,10 +173,7 @@ export function PlanCard({
           <p className="text-muted text-xs mt-2">
             + {formatEGP(plan.setupFee, lang)} {t.setup}
           </p>
-          <p className="text-accent text-xs mt-1 font-semibold">
-            {new Intl.NumberFormat(lang === "ar" ? "ar-EG" : "en-EG").format(plan.messageLimit)}{" "}
-            {t.msgs}
-          </p>
+          <p className="text-accent text-xs mt-1 font-semibold">{t.msgs}</p>
         </div>
         <ul className={cn("mt-6 space-y-3 flex-1", !detailed && "mb-2")}>
           {pick(plan.features).map((f) => (

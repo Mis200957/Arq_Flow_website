@@ -23,7 +23,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ⚙️ EDIT ONCE: map automation workflows -> imported sub-workflow IDs.\nconst cfg={\n  notify:'SET_NOTIFY_DISPATCH_ID', usage_threshold:'SET_NOTIFY_DISPATCH_ID',\n  regenerate_system_prompt:'SET_GENERATE_PROMPT_ID',\n  kb_rebuild:'SET_REBUILD_KNOWLEDGE_ID', ai_retrain:'SET_REBUILD_KNOWLEDGE_ID',\n  kb_file_process:'SET_PROCESS_DOCUMENT_ID', subscription_request:null, ai_restart_context:null\n};\nreturn {json:{cfg}};"
+        "jsCode": "// ⚙️ EDIT ONCE: map automation workflows -> imported sub-workflow IDs.\nconst cfg={\n  notify:'SET_SHARED_NOTIFY_DISPATCH_ID', usage_threshold:'SET_SHARED_NOTIFY_DISPATCH_ID',\n  regenerate_system_prompt:'SET_SHARED_GENERATE_PROMPT_ID',\n  kb_rebuild:'SET_SHARED_REBUILD_KNOWLEDGE_ID', ai_retrain:'SET_SHARED_REBUILD_KNOWLEDGE_ID',\n  kb_file_process:'SET_SHARED_PROCESS_DOCUMENT_ID', subscription_request:null, ai_restart_context:null, bot_config_sync:null\n};\nreturn {json:{cfg}};"
       },
       "id": "ad53c3c1-5c26-44b7-9c10-fa5d7f4710dc",
       "name": "CONFIG",

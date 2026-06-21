@@ -4,16 +4,24 @@ export type Plan = {
   id: PlanId;
   name: { ar: string; en: string };
   tagline: { ar: string; en: string };
+  /** One-time setup fee (first payment only). */
   setupFee: number;
+  /** Package price = the customer-facing wallet credit added each top-up. */
   monthlyFee: number;
-  messageLimit: number;
+  /** Wallet validity in days (bot stops when balance runs out OR this elapses). */
+  validityDays: number;
   features: { ar: string[]; en: string[] };
   highlighted?: boolean;
 };
 
 /**
  * Static mirror of the `plans` table (single source of truth is Supabase).
- * Used for instant render on the pricing page; dashboards read the DB.
+ * Used for instant render on the pricing page & onboarding; dashboards read the DB.
+ *
+ * Billing model: token wallet. The customer pays the package price (monthlyFee),
+ * which becomes a wallet of AI credit valid for `validityDays`. The bot consumes
+ * the wallet by real token cost until it runs out or the validity elapses,
+ * whichever comes first. Any unused balance rolls over on renewal/upgrade.
  */
 export const PLANS: Plan[] = [
   {
@@ -25,17 +33,19 @@ export const PLANS: Plan[] = [
     },
     setupFee: 2500,
     monthlyFee: 500,
-    messageLimit: 5000,
+    validityDays: 30,
     features: {
       ar: [
-        "٥٠٠٠ رسالة ذكية شهرياً",
+        "رصيد محادثات ذكية بقيمة الباقة — صلاحية ٣٠ يوم",
+        "الرصيد المتبقي بيتجمّع مع التجديد",
         "محادثات نصية بالعربي والإنجليزي",
         "تحويل ذكي لموظف بشري",
         "تسجيل كل المحادثات والطلبات",
         "لوحة تحكم خاصة بنشاطك",
       ],
       en: [
-        "5,000 AI messages / month",
+        "AI conversation credit equal to the package — 30-day validity",
+        "Unused balance rolls over on renewal",
         "Text conversations in Arabic & English",
         "Smart human handover",
         "Every conversation & order logged",
@@ -51,11 +61,12 @@ export const PLANS: Plan[] = [
       en: "For restaurants & stores that want a system that sells, books & follows up",
     },
     setupFee: 4000,
-    monthlyFee: 750,
-    messageLimit: 11000,
+    monthlyFee: 1100,
+    validityDays: 30,
     features: {
       ar: [
-        "١١٠٠٠ رسالة ذكية شهرياً",
+        "رصيد محادثات أكبر — صلاحية ٣٠ يوم والرصيد بيتجمّع",
+        "موديل ذكاء أقوى (Sonnet)",
         "فهم الرسائل الصوتية",
         "استقبال الطلبات والحجوزات تلقائياً",
         "روابط ذكية (منيو، كتالوج، دفع)",
@@ -63,7 +74,8 @@ export const PLANS: Plan[] = [
         "كل مميزات ستارتر",
       ],
       en: [
-        "11,000 AI messages / month",
+        "Bigger AI credit — 30-day validity, balance rolls over",
+        "More capable model (Sonnet)",
         "Voice message understanding",
         "Automatic orders & bookings",
         "Smart links (menu, catalog, payment)",
@@ -81,11 +93,11 @@ export const PLANS: Plan[] = [
       en: "For companies that need the deepest intelligence & analytics",
     },
     setupFee: 7000,
-    monthlyFee: 1200,
-    messageLimit: 20000,
+    monthlyFee: 1500,
+    validityDays: 30,
     features: {
       ar: [
-        "٢٠٠٠٠ رسالة ذكية شهرياً",
+        "أكبر رصيد محادثات — صلاحية ٣٠ يوم والرصيد بيتجمّع",
         "فهم وتحليل الصور",
         "أعمق ذاكرة محادثة",
         "تحليلات وتقارير متقدمة",
@@ -93,7 +105,7 @@ export const PLANS: Plan[] = [
         "كل مميزات بيزنس",
       ],
       en: [
-        "20,000 AI messages / month",
+        "Largest AI credit — 30-day validity, balance rolls over",
         "Image understanding & analysis",
         "Deepest conversation memory",
         "Advanced analytics & reports",
@@ -107,6 +119,7 @@ export const PLANS: Plan[] = [
 export const getPlan = (id: string | null | undefined): Plan | undefined =>
   PLANS.find((p) => p.id === id);
 
+/** First-payment total = one-time setup fee + the package wallet credit. */
 export const planTotal = (p: Plan): number => p.setupFee + p.monthlyFee;
 
 export type PaymentChannel = "instapay" | "vodafone_cash" | "wepay";

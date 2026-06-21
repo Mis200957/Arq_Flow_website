@@ -15,16 +15,29 @@ export default async function ClientsPage() {
       .order("created_at", { ascending: false }),
     db
       .from("usage_counters")
-      .select("business_id, messages_used, message_limit")
-      .order("updated_at", { ascending: false }),
+      .select("business_id, messages_used, balance_egp, cost_egp, wallet_egp, period_end")
+      .order("period_start", { ascending: false }),
   ]);
 
-  // Build usage map: latest usage per business
-  const usageMap: Record<string, { messages_used: number; message_limit: number }> = {};
+  // Build usage map: latest wallet per business (customer-facing remaining + days left)
+  const usageMap: Record<
+    string,
+    { remaining_egp: number; wallet_egp: number; used_pct: number; days_left: number | null; messages_used: number }
+  > = {};
   for (const u of usageData ?? []) {
-    if (!usageMap[u.business_id]) {
-      usageMap[u.business_id] = { messages_used: u.messages_used, message_limit: u.message_limit };
-    }
+    if (usageMap[u.business_id]) continue;
+    const bal = Number(u.balance_egp ?? 0);
+    const cst = Number(u.cost_egp ?? 0);
+    const wal = Number(u.wallet_egp ?? 0);
+    const remaining = bal > 0 ? Math.max(0, wal * (1 - cst / bal)) : 0;
+    const daysLeft = u.period_end ? Math.ceil((new Date(u.period_end).getTime() - Date.now()) / 86400000) : null;
+    usageMap[u.business_id] = {
+      remaining_egp: remaining,
+      wallet_egp: wal,
+      used_pct: bal > 0 ? Math.min(100, Math.round((cst / bal) * 100)) : 0,
+      days_left: daysLeft,
+      messages_used: u.messages_used,
+    };
   }
 
   return (

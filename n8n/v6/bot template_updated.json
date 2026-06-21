@@ -1,0 +1,4409 @@
+{
+  "name": "bot template",
+  "nodes": [
+    {
+      "parameters": {
+        "description": "حوّل المحادثة لموظف بشري عند الشكوى أو طلب العميل التحدث مع شخص أو خروج السؤال عن نطاقك. مرّر JSON: {reason, customer_message, context_summary}.",
+        "workflowId": {
+          "__rl": true,
+          "value": "DbDnLUsZglZgSlGC",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/DbDnLUsZglZgSlGC",
+          "cachedResultName": "🔧 SHARED_ESCALATION_v2"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tenant": "={{ $('TENANT_CONFIG1').first().json }}",
+            "customer": "={\n    \"phone\": \"{{ $('PARSE_MESSAGE').first().json.phone }}\",\n    \"name\": \"{{ $('PARSE_MESSAGE').first().json.name }}\"\n  }",
+            "conversation_id": "={{ $('Get Conversation').item.json.id }}",
+            "reason": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('reason', ``, 'string') }}",
+            "customer_message": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.message.conversation }}",
+            "context_summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('context_summary', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tenant",
+              "displayName": "tenant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            },
+            {
+              "id": "customer",
+              "displayName": "customer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            },
+            {
+              "id": "conversation_id",
+              "displayName": "conversation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "reason",
+              "displayName": "reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "customer_message",
+              "displayName": "customer_message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "context_summary",
+              "displayName": "context_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "554fa6bc-f252-46b6-b897-55a7c6d28053",
+      "name": "escalate",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3056,
+        3072
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const transcription = ($json.content?.parts?.[0]?.text ?? '').trim();\nconst ctx = $('NORMALIZE_INPUT1').first().json;\nif (!transcription) { return { json: { ...ctx, message_text: '', _audio_unclear: true } }; }\nreturn { json: { ...ctx, message_text: transcription, media_processed: true } };"
+      },
+      "id": "4b1d4b5b-3edf-4df5-b22a-ddff3a4dd95b",
+      "name": "EXTRACT_TRANSCRIPTION",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        2064
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat-api",
+        "operation": "get-media-base64",
+        "instanceName": "={{ $('WEBHOOK_TRIGGER1').item.json.body.instance }}",
+        "messageId": "={{ $('NORMALIZE_INPUT1').first().json.message_id }}"
+      },
+      "id": "629511c8-18d6-4f6d-8660-66f9496d676e",
+      "name": "GET_MEDIA_BASE_IMAGE",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        80,
+        2320
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "data.base64",
+        "options": {}
+      },
+      "id": "ac051ef2-0359-459d-80ab-52c565b8cc32",
+      "name": "CONVERT_TO_BINARY_IMAGE",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        304,
+        2320
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list"
+        },
+        "text": "أنت مساعد ذكاء اصطناعي متخصص في تحليل الصور داخل نظام خدمة عملاء. فحص الصورة المرفقة التي أرسلها العميل واستخرج ووصف العناصر والمنتجات أو التفاصيل الظاهرة فيها بدقة ووضوح. قدم وصفاً مباشراً ومختصراً لمحتويات الصورة فقط.",
+        "inputType": "binary",
+        "options": {}
+      },
+      "id": "b599c41a-275f-41af-810b-490693abe91e",
+      "name": "ANALYZE_IMAGE",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        528,
+        2320
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "XI2UZmfY3FRbe5Us",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('NORMALIZE_INPUT1').first().json;\nconst imageDesc = ($json.content?.parts?.[0]?.text ?? 'صورة وردت من العميل').trim();\nconst combined = ctx.message_text ? `${ctx.message_text} [صورة: ${imageDesc}]` : `[صورة: ${imageDesc}]`;\nreturn { json: { ...ctx, message_text: combined, media_processed: true } };"
+      },
+      "id": "5557d271-91fb-4b4b-8dee-eb8668ca2199",
+      "name": "BUILD_IMAGE_TEXT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        2320
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-4o-mini",
+        "options": {}
+      },
+      "id": "bb7fe189-b99c-4c1d-8b72-a54193fc1320",
+      "name": "MAIN_AGENT_LLM",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        4704,
+        2816
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "yC4Jdq6Lp6CNrWnU",
+          "name": "My OpenRouter"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('MERGE_CUSTOMER_PATHS1').item.json.id }}",
+        "contextWindowLength": "=20"
+      },
+      "id": "96b54daa-80b2-4a0b-beaf-74f791bbe517",
+      "name": "MAIN_AGENT_MEMORY",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        3232,
+        2944
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields').item.json.message }}",
+        "options": {
+          "systemMessage": "={{ (function(){ var c = $('TENANT_CONFIG1').first().json || {};\nc = c || {};\n  var NL = String.fromCharCode(10);\n  var raw = String(c.business_type || '').trim().toLowerCase();\n  var AL = { medical: 'medical_center', hospital: 'medical_center', restaurant_cafe: 'restaurant', cafe: 'restaurant', realestate: 'real_estate', 'real-estate': 'real_estate', education: 'educational_center', educational: 'educational_center', school: 'educational_center', law_firm: 'lawyer', lawyer_office: 'lawyer', law: 'lawyer', beauty: 'salon', spa: 'salon', fitness: 'gym', services: 'service_company', service: 'service_company', online_store: 'ecommerce', shop: 'ecommerce' };\n  var bt = AL[raw] || raw;\n  var PB = {\n    restaurant: { role: 'مساعد مطعم: تعرض المنيو، تأخذ الطلبات، تحسب التوصيل، وتتابع الأوردر.', kind: 'commerce' },\n    ecommerce: { role: 'مساعد متجر إلكتروني: تبحث في المنتجات، تتحقق من التوافر، وتُنهي الشراء وتتابع الطلب.', kind: 'commerce' },\n    store: { role: 'مساعد محل تجاري: تعرض المنتجات المتاحة وتستقبل الطلبات.', kind: 'commerce' },\n    pharmacy: { role: 'مساعد صيدلية: تتحقق من توافر الأدوية والمنتجات وتستقبل الطلبات.', kind: 'commerce' },\n    clinic: { role: 'مساعد عيادة: تعرض الأطباء والخدمات الطبية وتحجز/تلغي المواعيد.', kind: 'booking' },\n    medical_center: { role: 'مساعد مركز طبي متعدد التخصصات للحجز وإدارة المواعيد والاستفسارات الطبية.', kind: 'booking' },\n    salon: { role: 'مساعد صالون: تعرض الخدمات والأسعار وتحجز المواعيد مع الفريق.', kind: 'booking' },\n    gym: { role: 'مساعد جيم: يشرح باقات العضوية والحصص والمدربين ويتولّى الاشتراك.', kind: 'booking' },\n    lawyer: { role: 'مساعد مكتب محاماة: يستقبل طلبات الاستشارة ويستعلم عن حالة القضايا ويسجّل الموكلين.', kind: 'booking' },\n    car_service: { role: 'مساعد صيانة سيارات: يستقبل طلبات الصيانة ويتابع أوامر الشغل.', kind: 'service' },\n    service_company: { role: 'مساعد شركة خدمات: يستقبل الطلبات ويتابع أوامر الشغل.', kind: 'service' },\n    hotel: { role: 'مساعد فندق: يعرض أنواع الغرف وأسعارها ويتولّى الحجوزات والإلغاء.', kind: 'hotel' },\n    real_estate: { role: 'مساعد عقارات: يبحث عن العقارات المناسبة ويسجّل الطلبات ويحجز المعاينات.', kind: 'realestate' },\n    educational_center: { role: 'مساعد مركز تعليمي: يعرض الكورسات والمدرّسين ويتولّى تسجيل الطلاب.', kind: 'education' },\n    company: { role: 'مساعد أعمال عام: يجاوب على الاستفسارات ويعرّف بالخدمات.', kind: 'general' }\n  };\n  var pb = PB[bt] || { role: 'مساعد خدمة عملاء.', kind: 'general' };\n  var tools = (Array.isArray(c.enabled_tools) && c.enabled_tools.length) ? c.enabled_tools.slice() : [];\n  function has(t) { return tools.indexOf(t) !== -1; }\n  var tone = (c.persona && c.persona.tone) ? c.persona.tone : (c.tone_of_voice || 'احترافية وودودة');\n  var hours = c.working_hours || 'غير محددة';\n  var S = [];\n\n  S.push('# دورك');\n  S.push('- ' + ((c.persona && c.persona.role_ar) || pb.role));\n\n  S.push('');\n  S.push('# اللغة والنبرة');\n  S.push('- اردّ بنفس لغة/لهجة العميل: عربي فصحى ← فصحى، عامية مصرية ← عامية مصرية، إنجليزي ← إنجليزي. لو خلط لغتين، اتبع لغته الغالبة في آخر رسالة.');\n  S.push('- النبرة: ' + tone + '. خليك مختصر وواضح ومتطوّلش من غير داعي.');\n\n  if (tools.length) {\n    S.push('');\n    S.push('# الأدوات المتاحة لك الآن — استخدمها فقط عند الحاجة، ومتستخدمش أي أداة مش مذكورة:');\n    S.push('- ' + tools.join(NL + '- '));\n  }\n\n  var dis = [];\n  if (has('fetch_categories') && has('fitch_products')) dis.push('- اعرض fetch_categories الأول (التصنيفات)، وبعد ما يختار العميل تصنيف اعرض أصنافه عبر fitch_products — مش الاتنين مع بعض.');\n  if (has('coupons') && has('promotions')) dis.push('- promotions = عروض/تخفيضات معروضة للكل (إعلامية). coupons = كود خصم العميل بيدخله بنفسه (تحقّق منه قبل التأكيد). مش نفس الحاجة.');\n  if (has('order_track') && has('lookup_order_status')) dis.push('- order_track = تفاصيل الأوردر الكاملة (استخدمها لـ\"طلبي وصل فين\"). lookup_order_status = فحص حالة سريع فقط. متستخدمش الاتنين لنفس السؤال.');\n  if (has('search_knowledge_base')) dis.push('- لأي سؤال عام عن النشاط، دوّر في search_knowledge_base الأول قبل ما تعتذر أو تحوّل.');\n  if (has('fetch_business_hours')) dis.push('- لأسئلة المواعيد (\"بتفتحوا إمتى\") استخدم fetch_business_hours.');\n  if (dis.length) { S.push(''); S.push('# توضيح استخدام الأدوات'); for (var i = 0; i < dis.length; i++) S.push(dis[i]); }\n\n  var seq = [], n = 1;\n  if (pb.kind === 'commerce' && has('save_transaction')) {\n    seq.push('## تسلسل أخذ الطلب');\n    if (has('delivery_zones')) seq.push((n++) + '. لو الطلب توصيل: اسأل عن المنطقة وتحقق منها عبر delivery_zones (الرسوم والتغطية ومدة التوصيل).');\n    if (has('fetch_categories')) seq.push((n++) + '. اعرض التصنيفات عبر fetch_categories.');\n    if (has('fitch_products')) seq.push((n++) + '. اعرض الأصناف داخل التصنيف عبر fitch_products وتأكد من توافرها.');\n    if (has('coupons')) seq.push((n++) + '. لو معاه كوبون: تحقق منه عبر coupons قبل التأكيد.');\n    if (has('Calculator')) seq.push((n++) + '. احسب الإجمالي (الأصناف + التوصيل − الخصم) عبر Calculator.');\n    seq.push((n++) + '. اعرض ملخص الطلب واستنى تأكيد العميل، وبعدها سجّله عبر save_transaction.');\n    if (has('order_track')) seq.push((n++) + '. للمتابعة بعد كده: order_track برقم الأوردر.');\n  } else if (pb.kind === 'booking' && has('book_appointment')) {\n    seq.push('## تسلسل الحجز');\n    seq.push((n++) + '. اعرض المتاح (أطباء/خدمات/مدربين) عبر أدوات العرض المتاحة عندك.');\n    seq.push((n++) + '. اتفق مع العميل على الوقت المناسب.');\n    seq.push((n++) + '. أكّد البيانات واحجز عبر book_appointment.');\n    if (has('cancel_appointment')) seq.push((n++) + '. للإلغاء: راجع قسم حدود الصلاحيات تحت قبل التنفيذ.');\n  } else if (pb.kind === 'hotel' && has('book_reservation')) {\n    seq.push('## تسلسل الحجز');\n    seq.push((n++) + '. اعرض الغرف وأسعارها عبر fetch_rooms.');\n    seq.push((n++) + '. اتفق على تواريخ الدخول/الخروج وعدد الضيوف.');\n    seq.push((n++) + '. أكّد واحجز عبر book_reservation.');\n  } else if (pb.kind === 'realestate' && has('save_property_request')) {\n    seq.push('## تسلسل العقارات');\n    seq.push((n++) + '. افهم مطلوب العميل (نوع/ميزانية/منطقة) واعرض المناسب عبر fetch_properties.');\n    seq.push((n++) + '. سجّل طلبه عبر save_property_request، ولو عايز معاينة احجزها عبر book_property_visit.');\n  } else if (pb.kind === 'education' && has('enroll_course')) {\n    seq.push('## تسلسل التسجيل');\n    seq.push((n++) + '. اعرض الكورسات عبر fetch_courses (والمدرّسين عبر fetch_teachers لو سأل).');\n    seq.push((n++) + '. سجّل بيانات الطالب عبر save_student، وبعدها ألحقه بالكورس عبر enroll_course.');\n  } else if (pb.kind === 'service' && has('save_service_request')) {\n    seq.push('## تسلسل طلب الخدمة');\n    seq.push((n++) + '. اعرض الخدمات عبر fetch_services وافهم المشكلة بالتفصيل.');\n    seq.push((n++) + '. سجّل الطلب عبر save_service_request' + (has('track_work_order') ? '، وللمتابعة استخدم track_work_order.' : '.'));\n  }\n  if (seq.length) { S.push(''); S.push('# سير العمل'); for (var s = 0; s < seq.length; s++) S.push(seq[s]); }\n\n  if (has('Calculator')) { S.push(''); S.push('# الحسابات'); S.push('- أي حساب فلوس (إجمالي، توصيل، خصم، ضريبة) لازم يتعمل عبر أداة Calculator — متحسبش يدويًا عشان ما تغلطش.'); }\n\n  var perm = [];\n  if (has('cancel_order')) perm.push('- cancel_order: متلغيش أوردر إلا بعد التأكد من هوية العميل (مطابقة رقم الأوردر + رقم التليفون المسجل على الطلب). لو ما اتأكدتش، اطلب البيانات أو حوّل.');\n  if (has('cancel_appointment')) perm.push('- cancel_appointment: أكّد هوية صاحب الموعد (الاسم/التليفون + رقم الموعد) قبل الإلغاء.');\n  if (has('cancel_reservation')) perm.push('- cancel_reservation: أكّد هوية صاحب الحجز قبل الإلغاء.');\n  if (has('customer_information')) perm.push('- customer_information: للتحديث المحدود فقط (اسم العميل/درجة الرضا) لما يطلب أو تتأكد من معلومة — مش لتعديل بيانات حساسة.');\n  perm.push('- متشاركش بيانات أي عميل تاني أبدًا، ومتعرضش معلومات مش بتخص المحادثة الحالية.');\n  S.push(''); S.push('# حدود الصلاحيات والأمان'); for (var pp = 0; pp < perm.length; pp++) S.push(perm[pp]);\n\n  S.push(''); S.push('# لو مفيش معلومة');\n  if (has('search_knowledge_base')) S.push('- لو search_knowledge_base رجع فاضي أو مش متأكد: ' + (has('escalate') ? 'حوّل العميل لموظف عبر escalate.' : 'اعتذر بأدب ووضّح إنك هتوصّل سؤاله للفريق.'));\n  if (has('escalate')) S.push('- لو التحويل عبر escalate مش متاح (مثلاً برّه مواعيد العمل: ' + hours + '): اعتذر للعميل وقوله إن الفريق هيرجعله في أقرب وقت متاح — من غير ما تخترع إجابة.');\n  S.push('- متخترعش أبدًا معلومات مش موجودة في قاعدة المعرفة أو نتائج الأدوات.');\n\n  S.push(''); S.push('# التاريخ والوقت');\n  S.push('- لو فيه وسم [DateTime: ...] في الرسالة، استخدمه كمرجع للوقت الحالي لحساب المواعيد وساعات العمل فقط — متفترضش إنه وقت إرسال رسالة العميل بالظبط، ومتبنيش ردك على فرق التوقيت بين الرسائل.');\n\n  S.push(''); S.push('# متى تحوّل لموظف بشري');\n  S.push('- عند الشكوى أو طلب العميل التحدث مع شخص أو خروج الطلب عن نطاقك' + (has('escalate') ? ': استخدم escalate فورًا.' : ': اعتذر ووضّح إنك هتوصّل الطلب للفريق.'));\n\n  var appendix = S.join(NL);\n  var base = (c.system_prompt && String(c.system_prompt).trim()) ? String(c.system_prompt).trim() : '';\n  if (base) return base + NL + NL + appendix;\n  var head = ['# هوية البوت', 'أنت المساعد الذكي الرسمي لـ \"' + (c.business_name || '') + '\".'];\n  if (c.greeting_message) head.push('- رسالة الترحيب: ' + c.greeting_message);\n  return head.join(NL) + NL + NL + appendix;\n})() }}",
+          "maxIterations": 6,
+          "returnIntermediateSteps": true,
+          "tracingMetadata": {
+            "values": [
+              {}
+            ]
+          }
+        }
+      },
+      "id": "77151439-5a55-4882-b348-a68916c04ed2",
+      "name": "MAIN_AI_AGENT",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        4704,
+        2464
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "1496b03d-23a5-45c9-9cf3-1bd33cfbcd81",
+      "name": "MERGE_REPLY_PATHS",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        6256,
+        2464
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('WEBHOOK_TRIGGER1').first().json.body.instance }}",
+        "remoteJid": "={{ $('WEBHOOK_TRIGGER1').first().json.body.data.key.remoteJid }}",
+        "messageText": "={{ $json.output }}",
+        "options_message": {
+          "quoted": {
+            "messageQuoted": {
+              "messageId": "={{ $('WEBHOOK_TRIGGER1').first().json.body.data.key.id }}"
+            }
+          }
+        }
+      },
+      "id": "ee8a0d75-606d-45eb-81d3-759701a50b5a",
+      "name": "SEND_RESPONSE",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        6752,
+        2448
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "from-me-check",
+              "leftValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.key.fromMe }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "89817533-a52f-4059-820d-928813030457",
+              "leftValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.key.remoteJid.split(\"@\")[0].length }}",
+              "rightValue": 12,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            },
+            {
+              "id": "239f0772-013b-41f2-a8bc-d65c44249b89",
+              "leftValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.key.remoteJid.split(\"@\") }}",
+              "rightValue": "g.us",
+              "operator": {
+                "type": "array",
+                "operation": "notContains",
+                "rightType": "any"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "73dde2d1-86af-4bfe-b9e1-5d0ea976fb63",
+      "name": "FILTER_OWN_MESSAGES1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1392,
+        2416
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "3bdc6c63-5b71-485e-8f2f-62515edafaac",
+      "name": "IGNORE_OWN_MESSAGES1",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -1104,
+        2704
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "rm1",
+                    "leftValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.messageType }}",
+                    "rightValue": "audioMessage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "audio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "rm2",
+                    "leftValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.messageType }}",
+                    "rightValue": "imageMessage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "image"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "85a18bef-a832-4038-b7ec-079813bec085",
+      "name": "ROUTE_MEDIA_TYPE1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -368,
+        2304
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat-api",
+        "operation": "get-media-base64",
+        "instanceName": "={{ $('WEBHOOK_TRIGGER1').item.json.body.instance }}",
+        "messageId": "={{ $('NORMALIZE_INPUT1').first().json.message_id }}"
+      },
+      "id": "3ce8a50f-2876-4265-adc2-29613e53088b",
+      "name": "GET_MEDIA_BASE1",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        2064
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "data.base64",
+        "options": {}
+      },
+      "id": "1e249fa1-7861-4c2e-a52f-4aefd562111d",
+      "name": "CONVERT_TO_BINARY1",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        2064
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list"
+        },
+        "text": "استخرج النص الموجود في هذا التسجيل الصوتي فقط، بدون أي مقدمة أو تفسير. لو الصوت غير واضح أو لا يوجد كلام، أرجع نصاً فارغاً تماماً.",
+        "inputType": "binary",
+        "options": {}
+      },
+      "id": "b6a1f957-e5a4-4c19-bf07-84cbfbb2d5f8",
+      "name": "TRANSCRIBE_AUDIO1",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        304,
+        2064
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "XI2UZmfY3FRbe5Us",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "audio-unclear",
+              "leftValue": "={{ $json._audio_unclear }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "20e46f70-0640-4452-9a3c-f3a9772df0b3",
+      "name": "IS_AUDIO_UNCLEAR1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        752,
+        2064
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('WEBHOOK_TRIGGER1').item.json.body.instance }}",
+        "remoteJid": "={{ $('NORMALIZE_INPUT1').first().json.remote_jid }}",
+        "messageText": "🎙️ معلش، مش قادر أفهم التسجيل. ممكن تكتب رسالتك كنص؟",
+        "options_message": {
+          "quoted": {
+            "messageQuoted": {
+              "messageId": "={{ $('NORMALIZE_INPUT1').first().json.message_id }}"
+            }
+          }
+        }
+      },
+      "id": "a048350d-1347-4175-86b9-042fddb17b8d",
+      "name": "SEND_UNCLEAR_AUDIO_MSG1",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        592,
+        1888
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "id": "747e9880-f3c3-4791-9f31-6a290889e1a2",
+      "name": "MERGE_MEDIA_TO_TEXT1",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        976,
+        2368
+      ],
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "new-cust",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "40c6728b-841e-442d-8cb9-f3b8163216aa",
+      "name": "IS_NEW_CUSTOMER1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1648,
+        2464
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "d1179fef-8071-4722-bfcc-2cb2994bda1d",
+      "name": "MERGE_CUSTOMER_PATHS1",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2096,
+        2464
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ScJGitKmVNeEK6cW",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ScJGitKmVNeEK6cW",
+          "cachedResultName": "My workflow 15"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -1104,
+        2112
+      ],
+      "id": "4df5d1cf-40fa-43d0-a63c-053caa1d0fe5",
+      "name": "Call 'My workflow 15'"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = ($('MAIN_AI_AGENT').first().json.output ?? '').trim();\n\n// إزالة أي JSON غلط رجع من الـ parser\nlet text = raw;\ntry {\n  const parsed = JSON.parse(raw);\n  if (parsed.text) text = parsed.text;\n  if (parsed.messages) {\n    return parsed.messages\n      .filter(m => m && String(m).trim())\n      .slice(0, 3)\n      .map((m, index) => ({ \n        json: { \n          ...$json, \n          output: m, \n          messageNumber: index + 1,\n          isFirstMessage: index === 0 \n        } \n      }));\n  }\n} catch(e) {}\n\n// تقسيم ذكي بناءً على الجمل\nconst separators = ['\\n\\n', '\\n', '. ', '! ', '؟ '];\nlet parts = [text];\n\nfor (const sep of separators) {\n  if (parts.length >= 2) break;\n  const split = text.split(sep).filter(p => p.trim().length > 10);\n  if (split.length >= 2 && split.length <= 3) {\n    parts = split.map((p, i) => {\n      if (sep !== '\\n' && sep !== '\\n\\n' && i < split.length - 1) {\n        return p + sep.trim();\n      }\n      return p;\n    });\n    break;\n  }\n}\n\n// ضمان مش أكتر من 3 رسائل\nparts = parts.slice(0, 3).filter(p => p.trim());\n\nif (parts.length === 0) parts = [text];\n\n// هنا التعديل الأساسي لإضافة البيانات الجديدة\nreturn parts.map((p, index) => ({\n  json: { \n    ...$json, \n    output: p.trim(),\n    messageNumber: index + 1, // هيطلع 1، 2، 3\n    isFirstMessage: index === 0 // هيطلع true للرسالة الأولى و false للباقي\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6496,
+        2160
+      ],
+      "id": "cc6e9f7f-91bc-410b-9b6a-cf1212576a37",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        6704,
+        2160
+      ],
+      "id": "2a188ecf-189b-4cf3-8bd0-cc4cb6afb2fb",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bb7ff043-8a23-4949-a7b5-541f45c129e8",
+              "leftValue": "={{ $json.isFirstMessage }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        7056,
+        2176
+      ],
+      "id": "1e9c7e61-48ee-42f6-8ac3-ba49aba0a786",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('WEBHOOK_TRIGGER1').first().json.body.instance }}",
+        "remoteJid": "={{ $('WEBHOOK_TRIGGER1').first().json.body.data.key.remoteJid }}",
+        "messageText": "={{ $json.output }}",
+        "options_message": {}
+      },
+      "id": "cadd525d-c27f-416a-ab3b-d3b1093384b9",
+      "name": "SEND_RESPONSE7",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        7056,
+        2464
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        3168,
+        3072
+      ],
+      "id": "222af0ef-4db4-41dc-8a00-6e72d2f7763e",
+      "name": "Calculator"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bot-cust-16062658",
+        "options": {}
+      },
+      "id": "632ff436-21bb-437d-8efe-104c167adf74",
+      "name": "WEBHOOK_TRIGGER1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2224,
+        2416
+      ],
+      "webhookId": "8a05f3db-11f8-40bc-8b57-1f9fa88e0cc6"
+    },
+    {
+      "parameters": {
+        "jsCode": "return { json: {\"business_id\":\"44472751-dda5-4e8d-88fc-f4d0388a8e0e\",\"order_id\":\"CUST_16062658\",\"plan_id\":\"business\",\"business_name\":\"متجر مهدي\",\"instance_name\":\"arq-cust-16062658\",\"webhook_path\":\"bot-cust-16062658\",\"admin_whatsapp\":\"201090220773\",\"model\":\"anthropic/claude-sonnet-4.5\",\"fallback_model\":\"anthropic/claude-haiku-4.5\",\"max_tokens\":1024,\"memory_window\":12,\"message_limit\":11000,\"tools\":[\"log_inquiry\",\"escalate\",\"send_link\",\"save_transaction\",\"lookup_order_status\",\"calculator\",\"save_preference\"],\"media_support\":[\"text\",\"audio\",\"location\"],\"system_prompt\":\"# هوية البوت\\nأنت المساعد الذكي الرسمي لـ \\\"متجر مهدي\\\" (ecommerce).\\nمتجر ادوات مكتبية\\n\\n# الشخصية والأسلوب\\n- نبرة الصوت: friendly.\\n- الشخصية: اسمه مهدي\\n- اللغات: ar.\\n\\n# قواعد صارمة (Hard Rules)\\n- لا تخترع معلومات غير موجودة في قاعدة المعرفة.\\n- عند عدم المعرفة: handover.\\n- لا تشارك بيانات عملاء آخرين.\\n\\n# مواعيد العمل\\n10ص - 12م\\n\\n# الموقع\\n20 شارع جزيرة العرب\\n\\n# طرق الدفع\\ncash، instapay، vodafone_cash، bank\\n\\n# التوصيل\\nمناطق التوصيل في الجيزة والقاهرة\\n\\n# المنتجات\\n- باكدج الثانوية العامة (1500 ج.م): باكدج كل ما يخص الثانوية العامة\\n- باكدج البكلوريا (1750 ج.م)\\n\\n# قاعدة المعرفة\\nمتجر مهدي لادوات الدراسة والمكتب\\n\\n# الأسئلة الشائعة\\nس: \\nج: متجر مهدي لادوات الدراسة والمكتب\\n\\n# دور المساعد حسب نوع النشاط\\nأنت مساعد متجر إلكتروني: تبحث في المنتجات، تتحقق من المخزون، وتُنهي عملية الشراء.\\n- المهام الأساسية: البحث عن منتج، تفاصيل منتج، توافر المخزون، إتمام الطلب، تتبع الطلب، الكوبونات\\n\\n# الأدوات المتاحة لك (استخدمها فقط عند الحاجة، ولا تستخدم أدوات غير مذكورة)\\n- escalate، save_transaction، send_link\",\"business_type\":\"ecommerce\",\"industry_matched\":true,\"capabilities\":{\"products\":true,\"orders\":true,\"inventory\":true,\"coupons\":true,\"booking\":false},\"enabled_tools\":[\"escalate\",\"save_transaction\",\"send_link\"],\"persona\":{\"role_ar\":\"أنت مساعد متجر إلكتروني: تبحث في المنتجات، تتحقق من المخزون، وتُنهي عملية الشراء.\",\"role_en\":\"E-commerce assistant\"}} };"
+      },
+      "id": "8eaef5b2-740e-479b-9541-9dda1f7e6fda",
+      "name": "TENANT_CONFIG1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2000,
+        2416
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "327c6a01-958c-47ca-a5ea-309bf685ef31",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "a3dcccaf-c8cb-4ad3-81f9-85c6f7c7a439",
+              "name": "business_id",
+              "value": "={{ $json.business_id }}",
+              "type": "string"
+            },
+            {
+              "id": "29fc8fa6-23a4-4027-9229-2a3a0889fe14",
+              "name": "name",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "d204f203-37e5-49c9-a09f-c262ff621a4e",
+              "name": "phone",
+              "value": "={{ $json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "f9d604b3-9b59-45a3-97d0-7caec932adf2",
+              "name": "conversation_summary",
+              "value": "={{ $json.conversation_summary }}",
+              "type": "string"
+            },
+            {
+              "id": "9dcf8f6c-05ff-4659-aa26-7bf886f96e60",
+              "name": "message",
+              "value": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.message.conversation }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2304,
+        2464
+      ],
+      "id": "346ac349-bb36-4926-af5d-ed808f9d7b0c",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. استخراج المصفوفة والتأكد من أنها موجودة وليست فارغة\nconst inputData = $input.all();\nif (!inputData || inputData.length === 0 || !inputData[0].json) {\n  return { json: { chat_history: [] } };\n}\n\nconst messages = inputData.map(item => item.json);\n\n// 2. ترتيب الرسائل زمنيًا من الأقدم إلى الأحدث\nconst sortedMessages = messages.sort((a, b) => {\n  const dateA = a.created_at ? new Date(a.created_at) : new Date();\n  const dateB = b.created_at ? new Date(b.created_at) : new Date();\n  return dateA - dateB;\n});\n\n// 3. أخذ آخر 10 رسائل فقط\nconst limitedMessages = sortedMessages.slice(-10);\n\n// 4. تحويل الرسائل لتنسيق مفهوم للذكاء الاصطناعي\nconst chatHistory = limitedMessages.map(msg => {\n  const isClient = msg.direction === 'inbound';\n  return {\n    role: isClient ? 'user' : 'assistant',\n    content: msg.content || ''\n  };\n});\n\n// 5. إرجاع النتيجة\nreturn {\n  json: {\n    chat_history: chatHistory\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3824,
+        2464
+      ],
+      "id": "a73a55b3-2872-477c-81be-281de3f79494",
+      "name": "Code in JavaScript1",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const wh = $('WEBHOOK_TRIGGER1').first().json;\nconst body = wh.body || wh;\nconst data = body.data || {};\nconst key = data.key || {};\nconst phone = String(key.remoteJid || '').split('@')[0].replace(/[^0-9]/g, '');\nconst fromMe = key.fromMe === true;\nconst m = data.message || {};\nconst text = m.conversation\n  || (m.extendedTextMessage && m.extendedTextMessage.text)\n  || (m.imageMessage && m.imageMessage.caption)\n  || (m.videoMessage && m.videoMessage.caption) || '';\nconst hasAudio = !!m.audioMessage;\nconst skip = fromMe || (!text && !hasAudio) || !phone;\nreturn { json: {\n  phone, name: data.pushName || '', wa_message_id: key.id || null,\n  customer_message: text, has_audio: hasAudio, from_me: fromMe, skip\n} };"
+      },
+      "id": "fd21bf08-1edd-4c86-bfc3-45566a66f047",
+      "name": "PARSE_MESSAGE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1664,
+        2416
+      ]
+    },
+    {
+      "parameters": {
+        "description": "احفظ طلب/أوردر العميل بعد تأكيد الأصناف والكميات والعنوان وطريقة الدفع. مرّر JSON: {type, items:[{name,qty,price}], delivery_fee, discount_egp, payment_method, delivery_address, notes}.",
+        "workflowId": {
+          "__rl": true,
+          "value": "o7360fHh36iaQfvm",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/o7360fHh36iaQfvm",
+          "cachedResultName": "🔧 SHARED_SAVE_TRANSACTION_v2"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "delivery_fee": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('delivery_fee', ``, 'number') }}",
+            "discount_egp": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('discount_egp', ``, 'number') }}",
+            "tenant": "={{ $('TENANT_CONFIG1').first().json }}",
+            "customer": "={\n    \"phone\": \"{{ $('PARSE_MESSAGE').first().json.phone }}\",\n    \"name\": \"{{ $('PARSE_MESSAGE').first().json.name }}\"\n  }",
+            "conversation_id": "={{ $('Get Conversation').item.json.id }}",
+            "type": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('type', ``, 'string') }}",
+            "items": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('items', ``, 'json') }}",
+            "payment_method": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('payment_method', ``, 'string') }}",
+            "delivery_address": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('delivery_address', ``, 'string') }}",
+            "notes": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('notes', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tenant",
+              "displayName": "tenant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            },
+            {
+              "id": "customer",
+              "displayName": "customer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            },
+            {
+              "id": "conversation_id",
+              "displayName": "conversation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "type",
+              "displayName": "type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "items",
+              "displayName": "items",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "delivery_fee",
+              "displayName": "delivery_fee",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "discount_egp",
+              "displayName": "discount_egp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "payment_method",
+              "displayName": "payment_method",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "delivery_address",
+              "displayName": "delivery_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "notes",
+              "displayName": "notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "86834f9c-757c-4c2a-87b4-37a12d9f24d4",
+      "name": "save_transaction",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3472,
+        2944
+      ]
+    },
+    {
+      "parameters": {
+        "description": "احجز موعدًا للعميل في العيادة/الصالون/الخدمة بعد الاتفاق على الطبيب/الخدمة والوقت. مرّر JSON: {doctor_id?, service_id?, starts_at:'ISO', ends_at:'ISO', notes?}.",
+        "workflowId": {
+          "__rl": true,
+          "value": "pqdbqvVoxuzZG1mI",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/pqdbqvVoxuzZG1mI",
+          "cachedResultName": "🔧 SHARED_BOOK_APPOINTMENT_v1"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tenant": "={{ $('TENANT_CONFIG1').item.json }}",
+            "doctor_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('doctor_id', ``, 'string') }}",
+            "customer_id": "={{ $('Get Customer').item.json.id }}",
+            "starts_at": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('starts_at', ``, 'string') }}",
+            "ends_at": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ends_at', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tenant",
+              "displayName": "tenant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "customer_id",
+              "displayName": "customer_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "doctor_id",
+              "displayName": "doctor_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "starts_at",
+              "displayName": "starts_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ends_at",
+              "displayName": "ends_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "17af13c5-679e-4607-966c-08052edc8624",
+      "name": "book_appointment",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3904,
+        2944
+      ]
+    },
+    {
+      "parameters": {
+        "description": "ألغِ موعدًا محجوزًا بعد تأكيد العميل. مرّر JSON: {appointment_id}.",
+        "workflowId": {
+          "__rl": true,
+          "value": "ZQO8ZeP29xoCilPv",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ZQO8ZeP29xoCilPv",
+          "cachedResultName": "🔧 SHARED_CANCEL_APPOINTMENT_v1"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tenant": "={{ $('TENANT_CONFIG1').first().json }}",
+            "appointment_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('appointment_id', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tenant",
+              "displayName": "tenant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            },
+            {
+              "id": "appointment_id",
+              "displayName": "appointment_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "11caf75b-fc5a-4386-a70f-7f45e0852343",
+      "name": "cancel_appointment",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3904,
+        3104
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "customers",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "fieldId": "phone",
+              "fieldValue": "=+{{ String($('WEBHOOK_TRIGGER1').item.json.body.data.key.remoteJid).split('@')[0].replace(/[^0-9]/g, '') }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.pushName }}"
+            },
+            {
+              "fieldId": "channel",
+              "fieldValue": "WhatsApp"
+            },
+            {
+              "fieldId": "tags",
+              "fieldValue": "={{ ['new_customer', 'active_user'] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1856,
+        2448
+      ],
+      "id": "47a9ed41-3e50-44f0-96f4-9521a92e2f57",
+      "name": "Create Customer",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "customers",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "phone",
+              "keyValue": "=+{{ String($('WEBHOOK_TRIGGER1').item.json.body.data.key.remoteJid).split('@')[0].replace(/[^0-9]/g, '') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        2464
+      ],
+      "id": "39674d18-2148-4401-bd6a-7d277c1e955d",
+      "name": "Get Customer",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "conversations",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "keyValue": "={{ $json.business_id }}"
+            },
+            {
+              "keyName": "customer_id",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2512,
+        2464
+      ],
+      "id": "05f3edf3-d9d4-4bad-b23f-63a37ce8ca64",
+      "name": "Get Conversation",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "messages",
+        "limit": 10,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "conversation_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3536,
+        2464
+      ],
+      "id": "c3d61b9b-fff0-48f4-909c-3c12564c0e34",
+      "name": "Get messages",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Main tools",
+        "height": 336,
+        "width": 360,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3040,
+        2864
+      ],
+      "id": "a72c0c47-53a2-4fdd-9c34-a377690557f6",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض/ابحث في منتجات المتجر المتاحة (الاسم، السعر، التصنيف، التوافر). استخدمها عندما يسأل العميل عن منتج أو يطلب أوردر للتأكد من توافر الأصناف. تُفلتر تلقائيًا على المتجر الحالي والمنتجات المتاحة فقط.",
+        "operation": "getAll",
+        "tableId": "products",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "available",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        3600,
+        2944
+      ],
+      "id": "e7f9bc9b-2eaf-4047-ba46-eb08180f7592",
+      "name": "fitch_products",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Restaurants & Online Stores",
+        "height": 464,
+        "width": 384,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3440,
+        2864
+      ],
+      "id": "7b40bc5c-6ad2-42e1-b392-c93df4db733d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "description": "استخدمها لجلب الكوبونات والخصومات المتاحة للمتجر عندما يسأل العميل عن كود خصم أو عرض. تمرّر business_id تلقائيًا — لا تطلبه من العميل.",
+        "workflowId": {
+          "__rl": true,
+          "value": "uFxJHaT2KFUK4aSb",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/uFxJHaT2KFUK4aSb",
+          "cachedResultName": "🔧 SHARED_FITCH_COUPONS"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "business_id": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+          },
+          "matchingColumns": [
+            "business_id"
+          ],
+          "schema": [
+            {
+              "id": "business_id",
+              "displayName": "business_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3472,
+        3072
+      ],
+      "id": "098415eb-776c-4bca-babb-393dba3874f8",
+      "name": "coupons"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض مناطق التوصيل المتاحة ورسوم كل منطقة ومدة التوصيل المتوقعة. استخدمها عندما يسأل العميل عن التوصيل أو رسومه أو لحساب إجمالي الأوردر.",
+        "operation": "getAll",
+        "tableId": "delivery_zones",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        3600,
+        3072
+      ],
+      "id": "f2da2905-089f-4f14-8727-e160d4717796",
+      "name": "delivery_zones",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض العروض والتخفيضات النشطة حاليًا في المتجر. استخدمها عندما يسأل العميل عن العروض أو الخصومات الموسمية.",
+        "operation": "getAll",
+        "tableId": "promotions",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        3728,
+        2944
+      ],
+      "id": "a97d033c-c491-43e4-bb4f-a8fe17e2603d",
+      "name": "promotions",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "تتبّع تفاصيل أوردر كامل برقمه (الحالة، الأصناف، الإجمالي). استخدمها عندما يسأل العميل 'فين طلبي' أو يطلب تفاصيل أوردر. مرّر order_id.",
+        "operation": "get",
+        "tableId": "orders",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $fromAI('order_id', ``, 'string') }}"
+            },
+            {
+              "keyName": "business_id",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        3728,
+        3072
+      ],
+      "id": "b17b4338-2625-4edf-ab30-070990df7d51",
+      "name": "order_track",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "xPGnhSGyhsFGjBXj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/xPGnhSGyhsFGjBXj",
+          "cachedResultName": "🔧 SHARED_ORDER_CANCEL_v2"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tenant": "={{ $('TENANT_CONFIG1').first().json }}",
+            "id": "={{ $fromAI('order_id', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tenant",
+              "displayName": "tenant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "description": "ألغِ طلبًا قائمًا بناءً على رقم الأوردر بعد تأكيد العميل. مرّر JSON: {order_id}."
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        3472,
+        3200
+      ],
+      "id": "6385fc5a-f1c6-40e2-ab52-0f21cd2cca4d",
+      "name": "cancel_order"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "customers",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get Customer').item.json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $fromAI('customer_name', ``, 'string') }}"
+            },
+            {
+              "fieldId": "sentiment",
+              "fieldValue": "={{ $fromAI('sentiment', ``, 'string') }}"
+            }
+          ]
+        },
+        "descriptionType": "manual",
+        "toolDescription": "حدّث بيانات العميل في النظام (الاسم أو درجة الرضا sentiment) عند معرفة معلومة جديدة عنه أثناء المحادثة. مرّر customer_name و/أو sentiment."
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        3280,
+        3072
+      ],
+      "id": "87b46e80-0206-4558-9754-332c77f083ac",
+      "name": "customer_information",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Clinics",
+        "height": 464,
+        "width": 384,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3872,
+        2864
+      ],
+      "id": "0679be25-d526-49e9-99d4-0cfc949ec67e",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "doctors",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        },
+        "descriptionType": "manual",
+        "toolDescription": "اعرض قائمة الأطباء المتاحين وتخصصاتهم في العيادة/المركز الطبي. استخدمها عندما يسأل العميل عن طبيب أو تخصص أو قبل حجز موعد."
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        4032,
+        2944
+      ],
+      "id": "c82f02b2-6962-42cf-b8f8-1d7adb921a92",
+      "name": "fitch_doctors",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "appointments",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": []
+        },
+        "descriptionType": "manual",
+        "toolDescription": "اعرض المواعيد المحجوزة للتحقق من الأوقات المتاحة قبل الحجز. ⚠️ يُنصح بإضافة فلتر business_id (انظر ملاحظات التحسين)."
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        4160,
+        2944
+      ],
+      "id": "fc330ccb-224f-4407-84ed-cbdb03a154ad",
+      "name": "fitch_appointments",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('Edit Fields').item.json.business_id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $('Edit Fields').item.json.id }}"
+            },
+            {
+              "fieldId": "conversation_id",
+              "fieldValue": "={{ $('Merge').item.json.id }}"
+            },
+            {
+              "fieldId": "direction",
+              "fieldValue": "inbound"
+            },
+            {
+              "fieldId": "content",
+              "fieldValue": "={{ $('Edit Fields').item.json.message }}"
+            },
+            {
+              "fieldId": "media_type",
+              "fieldValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.messageType }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        5792,
+        2320
+      ],
+      "id": "6dd224e8-52de-4f22-8e04-c9742a0903b4",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7a4748e4-c96b-4757-b1d6-894efa954c7d",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2688,
+        2464
+      ],
+      "id": "eb08e110-720a-43d0-b8ea-d7d7cb1ac31b",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "tableId": "conversations",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $('MERGE_CUSTOMER_PATHS1').item.json.id }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "open"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3024,
+        2384
+      ],
+      "id": "49f59c13-d796-40da-867a-52d81c019da7",
+      "name": "Create a row1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3360,
+        2464
+      ],
+      "id": "9e6a4292-f049-45d7-adec-0399646b9446",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "tableId": "messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('Edit Fields').item.json.business_id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $('Edit Fields').item.json.id }}"
+            },
+            {
+              "fieldId": "conversation_id",
+              "fieldValue": "={{ $('Merge').item.json.id }}"
+            },
+            {
+              "fieldId": "direction",
+              "fieldValue": "outbound"
+            },
+            {
+              "fieldId": "content",
+              "fieldValue": "={{ $('MAIN_AI_AGENT').item.json.output }}"
+            },
+            {
+              "fieldId": "media_type",
+              "fieldValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.messageType }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        5792,
+        2464
+      ],
+      "id": "9c949886-1ef6-4fae-95db-fa4ad91ecda8",
+      "name": "Create a row2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "F0hxP68yjOo0RLGS",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/F0hxP68yjOo0RLGS",
+          "cachedResultName": "🔧 SHARED_CALCULATE_COST_v2"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tenant": "={{ $('TENANT_CONFIG1').first().json }}",
+            "execution_id": "={{ $execution.id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tenant",
+              "displayName": "tenant",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        7072,
+        1984
+      ],
+      "id": "175eabdd-9947-443b-856f-701ab68418d9",
+      "name": "Call '🔧 SHARED_CALCULATE_COST_v2'"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض الروابط الرسمية المحفوظة للنشاط (الموقع، القائمة، خرائط جوجل، صفحات التواصل) لمشاركة الرابط المناسب مع العميل. تُفلتر على النشاط الحالي والروابط النشطة فقط.",
+        "operation": "getAll",
+        "tableId": "links",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "ef71c2c0-5c54-47d7-ba79-75b0f929577f",
+      "name": "send_link",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        3080,
+        3360
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "تحقق سريعًا من حالة أوردر برقمه فقط (مثال: قيد التجهيز/تم الشحن/تم التسليم). للتفاصيل الكاملة استخدم order_track. مرّر order_id.",
+        "operation": "get",
+        "tableId": "orders",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $fromAI('order_id', ``, 'string') }}"
+            },
+            {
+              "keyName": "business_id",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "640d7621-014f-489a-9597-369d8541e8b7",
+      "name": "lookup_order_status",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        3080,
+        3510
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "احفظ تفضيلًا أو ملاحظة دائمة عن العميل (مثل: نباتي، يفضل التواصل مساءً، حساسية معينة) لاستخدامها لاحقًا. مرّر JSON: {type, value}.",
+        "operation": "create",
+        "tableId": "customer_preferences",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $('MERGE_CUSTOMER_PATHS1').first().json.id }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "={{ $fromAI('type', ``, 'string') }}"
+            },
+            {
+              "fieldId": "value",
+              "fieldValue": "={{ $fromAI('value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "source",
+              "fieldValue": "whatsapp"
+            },
+            {
+              "fieldId": "active",
+              "fieldValue": "true"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "6a3de7fb-2aed-4944-af3e-6de287ec568e",
+      "name": "save_preference",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        3080,
+        3660
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "ابحث في قاعدة المعرفة والأسئلة الشائعة للنشاط للإجابة على استفسارات العملاء بدقة. استخدمها أولًا قبل أي تصعيد عند وجود سؤال عام عن النشاط. تُفلتر على النشاط الحالي والمحتوى النشط.",
+        "operation": "getAll",
+        "tableId": "knowledge_base",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "af250e5f-7b40-42a4-8100-03da37053f32",
+      "name": "search_knowledge_base",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        3080,
+        3810
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض مواعيد العمل الأسبوعية للنشاط (أيام الفتح والإغلاق والساعات). استخدمها عندما يسأل العميل 'إمتى بتفتحوا' أو عن أيام الإجازات.",
+        "operation": "getAll",
+        "tableId": "business_hours",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "d886bb1d-a4a7-44f4-b187-b7aa2cf91922",
+      "name": "fetch_business_hours",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        3280,
+        3360
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض تصنيفات المنتجات/الخدمات للنشاط لمساعدة العميل على التصفّح حسب الفئة. تُفلتر على النشاط الحالي والتصنيفات النشطة.",
+        "operation": "getAll",
+        "tableId": "categories",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "76c3130b-4ddb-419b-9b86-9587cb4025ff",
+      "name": "fetch_categories",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        3280,
+        3510
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض الخدمات المتاحة وأسعارها ومدتها (للصالونات وشركات الخدمات والصيانة والأعمال العامة). استخدمها عندما يسأل العميل عن الخدمات أو الأسعار.",
+        "operation": "getAll",
+        "tableId": "services",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "741446d8-4492-47d9-89b2-542069222a49",
+      "name": "fetch_services",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        3280,
+        3660
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض فريق العمل/الموظفين المتاحين وأدوارهم (للصالونات وشركات الخدمات والاستشارات). استخدمها قبل حجز موعد مع شخص محدد.",
+        "operation": "getAll",
+        "tableId": "staff",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "d69704aa-554f-4cdb-a4a3-d79d6bbc9f7d",
+      "name": "fetch_staff",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        3280,
+        3810
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض الخدمات الطبية المتاحة في العيادة/المركز الطبي وأسعارها ومدتها. استخدمها عندما يسأل المريض عن خدمة طبية أو سعرها قبل الحجز.",
+        "operation": "getAll",
+        "tableId": "medical_services",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "09ac254f-373b-437e-b95a-4f5d2b0f2064",
+      "name": "fetch_medical_services",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        3480,
+        3360
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض أنواع الغرف المتاحة في الفندق (رقم الغرفة، النوع، السعة، السعر/الليلة، المرافق). استخدمها عندما يسأل العميل عن الغرف أو الأسعار أو قبل عمل حجز.",
+        "operation": "getAll",
+        "tableId": "rooms",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "12852873-7505-4b34-b193-a1bb58df486c",
+      "name": "fetch_rooms",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        3820,
+        3360
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "أنشئ حجز غرفة فندقية بعد الاتفاق على الغرفة وتواريخ الدخول/الخروج وعدد الضيوف. مرّر JSON: {room_id, check_in:'YYYY-MM-DD', check_out:'YYYY-MM-DD', guests_count, total_egp?, notes?}.",
+        "operation": "create",
+        "tableId": "reservations",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $('MERGE_CUSTOMER_PATHS1').first().json.id }}"
+            },
+            {
+              "fieldId": "room_id",
+              "fieldValue": "={{ $fromAI('room_id', ``, 'string') }}"
+            },
+            {
+              "fieldId": "check_in",
+              "fieldValue": "={{ $fromAI('check_in', ``, 'string') }}"
+            },
+            {
+              "fieldId": "check_out",
+              "fieldValue": "={{ $fromAI('check_out', ``, 'string') }}"
+            },
+            {
+              "fieldId": "guests_count",
+              "fieldValue": "={{ $fromAI('guests_count', ``, 'number') }}"
+            },
+            {
+              "fieldId": "total_egp",
+              "fieldValue": "={{ $fromAI('total_egp', ``, 'number') }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $fromAI('notes', ``, 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending"
+            },
+            {
+              "fieldId": "source",
+              "fieldValue": "whatsapp"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "af3d0fc6-d8b2-4190-9883-8c38a8025d17",
+      "name": "book_reservation",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        3820,
+        3510
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "ألغِ حجزًا فندقيًا قائمًا بعد تأكيد العميل. مرّر JSON: {reservation_id}.",
+        "operation": "update",
+        "tableId": "reservations",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $fromAI('reservation_id', ``, 'string') }}"
+            },
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "cancelled"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "04858ae8-d884-4689-b294-7c763839acf9",
+      "name": "cancel_reservation",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        3820,
+        3660
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض/ابحث في العقارات المتاحة (العنوان، الغرض بيع/إيجار، السعر، المساحة، عدد الغرف، الموقع). استخدمها عندما يبحث العميل عن وحدة بمواصفات معينة.",
+        "operation": "getAll",
+        "tableId": "properties",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "fd3b00e0-7ca4-445b-ac66-b5a7675dda41",
+      "name": "fetch_properties",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        4160,
+        3360
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض مندوبي/وكلاء العقارات المتاحين للتواصل أو توجيه العميل للمندوب المناسب.",
+        "operation": "getAll",
+        "tableId": "agents",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "49533f68-7bbf-475f-8df0-951d3494e7a7",
+      "name": "fetch_agents",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        4160,
+        3510
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "سجّل طلب عميل يبحث عن عقار بمواصفات وميزانية محددة لمتابعته من فريق المبيعات. مرّر JSON: {name, phone, request_type, budget_egp?, preferred_location?, details?}.",
+        "operation": "create",
+        "tableId": "property_requests",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $('MERGE_CUSTOMER_PATHS1').first().json.id }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $fromAI('name', ``, 'string') }}"
+            },
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ $fromAI('phone', ``, 'string') }}"
+            },
+            {
+              "fieldId": "request_type",
+              "fieldValue": "={{ $fromAI('request_type', ``, 'string') }}"
+            },
+            {
+              "fieldId": "budget_egp",
+              "fieldValue": "={{ $fromAI('budget_egp', ``, 'number') }}"
+            },
+            {
+              "fieldId": "preferred_location",
+              "fieldValue": "={{ $fromAI('preferred_location', ``, 'string') }}"
+            },
+            {
+              "fieldId": "details",
+              "fieldValue": "={{ $fromAI('details', ``, 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "new"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "b03cfeb2-1379-4b28-85f6-e5970addb5a5",
+      "name": "save_property_request",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        4160,
+        3660
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "احجز موعد معاينة لعقار محدد بعد الاتفاق على الوقت. مرّر JSON: {property_id, scheduled_at:'ISO', notes?}.",
+        "operation": "create",
+        "tableId": "property_visits",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $('MERGE_CUSTOMER_PATHS1').first().json.id }}"
+            },
+            {
+              "fieldId": "property_id",
+              "fieldValue": "={{ $fromAI('property_id', ``, 'string') }}"
+            },
+            {
+              "fieldId": "scheduled_at",
+              "fieldValue": "={{ $fromAI('scheduled_at', ``, 'string') }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $fromAI('notes', ``, 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "scheduled"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "615e99bb-2f0b-4f7f-9eba-2180d34660d0",
+      "name": "book_property_visit",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        4160,
+        3810
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض الكورسات المتاحة (الاسم، المستوى، السعر، المواعيد، تاريخ البدء، السعة). استخدمها عندما يسأل الطالب عن الكورسات أو الأسعار أو المواعيد.",
+        "operation": "getAll",
+        "tableId": "courses",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "12ce1236-48d9-422f-9801-a69305e2d45d",
+      "name": "fetch_courses",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        4500,
+        3360
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض المدرّسين/المحاضرين المتاحين وموادهم. استخدمها عندما يسأل العميل عن مدرّس مادة معينة.",
+        "operation": "getAll",
+        "tableId": "teachers",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "c02710a9-5682-4d38-aa03-c0d36ac07670",
+      "name": "fetch_teachers",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        4500,
+        3510
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "سجّل بيانات طالب جديد قبل إلحاقه بكورس (خطوة أولى قبل enroll_course). مرّر JSON: {name, phone?, email?, parent_name?, parent_phone?, notes?}. يرجع id الطالب لاستخدامه في التسجيل.",
+        "operation": "create",
+        "tableId": "students",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $('MERGE_CUSTOMER_PATHS1').first().json.id }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $fromAI('name', ``, 'string') }}"
+            },
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ $fromAI('phone', ``, 'string') }}"
+            },
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ $fromAI('email', ``, 'string') }}"
+            },
+            {
+              "fieldId": "parent_name",
+              "fieldValue": "={{ $fromAI('parent_name', ``, 'string') }}"
+            },
+            {
+              "fieldId": "parent_phone",
+              "fieldValue": "={{ $fromAI('parent_phone', ``, 'string') }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $fromAI('notes', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "74044c58-91c1-4c7e-97dc-e0f5e949318d",
+      "name": "save_student",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        4500,
+        3660
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "ألحق طالبًا بكورس بعد إنشاء سجل الطالب عبر save_student. مرّر JSON: {student_id, course_id, notes?}.",
+        "operation": "create",
+        "tableId": "enrollments",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "fieldId": "student_id",
+              "fieldValue": "={{ $fromAI('student_id', ``, 'string') }}"
+            },
+            {
+              "fieldId": "course_id",
+              "fieldValue": "={{ $fromAI('course_id', ``, 'string') }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $fromAI('notes', ``, 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "fff22ce0-5fa4-4244-b2bf-6984198c492a",
+      "name": "enroll_course",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        4500,
+        3810
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض جدول الحصص الرياضية المتاحة (الاسم، المدرّب، السعة، موعد البدء، التكرار). استخدمها عندما يسأل العضو عن مواعيد الحصص.",
+        "operation": "getAll",
+        "tableId": "classes",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "e25fbd47-e4e2-4d7d-8e6f-a30fa84b7eee",
+      "name": "fetch_classes",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        4840,
+        3360
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض المدرّبين المتاحين وتخصصاتهم في الجيم. استخدمها عندما يسأل العميل عن مدرّب أو تخصص معين.",
+        "operation": "getAll",
+        "tableId": "trainers",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "e56d203d-d1c1-4c92-90b2-e54260ba24cf",
+      "name": "fetch_trainers",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        4840,
+        3510
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض اشتراكات/عضويات العميل الحالية وحالتها وتواريخ انتهائها. استخدمها عندما يسأل العضو عن اشتراكه.",
+        "operation": "getAll",
+        "tableId": "memberships",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "customer_id",
+              "condition": "eq",
+              "keyValue": "={{ $('MERGE_CUSTOMER_PATHS1').first().json.id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "7fbacaa8-1149-47f7-a82d-51536c6dd02d",
+      "name": "fetch_memberships",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        4840,
+        3660
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "أنشئ اشتراك عضوية جديد للعميل بعد اختيار الباقة. مرّر JSON: {member_name, phone?, plan_name, price_egp?, starts_on:'YYYY-MM-DD', ends_on:'YYYY-MM-DD', notes?}.",
+        "operation": "create",
+        "tableId": "memberships",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $('MERGE_CUSTOMER_PATHS1').first().json.id }}"
+            },
+            {
+              "fieldId": "member_name",
+              "fieldValue": "={{ $fromAI('member_name', ``, 'string') }}"
+            },
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ $fromAI('phone', ``, 'string') }}"
+            },
+            {
+              "fieldId": "plan_name",
+              "fieldValue": "={{ $fromAI('plan_name', ``, 'string') }}"
+            },
+            {
+              "fieldId": "price_egp",
+              "fieldValue": "={{ $fromAI('price_egp', ``, 'number') }}"
+            },
+            {
+              "fieldId": "starts_on",
+              "fieldValue": "={{ $fromAI('starts_on', ``, 'string') }}"
+            },
+            {
+              "fieldId": "ends_on",
+              "fieldValue": "={{ $fromAI('ends_on', ``, 'string') }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $fromAI('notes', ``, 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "active"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "716f9f19-fe1a-4817-a6b1-d30807ffd17e",
+      "name": "save_membership",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        4840,
+        3810
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض الفنيين المتاحين ومهاراتهم/تخصصاتهم. استخدمها لتوجيه طلب الصيانة للفني المناسب.",
+        "operation": "getAll",
+        "tableId": "technicians",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "active",
+              "condition": "is",
+              "keyValue": "TRUE"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "729cce1b-034d-4459-93b6-0496501129f1",
+      "name": "fetch_technicians",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        5180,
+        3360
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "سجّل طلب خدمة/صيانة جديد من العميل لجدولته وتوزيعه على فني. مرّر JSON: {service_id?, name, phone, details, preferred_at?:'ISO'}.",
+        "operation": "create",
+        "tableId": "service_requests",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $('MERGE_CUSTOMER_PATHS1').first().json.id }}"
+            },
+            {
+              "fieldId": "service_id",
+              "fieldValue": "={{ $fromAI('service_id', ``, 'string') }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $fromAI('name', ``, 'string') }}"
+            },
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ $fromAI('phone', ``, 'string') }}"
+            },
+            {
+              "fieldId": "details",
+              "fieldValue": "={{ $fromAI('details', ``, 'string') }}"
+            },
+            {
+              "fieldId": "preferred_at",
+              "fieldValue": "={{ $fromAI('preferred_at', ``, 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "new"
+            },
+            {
+              "fieldId": "source",
+              "fieldValue": "whatsapp"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "f9c4a2c3-6432-4501-89de-8fa0dbd17291",
+      "name": "save_service_request",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        5180,
+        3510
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "تابع حالة أمر الشغل/الصيانة برقمه (order_number). استخدمها عندما يسأل العميل عن حالة طلب الصيانة. مرّر order_number.",
+        "operation": "get",
+        "tableId": "work_orders",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "order_number",
+              "keyValue": "={{ $fromAI('order_number', ``, 'string') }}"
+            },
+            {
+              "keyName": "business_id",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "c71fbea1-5da8-4084-b819-cf4b8c22d3e8",
+      "name": "track_work_order",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        5180,
+        3660
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "استعلم عن حالة قضية برقمها (case_number) لإطلاع الموكّل على آخر تطور أو موعد الجلسة القادمة. مرّر case_number.",
+        "operation": "get",
+        "tableId": "cases",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "case_number",
+              "keyValue": "={{ $fromAI('case_number', ``, 'string') }}"
+            },
+            {
+              "keyName": "business_id",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "494a1c98-8385-4d39-8592-ed1ac1963e9d",
+      "name": "fetch_cases",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        5520,
+        3360
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "سجّل بيانات موكّل جديد لمكتب المحاماة لفتح ملف ومتابعته. مرّر JSON: {name, phone, email?, national_id?, notes?}.",
+        "operation": "create",
+        "tableId": "case_clients",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $('MERGE_CUSTOMER_PATHS1').first().json.id }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $fromAI('name', ``, 'string') }}"
+            },
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ $fromAI('phone', ``, 'string') }}"
+            },
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ $fromAI('email', ``, 'string') }}"
+            },
+            {
+              "fieldId": "national_id",
+              "fieldValue": "={{ $fromAI('national_id', ``, 'string') }}"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ $fromAI('notes', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "ad083af9-9bec-41ce-adb6-6e2582ef2be8",
+      "name": "register_case_client",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        5520,
+        3510
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "سجّل طلب استشارة من العميل (موضوع + تفاصيل + الوقت المفضل) لجدولتها مع المختص. مرّر JSON: {name, phone, subject, details?, preferred_at?:'ISO'}.",
+        "operation": "create",
+        "tableId": "consultation_requests",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "fieldId": "customer_id",
+              "fieldValue": "={{ $('MERGE_CUSTOMER_PATHS1').first().json.id }}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $fromAI('name', ``, 'string') }}"
+            },
+            {
+              "fieldId": "phone",
+              "fieldValue": "={{ $fromAI('phone', ``, 'string') }}"
+            },
+            {
+              "fieldId": "subject",
+              "fieldValue": "={{ $fromAI('subject', ``, 'string') }}"
+            },
+            {
+              "fieldId": "details",
+              "fieldValue": "={{ $fromAI('details', ``, 'string') }}"
+            },
+            {
+              "fieldId": "preferred_at",
+              "fieldValue": "={{ $fromAI('preferred_at', ``, 'string') }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "new"
+            },
+            {
+              "fieldId": "source",
+              "fieldValue": "whatsapp"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "id": "ba31106e-9228-40da-b8d3-d04b5885a30e",
+      "name": "save_consultation_request",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "position": [
+        5520,
+        3660
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🔁 أدوات مشتركة (كل الأنشطة)",
+        "height": 640,
+        "width": 680,
+        "color": 11
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3040,
+        3280
+      ],
+      "id": "41e70eb5-8350-4e3e-bbc9-d01d854ef16c",
+      "name": "NoteGroup_f38948c3"
+    },
+    {
+      "parameters": {
+        "content": "## 🏨 الفنادق (Hotels)",
+        "height": 640,
+        "width": 280,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3780,
+        3280
+      ],
+      "id": "c5e23ab8-86bd-4829-aa7e-33b0b265cd43",
+      "name": "NoteGroup_d2b1959f"
+    },
+    {
+      "parameters": {
+        "content": "## 🏢 العقارات (Real Estate)",
+        "height": 640,
+        "width": 280,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4120,
+        3280
+      ],
+      "id": "0e64c893-b7d6-4658-ba74-8b6d4a250fad",
+      "name": "NoteGroup_019ca05b"
+    },
+    {
+      "parameters": {
+        "content": "## 🎓 التعليم (Education)",
+        "height": 640,
+        "width": 280,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4460,
+        3280
+      ],
+      "id": "b0d8623e-a52f-4d3c-9394-b311e1d43ddb",
+      "name": "NoteGroup_bee08243"
+    },
+    {
+      "parameters": {
+        "content": "## 🏋️ الجيم (Gym)",
+        "height": 640,
+        "width": 280,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4800,
+        3280
+      ],
+      "id": "886be053-5c0e-4d94-9218-49af66a6dffa",
+      "name": "NoteGroup_1129a22a"
+    },
+    {
+      "parameters": {
+        "content": "## 🔧 الخدمات والصيانة (Services)",
+        "height": 640,
+        "width": 280,
+        "color": 9
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        5140,
+        3280
+      ],
+      "id": "997110ab-7517-4e28-8862-09c559588a1d",
+      "name": "NoteGroup_8fb877c3"
+    },
+    {
+      "parameters": {
+        "content": "## ⚖️ المحاماة والاستشارات (Legal & Consulting)",
+        "height": 640,
+        "width": 280,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        5480,
+        3280
+      ],
+      "id": "a5f37476-77d2-4ed1-8ca1-f1ac044c3726",
+      "name": "NoteGroup_8266ac79"
+    }
+  ],
+  "pinData": {
+    "WEBHOOK_TRIGGER1": [
+      {
+        "json": {
+          "headers": {
+            "host": "bc1b1373.kube-ops.com",
+            "user-agent": "axios/1.13.2",
+            "content-length": "1457",
+            "accept": "application/json, text/plain, */*",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1",
+            "cf-connecting-ip": "198.12.108.210",
+            "cf-ipcountry": "US",
+            "cf-ray": "a0e50d8639031141-ORD",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-warp-tag-id": "bb386d2b-612b-4715-be77-fdbfde8aa474",
+            "content-type": "application/json",
+            "x-forwarded-for": "172.18.0.1",
+            "x-forwarded-host": "bc1b1373.kube-ops.com",
+            "x-forwarded-port": "80",
+            "x-forwarded-proto": "http",
+            "x-forwarded-server": "22203f14bb99",
+            "x-real-ip": "172.18.0.1"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event": "messages.upsert",
+            "instance": "🤖 Arq | مطعم السدة | CUST_14062613",
+            "data": {
+              "key": {
+                "remoteJid": "16172971060@s.whatsapp.net",
+                "remoteJidAlt": "16172971060@s.whatsapp.net",
+                "fromMe": false,
+                "id": "AC641BC08C719677764B007E470D96C0",
+                "participant": "",
+                "addressingMode": "lid"
+              },
+              "pushName": "Mohamed Ibrahim",
+              "status": "DELIVERY_ACK",
+              "message": {
+                "conversation": "تمام هو لو هطلب واحد بكالوريا هيكون بكام",
+                "messageContextInfo": {
+                  "threadId": [],
+                  "deviceListMetadata": {
+                    "senderKeyIndexes": [],
+                    "recipientKeyIndexes": [],
+                    "senderTimestamp": {
+                      "low": 1781085853,
+                      "high": 0,
+                      "unsigned": true
+                    },
+                    "recipientKeyHash": {
+                      "0": 45,
+                      "1": 80,
+                      "2": 187,
+                      "3": 253,
+                      "4": 41,
+                      "5": 149,
+                      "6": 249,
+                      "7": 8,
+                      "8": 104,
+                      "9": 239
+                    },
+                    "recipientTimestamp": {
+                      "low": 1781897373,
+                      "high": 0,
+                      "unsigned": true
+                    }
+                  },
+                  "deviceListMetadataVersion": 2,
+                  "messageSecret": {
+                    "0": 91,
+                    "1": 46,
+                    "2": 23,
+                    "3": 208,
+                    "4": 125,
+                    "5": 143,
+                    "6": 73,
+                    "7": 145,
+                    "8": 218,
+                    "9": 198,
+                    "10": 197,
+                    "11": 227,
+                    "12": 147,
+                    "13": 254,
+                    "14": 187,
+                    "15": 45,
+                    "16": 212,
+                    "17": 241,
+                    "18": 91,
+                    "19": 251,
+                    "20": 186,
+                    "21": 54,
+                    "22": 174,
+                    "23": 11,
+                    "24": 153,
+                    "25": 150,
+                    "26": 150,
+                    "27": 103,
+                    "28": 251,
+                    "29": 226,
+                    "30": 35,
+                    "31": 184
+                  }
+                }
+              },
+              "messageType": "conversation",
+              "messageTimestamp": 1781898520,
+              "instanceId": "8f6bd9cc-020b-4380-a7a7-7a5c67b0763d",
+              "source": "android"
+            },
+            "destination": "https://bc1b1373.kube-ops.com/webhook/bot-cust-16062658",
+            "date_time": "2026-06-19T16:48:42.550Z",
+            "sender": "201154636791@s.whatsapp.net",
+            "server_url": "https://evo.mis.rooyai.com",
+            "apikey": "29CB7B65-8D20-43D8-9F00-3138AE8132E5"
+          },
+          "webhookUrl": "https://bc1b1373.kube-ops.com/webhook/bot-cust-16062658",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "escalate": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EXTRACT_TRANSCRIPTION": {
+      "main": [
+        [
+          {
+            "node": "IS_AUDIO_UNCLEAR1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_MEDIA_BASE_IMAGE": {
+      "main": [
+        [
+          {
+            "node": "CONVERT_TO_BINARY_IMAGE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONVERT_TO_BINARY_IMAGE": {
+      "main": [
+        [
+          {
+            "node": "ANALYZE_IMAGE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ANALYZE_IMAGE": {
+      "main": [
+        [
+          {
+            "node": "BUILD_IMAGE_TEXT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_IMAGE_TEXT": {
+      "main": [
+        [
+          {
+            "node": "MERGE_MEDIA_TO_TEXT1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "MAIN_AGENT_LLM": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MAIN_AGENT_MEMORY": {
+      "ai_memory": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MAIN_AI_AGENT": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create a row2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MERGE_REPLY_PATHS": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND_RESPONSE": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FILTER_OWN_MESSAGES1": {
+      "main": [
+        [
+          {
+            "node": "Call 'My workflow 15'",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ROUTE_MEDIA_TYPE1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IGNORE_OWN_MESSAGES1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ROUTE_MEDIA_TYPE1": {
+      "main": [
+        [
+          {
+            "node": "GET_MEDIA_BASE1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GET_MEDIA_BASE_IMAGE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MERGE_MEDIA_TO_TEXT1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_MEDIA_BASE1": {
+      "main": [
+        [
+          {
+            "node": "CONVERT_TO_BINARY1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONVERT_TO_BINARY1": {
+      "main": [
+        [
+          {
+            "node": "TRANSCRIBE_AUDIO1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TRANSCRIBE_AUDIO1": {
+      "main": [
+        [
+          {
+            "node": "EXTRACT_TRANSCRIPTION",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SEND_UNCLEAR_AUDIO_MSG1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IS_AUDIO_UNCLEAR1": {
+      "main": [
+        [
+          {
+            "node": "SEND_UNCLEAR_AUDIO_MSG1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MERGE_MEDIA_TO_TEXT1",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "MERGE_MEDIA_TO_TEXT1": {
+      "main": [
+        [
+          {
+            "node": "Get Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IS_NEW_CUSTOMER1": {
+      "main": [
+        [
+          {
+            "node": "Create Customer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MERGE_CUSTOMER_PATHS1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "MERGE_CUSTOMER_PATHS1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Call '🔧 SHARED_CALCULATE_COST_v2'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "SEND_RESPONSE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SEND_RESPONSE7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND_RESPONSE7": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WEBHOOK_TRIGGER1": {
+      "main": [
+        [
+          {
+            "node": "TENANT_CONFIG1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TENANT_CONFIG1": {
+      "main": [
+        [
+          {
+            "node": "PARSE_MESSAGE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Get Conversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PARSE_MESSAGE": {
+      "main": [
+        [
+          {
+            "node": "FILTER_OWN_MESSAGES1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save_transaction": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Customer": {
+      "main": [
+        [
+          {
+            "node": "MERGE_CUSTOMER_PATHS1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Customer": {
+      "main": [
+        [
+          {
+            "node": "IS_NEW_CUSTOMER1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Conversation": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get messages": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fitch_products": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "coupons": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "delivery_zones": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "promotions": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "order_track": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cancel_order": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "customer_information": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "book_appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fitch_doctors": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fitch_appointments": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cancel_appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "MERGE_REPLY_PATHS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Create a row1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Create a row1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Get messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row2": {
+      "main": [
+        [
+          {
+            "node": "MERGE_REPLY_PATHS",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "send_link": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "lookup_order_status": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save_preference": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_knowledge_base": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_business_hours": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_categories": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_services": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_staff": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_medical_services": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_rooms": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "book_reservation": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cancel_reservation": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_properties": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_agents": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save_property_request": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "book_property_visit": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_courses": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_teachers": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save_student": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "enroll_course": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_classes": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_trainers": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_memberships": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save_membership": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_technicians": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save_service_request": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "track_work_order": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_cases": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "register_case_client": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save_consultation_request": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "92e43447-db4f-4103-b7f7-d9099bb9c0cd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c6ff05776992964543c85834eed789ae8d538e2826bed09559b1709e0337b4da"
+  },
+  "id": "HjQ0RsHaQLReO4Az",
+  "tags": []
+}

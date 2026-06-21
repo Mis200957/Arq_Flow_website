@@ -296,6 +296,146 @@
         120
       ],
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "name": "get_available_slots",
+        "description": "اعرف المواعيد المتاحة في يوم معيّن. مرّر JSON: {date:'YYYY-MM-DD', doctor_id?, service_id?}.",
+        "workflowId": {
+          "__rl": true,
+          "value": "SET_SHARED_GET_AVAILABLE_SLOTS_ID",
+          "mode": "id"
+        },
+        "specifyInputSchema": false
+      },
+      "id": "f4215b91-0b3c-4e84-942b-43e3506b1beb",
+      "name": "get_available_slots",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1000,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "name": "book_appointment",
+        "description": "احجز موعداً للعميل. مرّر JSON: {phone, name?, starts_at:'ISO', doctor_id?, service_id?, notes?}.",
+        "workflowId": {
+          "__rl": true,
+          "value": "SET_SHARED_BOOK_APPOINTMENT_ID",
+          "mode": "id"
+        },
+        "specifyInputSchema": false
+      },
+      "id": "7632940f-a9f9-4f14-a3fd-df32d256193d",
+      "name": "book_appointment",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1000,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "name": "cancel_appointment",
+        "description": "ألغِ موعداً قائماً. مرّر JSON: {appointment_id}.",
+        "workflowId": {
+          "__rl": true,
+          "value": "SET_SHARED_CANCEL_APPOINTMENT_ID",
+          "mode": "id"
+        },
+        "specifyInputSchema": false
+      },
+      "id": "ff8c588d-0f7e-487b-a4f3-5471549e91d7",
+      "name": "cancel_appointment",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1000,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "name": "reschedule_appointment",
+        "description": "أعد جدولة موعد. مرّر JSON: {appointment_id, new_starts_at:'ISO', new_ends_at?}.",
+        "workflowId": {
+          "__rl": true,
+          "value": "SET_SHARED_RESCHEDULE_APPOINTMENT_ID",
+          "mode": "id"
+        },
+        "specifyInputSchema": false
+      },
+      "id": "a402e46c-8942-4fa4-a73a-d39dd9cc9c2c",
+      "name": "reschedule_appointment",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1000,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "name": "room_reservation",
+        "description": "أنشئ طلب حجز غرفة فندق. مرّر JSON: {phone, name?, check_in:'YYYY-MM-DD', check_out:'YYYY-MM-DD', room_id?, guests_count?, notes?}.",
+        "workflowId": {
+          "__rl": true,
+          "value": "SET_SHARED_ROOM_RESERVATION_ID",
+          "mode": "id"
+        },
+        "specifyInputSchema": false
+      },
+      "id": "9b7dba8a-25b3-40c8-86c6-d90ef4295eed",
+      "name": "room_reservation",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1000,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "name": "send_reminder",
+        "description": "أرسل تذكيراً للعميل عبر واتساب. مرّر JSON: {phone, message}.",
+        "workflowId": {
+          "__rl": true,
+          "value": "SET_SHARED_SEND_REMINDER_ID",
+          "mode": "id"
+        },
+        "specifyInputSchema": false
+      },
+      "id": "b9b749bc-9948-4f4b-ae53-e889d1b212be",
+      "name": "send_reminder",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1000,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "name": "human_handoff",
+        "description": "حوّل المحادثة لموظف بشري. مرّر JSON: {customer:{phone,name?}, reason?, customer_message?, context_summary?}.",
+        "workflowId": {
+          "__rl": true,
+          "value": "SET_SHARED_HUMAN_HANDOFF_ID",
+          "mode": "id"
+        },
+        "specifyInputSchema": false
+      },
+      "id": "5162f85c-6533-4277-8f59-25c2b9905b72",
+      "name": "human_handoff",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1220,
+        480
+      ]
     }
   ],
   "connections": {
@@ -454,6 +594,83 @@
       ]
     },
     "send_link": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_available_slots": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "book_appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cancel_appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "reschedule_appointment": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "room_reservation": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_reminder": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "human_handoff": {
       "ai_tool": [
         [
           {

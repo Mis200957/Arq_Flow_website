@@ -10,7 +10,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Badge, EmptyState } from "@/components/ui";
-import { cn, formatDate, STATUS_BADGE } from "@/lib/utils";
+import { cn, formatDate, formatEGP, STATUS_BADGE } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
 
 type Business = {
@@ -36,7 +36,10 @@ const STATUS_FILTERS = ["all", "active", "pending_approval", "provisioning", "su
 
 interface Props {
   businesses: Business[];
-  usageMap: Record<string, { messages_used: number; message_limit: number }>;
+  usageMap: Record<
+    string,
+    { remaining_egp: number; wallet_egp: number; used_pct: number; days_left: number | null; messages_used: number }
+  >;
 }
 
 export default function ClientsClient({ businesses: initial, usageMap }: Props) {
@@ -149,7 +152,7 @@ export default function ClientsClient({ businesses: initial, usageMap }: Props) 
                   <th>Type / النوع</th>
                   <th>Plan / الخطة</th>
                   <th>Status / الحالة</th>
-                  <th>Messages / الرسائل</th>
+                  <th>Balance / الرصيد</th>
                   <th>
                     <button className="flex items-center gap-1" onClick={() => toggleSort("created_at")}>
                       Registered <SortIcon k="created_at" />
@@ -187,8 +190,8 @@ export default function ClientsClient({ businesses: initial, usageMap }: Props) 
                         <td className="text-sm">
                           {usage ? (
                             <span>
-                              {usage.messages_used.toLocaleString()}
-                              <span className="text-muted">/{usage.message_limit.toLocaleString()}</span>
+                              {formatEGP(usage.remaining_egp, "en")}
+                              <span className="text-muted"> · {usage.used_pct}%</span>
                             </span>
                           ) : "—"}
                         </td>
@@ -261,7 +264,8 @@ export default function ClientsClient({ businesses: initial, usageMap }: Props) 
                                 <p>{b.plans?.name ?? "—"}</p>
                                 {usage && (
                                   <p className="text-muted text-xs mt-1">
-                                    {usage.messages_used}/{usage.message_limit} msgs used
+                                    {formatEGP(usage.remaining_egp, "en")} left · {usage.used_pct}% used
+                                    {usage.days_left != null && ` · ${usage.days_left}d`}
                                   </p>
                                 )}
                               </div>
