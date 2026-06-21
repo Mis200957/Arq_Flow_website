@@ -61,7 +61,7 @@ export default function OrdersClient({ businessId, initialOrders }: Props) {
   const exportCSV = () => {
     const headers = ["Order #", "Customer", "Phone", "Type", "Total (EGP)", "Status", "Date"];
     const rows = filtered.map((o) => [
-      o.order_number,
+      o.id,
       o.customers?.name ?? "",
       o.customers?.phone ?? "",
       o.type,
@@ -126,7 +126,7 @@ export default function OrdersClient({ businessId, initialOrders }: Props) {
                       className="border-b border-[var(--border)] hover:bg-[rgba(238,237,210,0.04)] cursor-pointer"
                       onClick={() => setExpanded(expanded === o.id ? null : o.id)}
                     >
-                      <td className="p-3 font-mono text-xs text-accent">{o.order_number}</td>
+                      <td className="p-3 font-mono text-xs text-accent">{o.id}</td>
                       <td className="p-3">
                         <p className="font-medium">{o.customers?.name ?? "—"}</p>
                         <p className="text-xs text-muted">{o.customers?.phone}</p>

@@ -56,7 +56,7 @@ export default async function OverviewPage() {
       .limit(5),
     supabase
       .from("orders")
-      .select("id, order_number, total_egp, status, created_at, customer_id")
+      .select("id, total_egp, status, created_at, customer_id")
       .eq("business_id", business.id)
       .order("created_at", { ascending: false })
       .limit(5),

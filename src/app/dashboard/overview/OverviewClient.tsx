@@ -26,7 +26,7 @@ interface Props {
   totalCustomers: number;
   escalations: number;
   recentMessages: Array<{ id: string; content: string | null; direction: string; created_at: string; media_type: string; customer_id: string | null }>;
-  recentOrders: Array<{ id: string; order_number: string; total_egp: number; status: string; created_at: string; customer_id: string | null }>;
+  recentOrders: Array<{ id: string; total_egp: number; status: string; created_at: string; customer_id: string | null }>;
   weekMessages: Array<{ created_at: string }>;
 }
 
@@ -266,7 +266,7 @@ export default function OverviewClient({
                 {recentOrders.map((o) => (
                   <div key={o.id} className="flex items-center gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{o.order_number}</p>
+                      <p className="text-sm font-medium">{o.id}</p>
                       <p className="text-xs text-muted">{formatEGP(o.total_egp, lang)}</p>
                     </div>
                     <Badge variant={STATUS_BADGE[o.status] ?? "neutral"}>{o.status}</Badge>
