@@ -281,3 +281,4 @@ Platform callback  →  Sets business.status = 'active'
                    →  Creates instances record
                    →  Sends notification to client
 ```
+by Mohamed Ibrahem
