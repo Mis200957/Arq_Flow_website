@@ -1,0 +1,252 @@
+{
+  "name": "🔧 SHARED_PROCESS_DOCUMENT_v1",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"business_id\":\"uuid\",\"path\":\"biz/doc.pdf\",\"bucket\":\"kb-files\",\"mime_type\":\"application/pdf\",\"file_id\":\"uuid\"}"
+      },
+      "id": "6270fc45-a01d-4a73-8e07-4327152cecfe",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const id=i.business_id||(i.tenant&&i.tenant.business_id);\nif(!id) throw new Error('Missing business_id');if(!i.path) throw new Error('Missing path');\nconst bucket=i.bucket||'kb-files';const url='https://zjathejcdkpxjyvululp.supabase.co/storage/v1/object/'+bucket+'/'+i.path;\nreturn {json:{business_id:id,bucket,path:i.path,mime:i.mime_type||'',url}};"
+      },
+      "id": "0ed254e1-bb41-44df-92eb-1d53a4d008ad",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('PREPARE').first().json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "id": "9bbbc67c-2097-4901-bd55-0b014496f69e",
+      "name": "DOWNLOAD",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "id": "73b91282-0715-4429-9759-850d9cb297e5",
+      "name": "EXTRACT_TEXT",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p=$('PREPARE').first().json;let text='';try{text=$input.first().json.text||$input.first().json.data||'';}catch(e){}\ntext=String(text||'').slice(0,18000);\nif(!text) return {json:{skip:true,business_id:p.business_id,message:'no text extracted (image/scanned PDF needs OCR)'}};\nreturn {json:{skip:false,business_id:p.business_id,kb_body:JSON.stringify({business_id:p.business_id,kind:'doc',category:'upload',answer:text,language:'ar'})}};"
+      },
+      "id": "5a8f3058-5d55-493f-b5ce-e74ebbfcdf48",
+      "name": "BUILD_KB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://zjathejcdkpxjyvululp.supabase.co/rest/v1/knowledge_base",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('BUILD_KB').first().json.kb_body }}"
+      },
+      "id": "8dfbf3df-35bd-4c65-83a8-65f6c5c03060",
+      "name": "INSERT_KB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SET_SHARED_GENERATE_PROMPT_ID",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "5d985f16-ad57-4347-95e1-e1d768f2d3b6",
+      "name": "REFRESH_PROMPT",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const k=$('BUILD_KB').first().json;return {json:{success:!k.skip,business_id:k.business_id,message:k.skip?k.message:'document processed + knowledge stored + prompt refreshed'}};"
+      },
+      "id": "aa0a28d2-3d6e-4cca-a171-eecc32c0ab7a",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "DOWNLOAD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DOWNLOAD": {
+      "main": [
+        [
+          {
+            "node": "EXTRACT_TEXT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EXTRACT_TEXT": {
+      "main": [
+        [
+          {
+            "node": "BUILD_KB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_KB": {
+      "main": [
+        [
+          {
+            "node": "INSERT_KB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSERT_KB": {
+      "main": [
+        [
+          {
+            "node": "REFRESH_PROMPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REFRESH_PROMPT": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

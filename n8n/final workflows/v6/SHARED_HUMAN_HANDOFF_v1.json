@@ -1,0 +1,110 @@
+{
+  "name": "🔧 SHARED_HUMAN_HANDOFF_v1",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\":{\"business_id\":\"uuid\",\"business_name\":\"x\",\"instance_name\":\"arq-xxx\",\"admin_whatsapp\":\"2010...\"},\"customer\":{\"phone\":\"201234567890\",\"name\":\"محمد\"},\"reason\":\"customer_request\",\"customer_message\":\"عايز اكلم حد\",\"context_summary\":\"\"}"
+      },
+      "id": "95157e1e-aa57-422d-a7ff-4d9cca6ba9a9",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const t=i.tenant||{};\nif(!t.business_id) throw new Error('Missing tenant.business_id');\n// Normalise to the ESCALATION contract and delegate (reuse, do not duplicate).\nreturn {json:{tenant:t,customer:i.customer||{phone:i.phone,name:i.name||null},conversation_id:i.conversation_id||null,\n reason:i.reason||'human_handoff',customer_message:i.customer_message||i.message||'',context_summary:i.context_summary||''}};"
+      },
+      "id": "16c1ec52-3f9c-4ea2-bbe3-756ddbb683ff",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "SET_SHARED_ESCALATION_ID",
+          "mode": "id"
+        },
+        "mode": "once",
+        "options": {}
+      },
+      "id": "1bb2b7f6-743b-4558-a40e-fcc9c5253318",
+      "name": "ESCALATE",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out=$input.first().json;\nreturn {json:{success:true,handed_off:true,detail:out||null,message:'تم تحويل المحادثة لموظف بشري ✅'}};"
+      },
+      "id": "d2181afc-ba2b-4c44-ac78-3a9c93c792bd",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "ESCALATE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ESCALATE": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

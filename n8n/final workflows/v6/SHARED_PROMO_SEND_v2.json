@@ -1,0 +1,182 @@
+{
+  "name": "🔧 SHARED_PROMO_SEND_v2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"business_id\": \"uuid\", \"instance_name\": \"arq-x\"}, \"customer_jid\": \"201234567890@s.whatsapp.net\"}"
+      },
+      "id": "693b2b85-f459-4cdb-9256-bc4dde52c188",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const t=i.tenant||{};\nif(!t.business_id||!i.customer_jid) throw new Error('Missing business_id/customer_jid');\nreturn {json:{business_id:t.business_id,instance_name:t.instance_name,customer_jid:i.customer_jid}};"
+      },
+      "id": "430dd077-d8f6-4519-8f5d-ca929dacd38a",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://zjathejcdkpxjyvululp.supabase.co/rest/v1/links?select=name,url,description&business_id=eq.{{ $('PREPARE').first().json.business_id }}&active=eq.true&category=eq.promo&limit=1",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d237d676-85cc-477e-bf9e-1a163801e234",
+      "name": "GET_PROMO",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p=$('PREPARE').first().json;\nconst rows=$input.all().map(x=>x.json).filter(r=>r&&(r.url||r.description));\nconst r=rows[0];\nconst text=r?`🎁 عرض خاص ليك!\\n${r.description||r.name||''}\\n${r.url||''}`:'مفيش عروض متاحة دلوقتي، تابعنا للجديد 🌹';\nreturn {json:{...p,found:!!r,text}};"
+      },
+      "id": "fc661fbf-a142-4164-ae6d-9fefc30ad56c",
+      "name": "BUILD_MSG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('PREPARE').first().json.instance_name }}",
+        "remoteJid": "={{ $('PREPARE').first().json.customer_jid }}",
+        "messageText": "={{ $('BUILD_MSG').first().json.text }}",
+        "options_message": {}
+      },
+      "id": "865799e0-5617-470a-869c-bd6a2f037922",
+      "name": "SEND_PROMO",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {json:{success:$('BUILD_MSG').first().json.found, message:'تم إرسال العرض'}};"
+      },
+      "id": "64a68d47-7030-49f9-bfca-9c84da1fc70a",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "GET_PROMO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_PROMO": {
+      "main": [
+        [
+          {
+            "node": "BUILD_MSG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_MSG": {
+      "main": [
+        [
+          {
+            "node": "SEND_PROMO",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND_PROMO": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

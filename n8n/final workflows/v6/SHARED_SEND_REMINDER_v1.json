@@ -1,0 +1,113 @@
+{
+  "name": "🔧 SHARED_SEND_REMINDER_v1",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\":{\"business_id\":\"uuid\",\"instance_name\":\"arq-xxx\"},\"phone\":\"201234567890\",\"message\":\"تذكير بموعدك غداً الساعة 5 مساءً\"}"
+      },
+      "id": "837a0d42-dd2d-434a-8a3f-3c597e5248d7",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const t=i.tenant||{};\nconst phone=String(i.phone||'').replace(/[^0-9]/g,'');\nif(!t.instance_name) throw new Error('Missing tenant.instance_name');\nif(!phone) throw new Error('Missing phone');\nif(!i.message) throw new Error('Missing message');\nreturn {json:{instance_name:t.instance_name,jid:phone+'@s.whatsapp.net',text:String(i.message)}};"
+      },
+      "id": "88ad1d06-bfe4-4c38-9af0-8be1786321d7",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('PREPARE').first().json.instance_name }}",
+        "remoteJid": "={{ $('PREPARE').first().json.jid }}",
+        "messageText": "={{ $('PREPARE').first().json.text }}",
+        "options_message": {}
+      },
+      "id": "7081053f-3af2-4533-bdd6-0ad1f6cf299a",
+      "name": "SEND_REMINDER",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {json:{success:true,message:'تم إرسال التذكير ✅'}};"
+      },
+      "id": "d94a742c-b538-4e2c-a7c7-65b48d86fcae",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "SEND_REMINDER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND_REMINDER": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

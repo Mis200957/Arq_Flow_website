@@ -1,0 +1,108 @@
+{
+  "name": "🔧 SHARED_REBUILD_KNOWLEDGE_v1",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"business_id\":\"uuid\"}"
+      },
+      "id": "2a2d3c7e-8a1d-421e-8ad1-4645d73c4e73",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const id=i.business_id||(i.tenant&&i.tenant.business_id);if(!id) throw new Error('Missing business_id');return {json:{business_id:id}};"
+      },
+      "id": "becce1e2-1116-4250-b357-b9ee90af3336",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SET_SHARED_GENERATE_PROMPT_ID",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "136a61a9-f1bd-4d22-9e03-29760cbeef31",
+      "name": "GENERATE_PROMPT",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {json:{success:true,message:'knowledge rebuilt + prompt refreshed'}};"
+      },
+      "id": "f41311cc-64ec-4c37-8ff2-779116ef9f72",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "GENERATE_PROMPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GENERATE_PROMPT": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

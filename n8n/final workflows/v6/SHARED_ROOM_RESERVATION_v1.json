@@ -1,0 +1,206 @@
+{
+  "name": "🔧 SHARED_ROOM_RESERVATION_v1",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\":{\"business_id\":\"uuid\"},\"phone\":\"201234567890\",\"name\":\"محمد\",\"room_id\":null,\"check_in\":\"2026-07-01\",\"check_out\":\"2026-07-03\",\"guests_count\":2,\"notes\":null}"
+      },
+      "id": "d7e30e9d-adf5-45e2-be50-1e0c7a9b733d",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const t=i.tenant||{};\nif(!t.business_id) throw new Error('Missing tenant.business_id');\nconst phone=String(i.phone||'').replace(/[^0-9]/g,'');\nif(!phone) throw new Error('Missing phone');\nif(!i.check_in||!i.check_out) throw new Error('Missing check_in/check_out');\nconst customer_body={business_id:t.business_id,phone,name:i.name||null,channel:'whatsapp'};\nreturn {json:{business_id:t.business_id,phone,room_id:i.room_id||null,check_in:i.check_in,check_out:i.check_out,guests_count:i.guests_count||1,notes:i.notes||null,customer_body}};"
+      },
+      "id": "2b4f7e2e-d60e-4bcf-9552-2bef3c5743e9",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://zjathejcdkpxjyvululp.supabase.co/rest/v1/customers?on_conflict=business_id,phone",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('PREPARE').first().json.customer_body) }}"
+      },
+      "id": "f9fa54b8-010b-4ad4-98fd-c3b6f57ba1ee",
+      "name": "UPSERT_CUSTOMER",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p=$('PREPARE').first().json;const c=$input.first().json;\nconst customer_id=Array.isArray(c)?(c[0]&&c[0].id):(c&&c.id);\nconst res_body={business_id:p.business_id,customer_id:customer_id||null,room_id:p.room_id,check_in:p.check_in,check_out:p.check_out,guests_count:p.guests_count,status:'pending',source:'whatsapp',notes:p.notes};\nreturn {json:{customer_id:customer_id||null,res_body}};"
+      },
+      "id": "f0321249-5c13-4429-a215-24c9c0c05811",
+      "name": "BUILD_RES",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://zjathejcdkpxjyvululp.supabase.co/rest/v1/reservations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('BUILD_RES').first().json.res_body) }}"
+      },
+      "id": "e4dfe3d1-29bf-4079-b664-b3dd185cf428",
+      "name": "INSERT_RESERVATION",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out=$input.first().json;const r=Array.isArray(out)?out[0]:out;const id=r&&r.id;const p=$('PREPARE').first().json;\nreturn {json:{success:!!id,reservation_id:id||null,check_in:p.check_in,check_out:p.check_out,\n message: id? ('تم استلام طلب الحجز ✅ رقم الحجز: '+id+' (بانتظار التأكيد)') : 'تعذّر إنشاء الحجز، حاول مرة أخرى.'}};"
+      },
+      "id": "98bb639b-60e5-4693-b237-d0052a69d699",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "UPSERT_CUSTOMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPSERT_CUSTOMER": {
+      "main": [
+        [
+          {
+            "node": "BUILD_RES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_RES": {
+      "main": [
+        [
+          {
+            "node": "INSERT_RESERVATION",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSERT_RESERVATION": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

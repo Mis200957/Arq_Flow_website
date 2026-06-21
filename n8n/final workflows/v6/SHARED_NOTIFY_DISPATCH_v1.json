@@ -1,0 +1,265 @@
+{
+  "name": "🔧 SHARED_NOTIFY_DISPATCH_v1",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"business_id\":\"uuid\",\"channels\":[\"whatsapp\",\"email\"],\"title\":\"t\",\"body\":\"b\",\"whatsapp\":\"2010...\",\"email\":\"x@y.com\",\"link\":null}"
+      },
+      "id": "4b393a0d-2aed-4cf8-b407-618fa1494ebe",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const ch=Array.isArray(i.channels)?i.channels:[];\nconst wa=String(i.whatsapp||'').replace(/[^0-9]/g,'');\nconst text=(i.title||'')+(i.body?('\\n'+i.body):'');\nreturn {json:{business_id:i.business_id||(i.tenant&&i.tenant.business_id),do_whatsapp:ch.includes('whatsapp')&&!!wa,do_email:ch.includes('email')&&!!i.email,whatsapp:wa,email:i.email||null,title:i.title||'',body:i.body||'',text}};"
+      },
+      "id": "e024080f-a4ea-474f-95ba-4e3961a1b56c",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://zjathejcdkpxjyvululp.supabase.co/rest/v1/instances?select=instance_name&business_id=eq.'+($('PREPARE').first().json.business_id||'')+'&limit=1' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "32475d81-d237-4d1f-9cbb-9469b669ec63",
+      "name": "GET_INSTANCE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p=$('PREPARE').first().json;const inst=(($('GET_INSTANCE').first().json||[])[0]||{}).instance_name||'';\nreturn {json:{do_whatsapp:p.do_whatsapp&&!!inst,do_email:p.do_email,tenant:{business_id:p.business_id,instance_name:inst},phone:p.whatsapp,message:p.text,to:p.email,subject:p.title||'إشعار من ArqFlow',html:'<p>'+(p.body||p.title||'')+'</p>'}};"
+      },
+      "id": "7665dfce-cbcb-4cef-ba10-dba5a4119514",
+      "name": "COMPOSE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "5f3248e4-54c6-4ba8-b3d0-4cafcbc5059b",
+              "leftValue": "={{ $json.do_whatsapp }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "028ad084-4055-455b-a393-28417cc0164f",
+      "name": "IF_WHATSAPP",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "7491ba8f-e3eb-43f6-8672-b0a4e19b5698",
+              "leftValue": "={{ $json.do_email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3312f068-5851-42c2-a60f-f848c838a3cd",
+      "name": "IF_EMAIL",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SET_SHARED_SEND_REMINDER_ID",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "fc6ecb73-5999-4744-aceb-51d876056315",
+      "name": "SEND_WHATSAPP",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        -120
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SET_SHARED_SEND_EMAIL_ID",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "940bc046-d291-4f87-a1bd-db44733b9474",
+      "name": "SEND_EMAIL",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        120
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "GET_INSTANCE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_INSTANCE": {
+      "main": [
+        [
+          {
+            "node": "COMPOSE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "COMPOSE": {
+      "main": [
+        [
+          {
+            "node": "IF_WHATSAPP",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF_EMAIL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF_WHATSAPP": {
+      "main": [
+        [
+          {
+            "node": "SEND_WHATSAPP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "IF_EMAIL": {
+      "main": [
+        [
+          {
+            "node": "SEND_EMAIL",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

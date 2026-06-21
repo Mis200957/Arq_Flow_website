@@ -1,0 +1,264 @@
+{
+  "name": "🔧 SHARED_ESCALATION_v2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"business_id\": \"00000000-0000-0000-0000-000000000000\", \"business_name\": \"مطعم السدة\", \"instance_name\": \"arq-cust-260613-a3f2\", \"admin_whatsapp\": \"201029168056\"}, \"customer\": {\"phone\": \"201234567890\", \"name\": \"محمد\"}, \"conversation_id\": null, \"reason\": \"complaint\", \"customer_message\": \"الأكل كان بارد\", \"context_summary\": \"العميل طلب 3 مرات قبل كده، الـ sentiment = -2\"}"
+      },
+      "id": "140507b1-eb61-48cb-ba9b-513c613feb70",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i = $input.first().json;\nconst t = i.tenant || {};\nif (!t.business_id || !t.admin_whatsapp) throw new Error('Missing tenant.business_id or admin_whatsapp');\nconst cust = i.customer || {};\nconst phone = String(cust.phone || '').replace(/[^0-9]/g, '');\nconst reason = i.reason || 'customer_request';\nconst labels = {\n  customer_request: 'طلب العميل التحدث مع موظف',\n  complaint: 'شكوى من العميل',\n  out_of_scope: 'استفسار خارج نطاق البوت',\n  negative_sentiment: 'حالة عاطفية سلبية',\n  technical_issue: 'مشكلة تقنية',\n  vip_priority: 'عميل VIP',\n  payment_issue: 'مشكلة في الدفع',\n  order_issue: 'مشكلة في الطلب'\n};\nconst reason_text = labels[reason] || reason;\nconst msg = (i.customer_message || '').slice(0, 200);\nconst ctx = i.context_summary || '';\nconst now = new Date().toISOString();\nconst admin_alert = `🚨 *تنبيه تصعيد — ${t.business_name || ''}*\\n\\n👤 العميل: ${cust.name || 'غير محدد'}\\n📞 الرقم: ${phone || 'غير محدد'}\\n\\n💬 آخر رسالة:\\n${msg}\\n\\n📌 السبب: ${reason_text}\\n${ctx ? '\\n📋 سياق:\\n' + ctx : ''}\\n\\n🕐 ${now.slice(0,19).replace('T',' ')}\\n\\n⚠️ تواصل مع العميل في أسرع وقت.`;\nconst customer_reply = `لحظة من فضلك يا فندم 🙏\\nهحوّلك دلوقتي لزميل من فريق *${t.business_name || ''}* يساعدك بشكل أفضل.\\nهيتواصل معاك في أقرب وقت ✨`;\nreturn { json: {\n  business_id: t.business_id, instance_name: t.instance_name, admin_jid: t.admin_whatsapp + '@s.whatsapp.net',\n  phone, conversation_id: i.conversation_id || null, reason, reason_text,\n  context_summary: ctx, admin_alert, customer_reply,\n  customer_body: { business_id: t.business_id, phone, channel: 'whatsapp', last_interaction_at: now, ...(cust.name ? { name: cust.name } : {}) }\n} };"
+      },
+      "id": "5a0904cc-105d-4165-ae0d-86611442e8c5",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/customers?on_conflict=business_id,phone",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('PREPARE').first().json.customer_body) }}"
+      },
+      "id": "6d24a1ec-b164-41c0-b550-300bdf852353",
+      "name": "UPSERT_CUSTOMER",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/escalations",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ business_id: $('PREPARE').first().json.business_id, customer_id: $('UPSERT_CUSTOMER').first().json.id, conversation_id: $('PREPARE').first().json.conversation_id, reason: $('PREPARE').first().json.reason_text, reason_code: $('PREPARE').first().json.reason, context: $('PREPARE').first().json.context_summary, resolved: false }) }}"
+      },
+      "id": "e8aedc03-024f-4eeb-a6a1-af2e53ea423b",
+      "name": "INSERT_ESCALATION",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/conversations?id=eq.{{ $('PREPARE').first().json.conversation_id }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'escalated' }) }}"
+      },
+      "id": "9056c570-9664-4078-a870-5f9b09576023",
+      "name": "ESCALATE_CONVERSATION",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('PREPARE').first().json.instance_name }}",
+        "remoteJid": "={{ $('PREPARE').first().json.admin_jid }}",
+        "messageText": "={{ $('PREPARE').first().json.admin_alert }}",
+        "options_message": {}
+      },
+      "id": "431f5e1a-aafe-4d9b-8ec0-5e33e116b583",
+      "name": "ALERT_ADMIN_WHATSAPP",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        0
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $('PREPARE').first().json;\nlet esc = {};\ntry { esc = $('INSERT_ESCALATION').first().json; if (Array.isArray(esc)) esc = esc[0]; } catch (e) {}\nreturn { json: { success: true, escalation_id: esc.id || null, reason: p.reason, reason_text: p.reason_text, customer_reply: p.customer_reply } };"
+      },
+      "id": "5a282c8d-7c83-447e-97dc-64ee94dff36e",
+      "name": "RETURN_SUCCESS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "UPSERT_CUSTOMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPSERT_CUSTOMER": {
+      "main": [
+        [
+          {
+            "node": "INSERT_ESCALATION",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSERT_ESCALATION": {
+      "main": [
+        [
+          {
+            "node": "ESCALATE_CONVERSATION",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ESCALATE_CONVERSATION": {
+      "main": [
+        [
+          {
+            "node": "ALERT_ADMIN_WHATSAPP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ALERT_ADMIN_WHATSAPP": {
+      "main": [
+        [
+          {
+            "node": "RETURN_SUCCESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
