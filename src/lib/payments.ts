@@ -136,13 +136,20 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
 
   // 4b) provision the token wallet: balance_egp = real token budget (price − margin),
   // wallet_egp = customer-facing package credit. Valid for the plan's validity window.
-  await admin.rpc("wallet_topup", {
+  const { error: topupErr } = await admin.rpc("wallet_topup", {
     b_id: business.id,
     add_budget: tokenBudget,
     add_wallet: Number(plan.monthly_fee_egp),
     new_end: nextEnd,
     msg_limit: Number(plan.message_limit ?? 0),
   });
+  if (topupErr) {
+    console.error("wallet_topup failed (activation)", topupErr);
+    await admin.from("automation_logs").insert({
+      business_id: business.id, workflow: "wallet", event: "topup_failed", level: "error",
+      payload: { stage: "activation", error: topupErr.message, plan_id: plan.id } as never,
+    });
+  }
 
   // 5) gather tenant content for the factory payload
   const [{ data: kb }, { data: products }, { data: services }] = await Promise.all([
@@ -276,10 +283,6 @@ async function applySubscriptionPayment(
   const admin = createAdminClient();
   const now = new Date().toISOString();
 
-  await admin.from("payments")
-    .update({ status: "approved", reviewed_by: actorId, reviewed_at: now })
-    .eq("id", payment.id);
-
   const tokenBudget = Number(
     plan.token_budget_egp ?? Number(plan.monthly_fee_egp) - Number(plan.margin_egp ?? 0)
   );
@@ -292,15 +295,28 @@ async function applySubscriptionPayment(
 
   // Top up the wallet — the DB function rolls over any unused balance and
   // resets the validity window to one month from today.
-  const { data: walletRows } = await admin.rpc("wallet_topup", {
+  const { data: walletRows, error: topupErr } = await admin.rpc("wallet_topup", {
     b_id: business.id,
     add_budget: tokenBudget,
     add_wallet: Number(plan.monthly_fee_egp),
     new_end: newEnd,
     msg_limit: Number(plan.message_limit ?? 0),
   });
+  if (topupErr) {
+    console.error("wallet_topup failed (subscription)", topupErr);
+    await admin.from("automation_logs").insert({
+      business_id: business.id, workflow: "wallet", event: "topup_failed", level: "error",
+      payload: { stage: "renewal_upgrade", error: topupErr.message, plan_id: plan.id, payment_id: payment.id } as never,
+    });
+    return { ok: false, status: 500, error: `Wallet top-up failed: ${topupErr.message}` };
+  }
   const wallet = Array.isArray(walletRows) ? walletRows[0] : walletRows;
   const periodEnd = wallet?.period_end ?? newEnd;
+
+  // Wallet credited successfully → now mark the payment approved.
+  await admin.from("payments")
+    .update({ status: "approved", reviewed_by: actorId, reviewed_at: now })
+    .eq("id", payment.id);
 
   // Adopt the (possibly new) plan, reactivate, set next billing to wallet expiry.
   const bizUpdate: TablesUpdate<"businesses"> = {
