@@ -1,8 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { guardModule } from "@/lib/dashboard-access";
 import OrdersClient from "./OrdersClient";
 
 export default async function OrdersPage() {
+  await guardModule("orders");
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");

@@ -14,11 +14,14 @@ import {
   Loader2,
   Clock,
   CheckCircle,
+  Lock,
 } from "lucide-react";
 import { cn, timeAgo } from "@/lib/utils";
 import { useLang, useT } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/database.types";
+import type { Capabilities } from "@/lib/capabilities";
+import { CapabilitiesProvider } from "@/lib/capabilities-context";
 import { ToastProvider } from "@/components/ui/Toast";
 import { resolveModules, getModuleByPath } from "@/lib/modules";
 import { getIcon } from "@/lib/modules/icons";
@@ -29,6 +32,7 @@ type Business = Tables<"businesses">;
 interface Props {
   profile: Profile;
   business: Business;
+  capabilities: Capabilities;
   unreadCount: number;
   children: React.ReactNode;
 }
@@ -100,7 +104,7 @@ function ProvisioningPlaceholder({ business, lang }: { business: Business; lang:
   );
 }
 
-export default function DashboardShell({ profile, business, unreadCount: initialUnread, children }: Props) {
+export default function DashboardShell({ profile, business, capabilities, unreadCount: initialUnread, children }: Props) {
   const { lang, dir, setLang } = useLang();
   const pathname = usePathname();
   const router = useRouter();
@@ -116,8 +120,8 @@ export default function DashboardShell({ profile, business, unreadCount: initial
   // Dynamic, industry-aware navigation. Unknown/legacy business types
   // fall back to the full current navigation (100% backward compatible).
   const { nav } = useMemo(
-    () => resolveModules(business.business_type),
-    [business.business_type]
+    () => resolveModules(business.business_type, capabilities),
+    [business.business_type, capabilities]
   );
 
   const activeModule = getModuleByPath(pathname, business.business_type);
@@ -125,6 +129,8 @@ export default function DashboardShell({ profile, business, unreadCount: initial
 
   // bilingual "Soon" pill for modules whose page hasn't shipped yet
   const soonLabel = lang === "ar" ? "قريباً" : "Soon";
+  // bilingual "Upgrade" pill for plan-locked (showcase) modules
+  const upgradeLabel = lang === "ar" ? "ترقية" : "Upgrade";
 
   // Stable supabase instance — must not be recreated on every render
   const supabase = useMemo(() => createClient(), []);
@@ -235,6 +241,28 @@ export default function DashboardShell({ profile, business, unreadCount: initial
                     {soonLabel}
                   </span>
                 </div>
+              );
+            }
+
+            // Plan-locked showcase module: visible but gated. Clicking
+            // routes to the subscription page with an upgrade hint, so the
+            // feature advertises the higher tier instead of disappearing.
+            if (mod.locked) {
+              return (
+                <Link
+                  key={mod.key}
+                  href={`/dashboard/subscription?upgrade=${mod.key}`}
+                  onClick={() => setSidebarOpen(false)}
+                  title={upgradeLabel}
+                  className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted/70 hover:bg-[rgba(238,237,210,0.06)] hover:text-app transition-all"
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{label}</span>
+                  <span className="ms-auto shrink-0 flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-[rgba(212,175,55,0.14)] text-[#d4af37]">
+                    <Lock className="w-2.5 h-2.5" />
+                    {upgradeLabel}
+                  </span>
+                </Link>
               );
             }
 
@@ -373,7 +401,9 @@ export default function DashboardShell({ profile, business, unreadCount: initial
 
         {/* Page content */}
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
-          {children}
+          <CapabilitiesProvider value={capabilities}>
+            {children}
+          </CapabilitiesProvider>
         </main>
       </div>
     </div>

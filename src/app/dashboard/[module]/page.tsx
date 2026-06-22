@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect, notFound } from "next/navigation";
 import { resolveModules } from "@/lib/modules";
+import { guardModule } from "@/lib/dashboard-access";
 import { getResource, type FieldDef } from "@/lib/modules/resources";
 import ResourceClient from "@/components/dashboard/ResourceClient";
 
@@ -16,6 +17,10 @@ export default async function ModulePage({
   params: Promise<{ module: string }>;
 }) {
   const { module } = await params;
+
+  // Plan gate: industry/operational modules require the operational
+  // capability. Redirects to the upgrade page if the plan lacks it.
+  await guardModule(module);
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

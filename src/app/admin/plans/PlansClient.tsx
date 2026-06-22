@@ -5,6 +5,12 @@ import { Edit3, Users, Star } from "lucide-react";
 import { Modal, Field, Badge } from "@/components/ui";
 import { formatEGP } from "@/lib/utils";
 import { useToast } from "@/components/ui/Toast";
+import {
+  CAPABILITY_META,
+  resolveCapabilities,
+  type Capabilities,
+  type CapabilityKey,
+} from "@/lib/capabilities";
 
 type Plan = {
   id: string;
@@ -25,6 +31,7 @@ type Plan = {
   active: boolean;
   highlighted: boolean;
   tier_level: number;
+  capabilities?: unknown;
 };
 
 interface Props {
@@ -45,6 +52,21 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
     setEditingPlan(plan);
     setForm({ ...plan });
   }
+
+  // Effective capabilities for the open form (stored flags merged over
+  // tier defaults). Toggling writes the full, explicit map back to the form.
+  const formCaps: Capabilities = resolveCapabilities({
+    capabilities: form.capabilities,
+    tier_level: form.tier_level,
+  });
+  const toggleCap = (key: CapabilityKey, value: boolean) =>
+    setForm((f) => ({
+      ...f,
+      capabilities: {
+        ...resolveCapabilities({ capabilities: f.capabilities, tier_level: f.tier_level }),
+        [key]: value,
+      },
+    }));
 
   const budgetPreview = Math.max(0, num(form.monthly_fee_egp) - num(form.margin_egp));
 
@@ -219,6 +241,33 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
               <input type="checkbox" checked={!!form.highlighted} onChange={(e) => setForm((f) => ({ ...f, highlighted: e.target.checked }))} />
               <Star className="w-3.5 h-3.5 text-accent" /> Highlighted
             </label>
+          </div>
+
+          {/* ---- Dashboard capabilities (drive module/feature gating) ---- */}
+          <div className="sm:col-span-2">
+            <p className="text-xs text-muted uppercase font-semibold mb-1">Dashboard capabilities</p>
+            <p className="text-xs text-muted mb-3">
+              Controls which modules &amp; features this plan unlocks in the client dashboard.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {CAPABILITY_META.map((c) => (
+                <label
+                  key={c.key}
+                  className="flex items-start gap-2.5 text-sm cursor-pointer rounded-xl bg-[rgba(238,237,210,0.04)] p-3"
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={formCaps[c.key]}
+                    onChange={(e) => toggleCap(c.key, e.target.checked)}
+                  />
+                  <span className="min-w-0">
+                    <span className="font-medium block">{c.label.en}</span>
+                    <span className="text-xs text-muted block">{c.hint.en}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
           </div>
 
           <div className="sm:col-span-2">

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { buildIndustryPromptContext } from "@/lib/modules/ai";
+import { resolveCapabilities } from "@/lib/capabilities";
 import { notify } from "@/lib/notify";
 import type { TablesUpdate } from "@/lib/database.types";
 import { z } from "zod";
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
 
   const { data: business } = await supabase
     .from("businesses")
-    .select("id, owner_id, business_type, whatsapp_number, contact_phone, contact_email")
+    .select("id, owner_id, business_type, plan_id, whatsapp_number, contact_phone, contact_email")
     .eq("owner_id", user.id)
     .single();
   if (!business) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -68,7 +69,9 @@ export async function POST(req: Request) {
   // ---- Automation job ----
   const job = JOB_COPY[d.action];
   const admin = createAdminClient();
-  const industry = buildIndustryPromptContext(business.business_type);
+  const { data: plan } = await supabase
+    .from("plans").select("tier_level, capabilities").eq("id", business.plan_id).single();
+  const industry = buildIndustryPromptContext(business.business_type, resolveCapabilities(plan));
 
   await admin.from("automation_logs").insert({
     business_id: business.id,

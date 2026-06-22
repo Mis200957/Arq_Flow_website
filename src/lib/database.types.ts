@@ -2275,6 +2275,7 @@ export type Database = {
         Row: {
           active: boolean
           ai_model: string
+          capabilities: Json
           created_at: string
           fallback_model: string
           features: Json
@@ -2298,6 +2299,7 @@ export type Database = {
         Insert: {
           active?: boolean
           ai_model: string
+          capabilities?: Json
           created_at?: string
           fallback_model?: string
           features?: Json
@@ -2321,6 +2323,7 @@ export type Database = {
         Update: {
           active?: boolean
           ai_model?: string
+          capabilities?: Json
           created_at?: string
           fallback_model?: string
           features?: Json

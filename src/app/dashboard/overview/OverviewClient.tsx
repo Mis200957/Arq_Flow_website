@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/database.types";
 import { resolveModules } from "@/lib/modules";
 import { getIcon } from "@/lib/modules/icons";
+import { useCapabilities } from "@/lib/capabilities-context";
 
 type UsageCounter = Tables<"usage_counters">;
 type Business = Tables<"businesses">;
@@ -95,12 +96,13 @@ export default function OverviewClient({
   // Industry-aware overview: quick actions + which panels to show
   // are driven by the business type. Legacy/unknown types keep the
   // current behaviour (orders shown, commerce quick actions).
+  const capabilities = useCapabilities();
   const { quickActions, nav } = useMemo(
-    () => resolveModules(business.business_type),
-    [business.business_type]
+    () => resolveModules(business.business_type, capabilities),
+    [business.business_type, capabilities]
   );
-  const availableQuickActions = quickActions.filter((m) => m.available);
-  const showOrders = nav.some((m) => m.key === "orders" && m.available);
+  const availableQuickActions = quickActions.filter((m) => m.available && !m.locked);
+  const showOrders = nav.some((m) => m.key === "orders" && m.available && !m.locked);
 
   useEffect(() => {
     const channel = supabase

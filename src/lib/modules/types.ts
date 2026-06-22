@@ -14,6 +14,8 @@
      back to the full current navigation (100% backward compatible).
    ============================================================ */
 
+import type { CapabilityKey } from "../capabilities";
+
 export type Locale = "ar" | "en";
 
 /** Bilingual label used everywhere in the platform. */
@@ -46,6 +48,20 @@ export interface ModuleDef {
   available: boolean;
   /** Core modules are shown for every business type. */
   core?: boolean;
+  /**
+   * Plan capability this module requires. When the active plan lacks it,
+   * the module is gated: `group === "industry"` modules are hidden, while
+   * modules tagged here with a "lock" capability render locked + upsell.
+   * Industry-group modules are implicitly gated by `operational_modules`
+   * and do NOT need to set this.
+   */
+  requires?: CapabilityKey;
+  /**
+   * Runtime-only flag set by the resolver: the active plan lacks the
+   * required capability but the module is shown LOCKED (with upgrade CTA)
+   * instead of being hidden. Never set this in the static registry.
+   */
+  locked?: boolean;
 }
 
 /** AI configuration scaffold attached to an industry. */

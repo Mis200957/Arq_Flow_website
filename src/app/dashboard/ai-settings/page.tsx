@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AISettingsClient from "./AISettingsClient";
 import AIManagementPanel from "./AIManagementPanel";
+import CapabilitiesCard from "@/components/dashboard/CapabilitiesCard";
 
 export default async function AISettingsPage() {
   const supabase = await createClient();
@@ -22,6 +23,10 @@ export default async function AISettingsPage() {
   return (
     <div className="space-y-8">
       <AISettingsClient business={business} />
+      <CapabilitiesCard
+        title={{ ar: "قدرات الذكاء في باقتك", en: "AI capabilities in your plan" }}
+        only={["voice", "image", "customer_memory"]}
+      />
       <AIManagementPanel businessId={business.id} systemPrompt={business.system_prompt} initialFiles={files ?? []} />
     </div>
   );

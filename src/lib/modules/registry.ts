@@ -24,7 +24,7 @@ export const CORE_MODULES: ModuleDef[] = [
   { key: "analytics",      href: "/dashboard/analytics",      icon: "BarChart3",       group: "core",    core: true, available: true,  label: { ar: "الإحصائيات",       en: "Analytics" } },
   { key: "usage",          href: "/dashboard/usage",          icon: "Gauge",           group: "core",    core: true, available: true,  label: { ar: "الاستهلاك",        en: "Usage" } },
   { key: "knowledge-base", href: "/dashboard/knowledge-base", icon: "BookOpen",        group: "core",    core: true, available: true,  label: { ar: "قاعدة المعرفة",    en: "Knowledge Base" } },
-  { key: "broadcasts",     href: "/dashboard/broadcasts",     icon: "Send",            group: "core",    core: true, available: true,  label: { ar: "الإذاعة",          en: "Broadcasts" } },
+  { key: "broadcasts",     href: "/dashboard/broadcasts",     icon: "Send",            group: "core",    core: true, available: true,  requires: "broadcasts", label: { ar: "الإذاعة",          en: "Broadcasts" } },
   { key: "whatsapp",       href: "/dashboard/whatsapp",       icon: "Phone",           group: "core",    core: true, available: true,  label: { ar: "واتساب",           en: "WhatsApp" } },
   { key: "ai-settings",    href: "/dashboard/ai-settings",    icon: "Bot",             group: "core",    core: true, available: true,  label: { ar: "إعدادات الذكاء",   en: "AI Settings" } },
   { key: "notifications",  href: "/dashboard/notifications",  icon: "Bell",            group: "core",    core: true, available: true,  label: { ar: "الإشعارات",        en: "Notifications" } },

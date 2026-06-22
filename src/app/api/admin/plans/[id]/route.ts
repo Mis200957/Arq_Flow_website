@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json, TablesUpdate } from "@/lib/database.types";
+import { normalizeCapabilities } from "@/lib/capabilities";
 
 export async function PUT(
   req: NextRequest,
@@ -41,6 +42,7 @@ export async function PUT(
     active,
     highlighted,
     tier_level,
+    capabilities,
   } = body;
 
   const db = createAdminClient();
@@ -62,6 +64,9 @@ export async function PUT(
   if (active !== undefined) updateData.active = Boolean(active);
   if (highlighted !== undefined) updateData.highlighted = Boolean(highlighted);
   if (tier_level !== undefined) updateData.tier_level = Number(tier_level);
+  if (capabilities !== undefined) {
+    updateData.capabilities = normalizeCapabilities(capabilities) as Json;
+  }
 
   // Guard: margin can't exceed price (would make the token budget negative)
   if (

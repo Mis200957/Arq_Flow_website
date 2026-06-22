@@ -14,6 +14,7 @@
    ============================================================ */
 
 import { getIndustryTemplate, normalizeBusinessType, resolveModules } from "./index";
+import { ALL_CAPABILITY_KEYS, type Capabilities } from "../capabilities";
 
 export interface IndustryPromptContext {
   business_type: string;
@@ -31,6 +32,8 @@ export interface IndustryPromptContext {
   kb_categories: string[];
   /** Enabled dashboard module keys (informational for n8n). */
   enabled_modules: string[];
+  /** Capability keys the active plan unlocks (informational for n8n). */
+  enabled_capabilities: string[];
   /** Default conversational settings for the industry. */
   defaults: {
     tone_of_voice?: string;
@@ -42,14 +45,24 @@ export interface IndustryPromptContext {
 /**
  * Build the structured industry AI context for a business type.
  * Falls back to a safe generic context for unknown/legacy types.
+ *
+ * Pass `caps` (the tenant's plan capabilities) to make the context
+ * plan-aware: gated modules are dropped from `enabled_modules` and the
+ * unlocked capability keys are listed in `enabled_capabilities`. Omit it
+ * for the full, ungated context (backward compatible).
  */
 export function buildIndustryPromptContext(
-  rawBusinessType: string | null | undefined
+  rawBusinessType: string | null | undefined,
+  caps?: Capabilities | null
 ): IndustryPromptContext {
   const business_type = normalizeBusinessType(rawBusinessType);
   const template = getIndustryTemplate(rawBusinessType);
-  const { nav } = resolveModules(rawBusinessType);
-  const enabled_modules = nav.map((m) => m.key);
+  const { nav } = resolveModules(rawBusinessType, caps);
+  // Locked (showcase) modules are visible but not active for the bot.
+  const enabled_modules = nav.filter((m) => !m.locked).map((m) => m.key);
+  const enabled_capabilities = caps
+    ? ALL_CAPABILITY_KEYS.filter((k) => caps[k])
+    : [...ALL_CAPABILITY_KEYS];
 
   if (!template) {
     return {
@@ -63,6 +76,7 @@ export function buildIndustryPromptContext(
       tools: [],
       kb_categories: ["General", "FAQs", "Contact & Location"],
       enabled_modules,
+      enabled_capabilities,
       defaults: {},
     };
   }
@@ -78,6 +92,7 @@ export function buildIndustryPromptContext(
     tools: template.ai.tools,
     kb_categories: template.ai.kbCategories.map((c) => c.en),
     enabled_modules,
+    enabled_capabilities,
     defaults: template.defaults ?? {},
   };
 }

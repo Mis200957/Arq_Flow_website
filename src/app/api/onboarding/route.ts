@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { generateOrderId } from "@/lib/utils";
 import { notifyNewPayment } from "@/lib/telegram";
 import { buildIndustryPromptContext } from "@/lib/modules/ai";
+import { resolveCapabilities } from "@/lib/capabilities";
 import type { Json } from "@/lib/database.types";
 
 const productSchema = z.object({
@@ -263,7 +264,7 @@ export async function POST(req: Request) {
 
   // Industry template context so n8n provisions an industry-aware bot
   // (dashboard modules, AI prompt, KB structure all derive from business_type).
-  const industry = buildIndustryPromptContext(d.business_type);
+  const industry = buildIndustryPromptContext(d.business_type, resolveCapabilities(plan));
 
   await supabase.from("automation_logs").insert({
     business_id: bid,

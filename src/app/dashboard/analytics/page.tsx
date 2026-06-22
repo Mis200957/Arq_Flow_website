@@ -1,8 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import AnalyticsClient from "./AnalyticsClient";
+import UpgradeTeaser from "@/components/dashboard/UpgradeTeaser";
+import { getTenantCapabilities } from "@/lib/dashboard-access";
 
 export default async function AnalyticsPage() {
+  const caps = await getTenantCapabilities();
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -32,11 +36,23 @@ export default async function AnalyticsPage() {
   ]);
 
   return (
-    <AnalyticsClient
-      businessId={business.id}
-      messages={messages ?? []}
-      orders={orders ?? []}
-      escalations={escalations ?? []}
-    />
+    <div className="space-y-6">
+      {!caps.advanced_analytics && (
+        <UpgradeTeaser
+          upgradeKey="advanced_analytics"
+          title={{ ar: "تحليلات وتقارير متقدمة", en: "Advanced analytics & reports" }}
+          description={{
+            ar: "افتح التقارير المتقدمة وتصدير البيانات مع باقة إنتربرايز.",
+            en: "Unlock advanced reports & data export on the Enterprise plan.",
+          }}
+        />
+      )}
+      <AnalyticsClient
+        businessId={business.id}
+        messages={messages ?? []}
+        orders={orders ?? []}
+        escalations={escalations ?? []}
+      />
+    </div>
   );
 }

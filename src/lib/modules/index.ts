@@ -22,10 +22,51 @@ import {
   CORE_TAIL_KEYS,
 } from "./registry";
 import { INDUSTRY_TEMPLATES, INDUSTRY_ALIASES } from "./industries";
+import type { Capabilities, CapabilityKey } from "../capabilities";
+import { lockStyleFor } from "../capabilities";
 
 export * from "./types";
 export * from "./registry";
 export { INDUSTRY_TEMPLATES, INDUSTRY_ALIASES } from "./industries";
+
+/**
+ * Which plan capability a module requires, or null if it is always on.
+ * Explicit `requires` wins; otherwise every industry-group module is
+ * implicitly gated behind `operational_modules`.
+ */
+export function requirementForModule(mod: ModuleDef): CapabilityKey | null {
+  if (mod.requires) return mod.requires;
+  if (mod.group === "industry") return "operational_modules";
+  return null;
+}
+
+/** True when the plan's capabilities grant access to this module. */
+export function moduleAllowed(mod: ModuleDef, caps: Capabilities | null | undefined): boolean {
+  if (!caps) return true; // no plan context -> ungated (backward compatible)
+  const req = requirementForModule(mod);
+  return req ? caps[req] === true : true;
+}
+
+/**
+ * Apply plan gating to an ordered module list (mixed style):
+ *   - missing capability with lockStyle "hide" -> removed
+ *   - missing capability with lockStyle "lock" -> kept, flagged `locked`
+ * When `caps` is undefined, the list is returned unchanged.
+ */
+function gateNav(mods: ModuleDef[], caps: Capabilities | null | undefined): ModuleDef[] {
+  if (!caps) return mods;
+  const out: ModuleDef[] = [];
+  for (const m of mods) {
+    const req = requirementForModule(m);
+    if (!req || caps[req]) {
+      out.push(m);
+      continue;
+    }
+    if (lockStyleFor(req) === "lock") out.push({ ...m, locked: true });
+    // else: hidden
+  }
+  return out;
+}
 
 /** Normalise a raw business_type into a canonical template key. */
 export function normalizeBusinessType(raw: string | null | undefined): string {
@@ -69,16 +110,29 @@ function withOverride(mod: ModuleDef, overrides?: Record<string, L10n>): ModuleD
 /**
  * Resolve a business type into the ordered sidebar nav + quick actions.
  * This is the function the dashboard shell and overview consume.
+ *
+ * Pass `caps` (the active plan's capabilities) to gate the result by plan:
+ *   - operational/industry modules the plan lacks are HIDDEN,
+ *   - showcase modules (e.g. broadcasts) the plan lacks are kept LOCKED.
+ * Omit `caps` (or pass null) for the full, ungated navigation — keeping
+ * every existing caller 100% backward compatible.
  */
-export function resolveModules(raw: string | null | undefined): ResolvedModules {
+export function resolveModules(
+  raw: string | null | undefined,
+  caps?: Capabilities | null
+): ResolvedModules {
   const template = getIndustryTemplate(raw);
 
   // ---- Legacy / unknown: return the full current navigation ----
   if (!template) {
-    const nav = LEGACY_NAV_KEYS.map(getModule).filter((m): m is ModuleDef => Boolean(m));
+    const nav = gateNav(
+      LEGACY_NAV_KEYS.map(getModule).filter((m): m is ModuleDef => Boolean(m)),
+      caps
+    );
     const quickActions = ["knowledge-base", "products", "conversations"]
       .map(getModule)
-      .filter((m): m is ModuleDef => Boolean(m));
+      .filter((m): m is ModuleDef => Boolean(m))
+      .filter((m) => moduleAllowed(m, caps));
     return { matched: false, template: null, nav, quickActions };
   }
 
@@ -90,15 +144,19 @@ export function resolveModules(raw: string | null | undefined): ResolvedModules 
     ...CORE_TAIL_KEYS,
   ]).filter((k) => !hidden.has(k));
 
-  const nav = orderedKeys
-    .map(getModule)
-    .filter((m): m is ModuleDef => Boolean(m))
-    .map((m) => withOverride(m, template.labelOverrides));
+  const nav = gateNav(
+    orderedKeys
+      .map(getModule)
+      .filter((m): m is ModuleDef => Boolean(m))
+      .map((m) => withOverride(m, template.labelOverrides)),
+    caps
+  );
 
   const quickActions = template.quickActions
     .map(getModule)
     .filter((m): m is ModuleDef => Boolean(m))
-    .map((m) => withOverride(m, template.labelOverrides));
+    .map((m) => withOverride(m, template.labelOverrides))
+    .filter((m) => moduleAllowed(m, caps));
 
   return { matched: true, template, nav, quickActions };
 }

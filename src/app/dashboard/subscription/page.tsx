@@ -1,9 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import SubscriptionClient from "./SubscriptionClient";
+import UpgradeBanner from "@/components/dashboard/UpgradeBanner";
 import { PAYMENT_ACCOUNTS, type PaymentChannel } from "@/lib/plans";
 
-export default async function SubscriptionPage() {
+export default async function SubscriptionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ upgrade?: string }>;
+}) {
+  const { upgrade } = await searchParams;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
@@ -37,15 +43,18 @@ export default async function SubscriptionPage() {
   };
 
   return (
-    <SubscriptionClient
-      business={business}
-      subscription={subscription}
-      plan={plan}
-      usage={usage}
-      payments={payments ?? []}
-      invoices={invoices ?? []}
-      plans={plans ?? []}
-      accounts={accounts}
-    />
+    <div className="space-y-6">
+      {upgrade && <UpgradeBanner upgradeKey={upgrade} />}
+      <SubscriptionClient
+        business={business}
+        subscription={subscription}
+        plan={plan}
+        usage={usage}
+        payments={payments ?? []}
+        invoices={invoices ?? []}
+        plans={plans ?? []}
+        accounts={accounts}
+      />
+    </div>
   );
 }

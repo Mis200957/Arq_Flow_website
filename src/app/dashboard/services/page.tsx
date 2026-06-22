@@ -1,8 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { guardModule } from "@/lib/dashboard-access";
 import ServicesClient from "./ServicesClient";
 
 export default async function ServicesPage() {
+  await guardModule("services");
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
