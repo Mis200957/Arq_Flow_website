@@ -18,7 +18,7 @@ import { Download } from "lucide-react";
 interface Props {
   revenueByMonth: { label: string; value: number }[];
   signupsByMonth: { label: string; value: number }[];
-  messagesByMonth: { label: string; value: number }[];
+  tokensByMonth: { label: string; value: number }[];
   planDistribution: { name: string; count: number }[];
   typeDistribution: { name: string; count: number }[];
 }
@@ -56,13 +56,13 @@ function exportCSV(data: { label: string; value: number }[], filename: string) {
 export default function AnalyticsDashboard({
   revenueByMonth,
   signupsByMonth,
-  messagesByMonth,
+  tokensByMonth,
   planDistribution,
   typeDistribution,
 }: Props) {
   const totalRevenue = revenueByMonth.reduce((s, d) => s + d.value, 0);
   const totalSignups = signupsByMonth.reduce((s, d) => s + d.value, 0);
-  const totalMessages = messagesByMonth.reduce((s, d) => s + d.value, 0);
+  const totalTokens = tokensByMonth.reduce((s, d) => s + d.value, 0);
   const totalPlan = planDistribution.reduce((s, d) => s + d.count, 0);
   const totalType = typeDistribution.reduce((s, d) => s + d.count, 0);
 
@@ -126,15 +126,15 @@ export default function AnalyticsDashboard({
         <div className="card p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-bold">Messages / الرسائل</h3>
-              <p className="text-muted text-sm">Total: {totalMessages.toLocaleString()}</p>
+              <h3 className="font-bold">Tokens / التوكينز</h3>
+              <p className="text-muted text-sm">Total: {totalTokens.toLocaleString()}</p>
             </div>
-            <button onClick={() => exportCSV(messagesByMonth, "messages.csv")} className="btn-ghost text-xs gap-1">
+            <button onClick={() => exportCSV(tokensByMonth, "tokens.csv")} className="btn-ghost text-xs gap-1">
               <Download className="w-3.5 h-3.5" />CSV
             </button>
           </div>
           <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={messagesByMonth}>
+            <LineChart data={tokensByMonth}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(238,237,210,0.07)" />
               <XAxis dataKey="label" {...AXIS_PROPS} />
               <YAxis {...AXIS_PROPS} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} />

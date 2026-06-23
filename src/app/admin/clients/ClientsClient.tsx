@@ -38,7 +38,7 @@ interface Props {
   businesses: Business[];
   usageMap: Record<
     string,
-    { remaining_egp: number; wallet_egp: number; used_pct: number; days_left: number | null; messages_used: number }
+    { remaining_egp: number; wallet_egp: number; used_pct: number; days_left: number | null }
   >;
 }
 

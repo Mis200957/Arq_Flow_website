@@ -149,7 +149,7 @@ export default function UsageClient({ businessId, current: initialCurrent, histo
       <div className="card p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold flex items-center gap-2"><TrendingUp className="w-4 h-4 text-accent" /> {t.daily}</h3>
-          <span className="text-sm text-muted flex items-center gap-1.5"><MessageSquare className="w-4 h-4" /> {current?.messages_used?.toLocaleString() ?? 0} {t.messages} {t.thisPeriod}</span>
+          <span className="text-sm text-muted flex items-center gap-1.5"><MessageSquare className="w-4 h-4" /> {dailyData.reduce((s, d) => s + d.count, 0).toLocaleString()} {t.messages}</span>
         </div>
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={dailyData} margin={{ left: -20, right: 8, top: 4 }}>

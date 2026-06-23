@@ -21,7 +21,6 @@ type Plan = {
   margin_egp: number;
   validity_days: number;
   token_budget_egp: number;
-  message_limit: number;
   ai_model: string;
   fallback_model: string;
   max_tokens: number;
@@ -227,9 +226,6 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
 
           <Field label="Tier Level" hint="Order (1=lowest)">
             <input type="number" className="input-base" value={form.tier_level ?? ""} onChange={(e) => setForm((f) => ({ ...f, tier_level: Number(e.target.value) }))} />
-          </Field>
-          <Field label="Message Limit (legacy / reference)">
-            <input type="number" className="input-base" value={form.message_limit ?? ""} onChange={(e) => setForm((f) => ({ ...f, message_limit: Number(e.target.value) }))} />
           </Field>
 
           <div className="flex items-center gap-6 sm:col-span-2">

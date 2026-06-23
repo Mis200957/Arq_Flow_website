@@ -477,6 +477,7 @@ export type Database = {
           whatsapp_number: string | null
           workflow_id: string | null
           working_hours: string | null
+          working_hours_struct: Json | null
         }
         Insert: {
           activated_at?: string | null
@@ -526,6 +527,7 @@ export type Database = {
           whatsapp_number?: string | null
           workflow_id?: string | null
           working_hours?: string | null
+          working_hours_struct?: Json | null
         }
         Update: {
           activated_at?: string | null
@@ -575,6 +577,7 @@ export type Database = {
           whatsapp_number?: string | null
           workflow_id?: string | null
           working_hours?: string | null
+          working_hours_struct?: Json | null
         }
         Relationships: [
           {
@@ -2286,7 +2289,6 @@ export type Database = {
           max_tokens: number
           media_support: Json
           memory_window: number
-          message_limit: number
           monthly_fee_egp: number
           name: string
           name_ar: string
@@ -2310,7 +2312,6 @@ export type Database = {
           max_tokens: number
           media_support?: Json
           memory_window: number
-          message_limit: number
           monthly_fee_egp: number
           name: string
           name_ar: string
@@ -2334,7 +2335,6 @@ export type Database = {
           max_tokens?: number
           media_support?: Json
           memory_window?: number
-          message_limit?: number
           monthly_fee_egp?: number
           name?: string
           name_ar?: string
@@ -3251,8 +3251,6 @@ export type Database = {
           business_id: string
           cost_egp: number
           id: string
-          message_limit: number
-          messages_used: number
           period_end: string
           period_start: string
           total_tokens: number
@@ -3264,8 +3262,6 @@ export type Database = {
           business_id: string
           cost_egp?: number
           id?: string
-          message_limit: number
-          messages_used?: number
           period_end: string
           period_start: string
           total_tokens?: number
@@ -3277,8 +3273,6 @@ export type Database = {
           business_id?: string
           cost_egp?: number
           id?: string
-          message_limit?: number
-          messages_used?: number
           period_end?: string
           period_start?: string
           total_tokens?: number
@@ -3453,9 +3447,7 @@ export type Database = {
         Args: {
           add_budget: number
           add_wallet: number
-          b_id: string
-          msg_limit: number
-          new_end: string
+          b_id: string          new_end: string
         }
         Returns: {
           balance_egp: number

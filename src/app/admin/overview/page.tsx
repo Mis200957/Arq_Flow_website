@@ -42,7 +42,7 @@ async function fetchOverviewData() {
     db.from("businesses").select("*", { count: "exact", head: true }).eq("status", "provisioning"),
     db.from("payments").select("amount_egp, created_at").eq("status", "approved").gte("created_at", sixMonthsAgo.toISOString()),
     db.from("payments").select("*", { count: "exact", head: true }).eq("status", "pending"),
-    db.from("usage_counters").select("messages_used").gte("period_start", startOfMonth),
+    db.from("usage_counters").select("total_tokens").gte("period_start", startOfMonth),
     db.from("businesses").select("*", { count: "exact", head: true }).gte("created_at", startOfWeek),
     db
       .from("payments")
@@ -57,7 +57,7 @@ async function fetchOverviewData() {
   ]);
 
   const totalRevenue = (allApprovedPayments ?? []).reduce((s, r) => s + Number(r.amount_egp), 0);
-  const messagesThisMonth = (usageData ?? []).reduce((s, r) => s + r.messages_used, 0);
+  const tokensThisMonth = (usageData ?? []).reduce((s, r) => s + Number(r.total_tokens ?? 0), 0);
 
   // Build monthly revenue chart from single query result
   const months = monthLabels.map((m) => ({
@@ -74,7 +74,7 @@ async function fetchOverviewData() {
     provisioning: provisioning ?? 0,
     totalRevenue,
     pendingPayments: pendingPayments ?? 0,
-    messagesThisMonth,
+    tokensThisMonth,
     newClientsThisWeek: newClientsThisWeek ?? 0,
     recentPayments: recentPayments ?? [],
     recentLogs: recentLogs ?? [],
@@ -113,8 +113,8 @@ export default async function OverviewPage() {
           icon={<CreditCard className="w-5 h-5" />}
         />
         <StatCard
-          label="Messages This Month / رسائل هذا الشهر"
-          value={data.messagesThisMonth.toLocaleString()}
+          label="Tokens This Month / توكينز هذا الشهر"
+          value={data.tokensThisMonth.toLocaleString()}
           hint="Across all active businesses"
           icon={<MessageSquare className="w-5 h-5" />}
         />

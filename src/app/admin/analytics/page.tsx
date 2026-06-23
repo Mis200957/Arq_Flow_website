@@ -28,7 +28,7 @@ async function fetchAnalyticsData() {
   ] = await Promise.all([
     db.from("payments").select("amount_egp, status, created_at"),
     db.from("businesses").select("created_at, business_type, plan_id, status"),
-    db.from("usage_counters").select("messages_used, period_start"),
+    db.from("usage_counters").select("total_tokens, period_start"),
     db.from("plans").select("id, name"),
   ]);
 
@@ -53,8 +53,8 @@ async function fetchAnalyticsData() {
     ).length,
   }));
 
-  // Messages by month
-  const messagesByMonth = months.map((m) => ({
+  // Tokens by month
+  const tokensByMonth = months.map((m) => ({
     label: m.label,
     value: (usageData ?? [])
       .filter(
@@ -63,7 +63,7 @@ async function fetchAnalyticsData() {
           new Date(u.period_start) >= m.start &&
           new Date(u.period_start) < m.end
       )
-      .reduce((s, u) => s + u.messages_used, 0),
+      .reduce((s, u) => s + Number(u.total_tokens ?? 0), 0),
   }));
 
   // Plan distribution
@@ -88,7 +88,7 @@ async function fetchAnalyticsData() {
     count,
   }));
 
-  return { revenueByMonth, signupsByMonth, messagesByMonth, planDistribution, typeDistribution };
+  return { revenueByMonth, signupsByMonth, tokensByMonth, planDistribution, typeDistribution };
 }
 
 export default async function AnalyticsPage() {

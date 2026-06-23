@@ -141,7 +141,6 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
     add_budget: tokenBudget,
     add_wallet: Number(plan.monthly_fee_egp),
     new_end: nextEnd,
-    msg_limit: Number(plan.message_limit ?? 0),
   });
   if (topupErr) {
     console.error("wallet_topup failed (activation)", topupErr);
@@ -174,7 +173,6 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
       fallback_model: plan.fallback_model,
       max_tokens: plan.max_tokens,
       memory_window: plan.memory_window,
-      message_limit: plan.message_limit,
       tools: plan.tools,
       media_support: plan.media_support,
       // token-wallet billing
@@ -300,7 +298,6 @@ async function applySubscriptionPayment(
     add_budget: tokenBudget,
     add_wallet: Number(plan.monthly_fee_egp),
     new_end: newEnd,
-    msg_limit: Number(plan.message_limit ?? 0),
   });
   if (topupErr) {
     console.error("wallet_topup failed (subscription)", topupErr);

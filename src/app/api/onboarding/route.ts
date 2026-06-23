@@ -30,6 +30,15 @@ const onboardingSchema = z.object({
   whatsapp_number: z.string().regex(/^\d{10,15}$/),
   // operations
   working_hours: z.string().min(1).max(300),
+  working_hours_struct: z
+    .object({
+      always: z.boolean().default(false),
+      open: z.string().max(8).optional().default(""),
+      close: z.string().max(8).optional().default(""),
+      days: z.array(z.enum(["sat", "sun", "mon", "tue", "wed", "thu", "fri"])).max(7).default([]),
+    })
+    .optional()
+    .nullable(),
   address: z.string().max(500).optional().default(""),
   location: z.string().max(500).optional().default(""),
   delivery_info: z.string().max(1000).optional().default(""),
@@ -136,6 +145,7 @@ export async function POST(req: Request) {
       contact_phone: d.contact_phone,
       whatsapp_number: d.whatsapp_number,
       working_hours: d.working_hours,
+      working_hours_struct: (d.working_hours_struct ?? null) as Json,
       address: d.address,
       location: d.location,
       delivery_info: d.delivery_info,

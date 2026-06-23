@@ -15,14 +15,14 @@ export default async function ClientsPage() {
       .order("created_at", { ascending: false }),
     db
       .from("usage_counters")
-      .select("business_id, messages_used, balance_egp, cost_egp, wallet_egp, period_end")
+      .select("business_id, balance_egp, cost_egp, wallet_egp, period_end")
       .order("period_start", { ascending: false }),
   ]);
 
   // Build usage map: latest wallet per business (customer-facing remaining + days left)
   const usageMap: Record<
     string,
-    { remaining_egp: number; wallet_egp: number; used_pct: number; days_left: number | null; messages_used: number }
+    { remaining_egp: number; wallet_egp: number; used_pct: number; days_left: number | null }
   > = {};
   for (const u of usageData ?? []) {
     if (usageMap[u.business_id]) continue;
@@ -36,7 +36,6 @@ export default async function ClientsPage() {
       wallet_egp: wal,
       used_pct: bal > 0 ? Math.min(100, Math.round((cst / bal) * 100)) : 0,
       days_left: daysLeft,
-      messages_used: u.messages_used,
     };
   }
 

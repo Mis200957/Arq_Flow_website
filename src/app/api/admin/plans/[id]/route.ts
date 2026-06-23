@@ -32,7 +32,6 @@ export async function PUT(
     monthly_fee_egp,
     margin_egp,
     validity_days,
-    message_limit,
     ai_model,
     fallback_model,
     max_tokens,
@@ -54,7 +53,6 @@ export async function PUT(
   if (monthly_fee_egp !== undefined) updateData.monthly_fee_egp = Number(monthly_fee_egp);
   if (margin_egp !== undefined) updateData.margin_egp = Number(margin_egp);
   if (validity_days !== undefined) updateData.validity_days = Number(validity_days);
-  if (message_limit !== undefined) updateData.message_limit = Number(message_limit);
   if (ai_model !== undefined) updateData.ai_model = String(ai_model);
   if (fallback_model !== undefined) updateData.fallback_model = String(fallback_model);
   if (max_tokens !== undefined) updateData.max_tokens = Number(max_tokens);

@@ -24,7 +24,7 @@ export default async function UsagePage() {
 
   const { data: plan } = await supabase
     .from("plans")
-    .select("id, name, name_ar, message_limit, monthly_fee_egp")
+    .select("id, name, name_ar, monthly_fee_egp")
     .eq("id", business.plan_id)
     .single();
 

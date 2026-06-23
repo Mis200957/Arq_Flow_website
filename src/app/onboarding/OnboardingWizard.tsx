@@ -103,6 +103,86 @@ const BIZ_PAYMENT_METHODS: { value: string; label: L }[] = [
   { value: "bank", label: { ar: "تحويل بنكي", en: "Bank Transfer" } },
 ];
 
+// Working-hours picker: ordered week (Egyptian week starts Saturday).
+const WH_DAYS: { value: string; label: L }[] = [
+  { value: "sat", label: { ar: "السبت", en: "Saturday" } },
+  { value: "sun", label: { ar: "الأحد", en: "Sunday" } },
+  { value: "mon", label: { ar: "الاثنين", en: "Monday" } },
+  { value: "tue", label: { ar: "الثلاثاء", en: "Tuesday" } },
+  { value: "wed", label: { ar: "الأربعاء", en: "Wednesday" } },
+  { value: "thu", label: { ar: "الخميس", en: "Thursday" } },
+  { value: "fri", label: { ar: "الجمعة", en: "Friday" } },
+];
+const WH_DEFAULT_DAYS = ["sat", "sun", "mon", "tue", "wed", "thu"];
+
+function whDayName(value: string, lang: "ar" | "en"): string {
+  const d = WH_DAYS.find((x) => x.value === value);
+  return d ? d.label[lang] : value;
+}
+
+// "09:30" -> "9:30 ص" / "9:30 AM"
+function whFormatTime(hhmm: string, lang: "ar" | "en"): string {
+  const [hStr, mStr = "00"] = (hhmm || "").split(":");
+  const h = parseInt(hStr, 10);
+  if (Number.isNaN(h)) return hhmm;
+  const am = h < 12;
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  const suffix = lang === "ar" ? (am ? "ص" : "م") : am ? "AM" : "PM";
+  return `${h12}:${mStr.padStart(2, "0")} ${suffix}`;
+}
+
+// Build a clean, human-readable schedule string from the structured picker state.
+// This is what gets stored in businesses.working_hours and sent to n8n unchanged.
+function whSerialize(
+  days: string[],
+  open: string,
+  close: string,
+  always: boolean,
+  lang: "ar" | "en"
+): string {
+  const order = WH_DAYS.map((d) => d.value);
+  const sel = order.filter((v) => days.includes(v));
+  if (sel.length === 0) return "";
+
+  const sep = lang === "ar" ? "، " : ", ";
+  const to = lang === "ar" ? "إلى" : "to";
+
+  // group consecutive days into runs (e.g. Sat–Thu)
+  const runs: string[][] = [];
+  let run: string[] = [];
+  let prev = -2;
+  for (const v of sel) {
+    const idx = order.indexOf(v);
+    if (idx === prev + 1) run.push(v);
+    else {
+      if (run.length) runs.push(run);
+      run = [v];
+    }
+    prev = idx;
+  }
+  if (run.length) runs.push(run);
+
+  const daysStr = runs
+    .map((r) =>
+      r.length >= 3
+        ? `${lang === "ar" ? "من " : ""}${whDayName(r[0], lang)} ${to} ${whDayName(r[r.length - 1], lang)}`
+        : r.map((v) => whDayName(v, lang)).join(sep)
+    )
+    .join(sep);
+
+  const timeStr = always
+    ? lang === "ar"
+      ? "24 ساعة"
+      : "24 hours"
+    : `${whFormatTime(open, lang)} – ${whFormatTime(close, lang)}`;
+
+  const openPart = `${daysStr}: ${timeStr}`;
+  const closed = order.filter((v) => !days.includes(v));
+  if (closed.length === 0) return openPart;
+  const closedLabel = lang === "ar" ? "مغلق" : "Closed";
+  return `${openPart} — ${closedLabel}: ${closed.map((v) => whDayName(v, lang)).join(sep)}`;
+}
+
 const GOALS: { value: string; label: L }[] = [
   { value: "sales", label: { ar: "زيادة المبيعات", en: "Drive sales" } },
   { value: "support", label: { ar: "خدمة العملاء", en: "Customer support" } },
@@ -181,6 +261,10 @@ type FormState = {
   whatsapp_number: string;
   same_as_phone: boolean;
   working_hours: string;
+  working_days: string[];
+  working_open: string;
+  working_close: string;
+  working_24h: boolean;
   address: string;
   location: string;
   payment_methods: string[];
@@ -243,7 +327,11 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
     contact_phone: "",
     whatsapp_number: "",
     same_as_phone: false,
-    working_hours: "",
+    working_days: WH_DEFAULT_DAYS,
+    working_open: "10:00",
+    working_close: "22:00",
+    working_24h: false,
+    working_hours: whSerialize(WH_DEFAULT_DAYS, "10:00", "22:00", false, lang),
     address: "",
     location: "",
     payment_methods: [],
@@ -339,6 +427,11 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       opsSub: "عشان المساعد يجاوب صح على أسئلة زي «فاتحين لحد كام؟» و«بتوصلوا فين؟»",
       workingHours: "مواعيد العمل",
       workingHoursPh: "مثال: يومياً من 10 صباحاً حتى 11 مساءً — الجمعة إجازة",
+      whDays: "أيام العمل",
+      whFrom: "من",
+      whTo: "إلى",
+      wh24: "مفتوح ٢٤ ساعة",
+      whPickDays: "اختر يوم واحد على الأقل",
       addressL: "العنوان (اختياري)",
       addressPh: "مثال: 12 شارع التحرير، الدقي، الجيزة",
       locationL: "رابط جوجل ماب (اختياري)",
@@ -475,6 +568,11 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       opsSub: 'So the assistant answers questions like "until when are you open?" and "do you deliver to…?"',
       workingHours: "Working hours",
       workingHoursPh: "e.g. Daily 10 AM – 11 PM, closed Fridays",
+      whDays: "Working days",
+      whFrom: "From",
+      whTo: "To",
+      wh24: "Open 24 hours",
+      whPickDays: "Select at least one day",
       addressL: "Address (optional)",
       addressPh: "e.g. 12 Tahrir St., Dokki, Giza",
       locationL: "Google Maps link (optional)",
@@ -570,6 +668,26 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       return rest;
     });
 
+  // Working-hours picker: merge a structured change AND recompute the
+  // human-readable working_hours text in the same update (kept in sync so the
+  // rest of the pipeline — validation, summary, submit, webhook — is untouched).
+  const updateHours = (
+    patch: Partial<Pick<FormState, "working_days" | "working_open" | "working_close" | "working_24h">>
+  ) => {
+    setForm((f) => {
+      const next = { ...f, ...patch };
+      next.working_hours = whSerialize(
+        next.working_days,
+        next.working_open,
+        next.working_close,
+        next.working_24h,
+        lang
+      );
+      return next;
+    });
+    clearError("working_hours");
+  };
+
   const goTo = (target: number) => {
     setDirection(target > step ? 1 : -1);
     setStep(target);
@@ -594,7 +712,9 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       if (!normalizeEgyptPhone(form.whatsapp_number)) e.whatsapp_number = t.phoneInvalid;
     }
     if (s === 3) {
-      if (!form.working_hours.trim()) e.working_hours = t.required;
+      if (form.working_days.length === 0) e.working_hours = t.whPickDays;
+      else if (!form.working_24h && (!form.working_open || !form.working_close))
+        e.working_hours = t.required;
     }
     if (s === 6) {
       if (!form.payment_method) e.payment_method = t.methodRequired;
@@ -733,7 +853,19 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       contact_email: trim(form.contact_email),
       contact_phone: normalizeEgyptPhone(form.contact_phone),
       whatsapp_number: normalizeEgyptPhone(form.whatsapp_number),
-      working_hours: trim(form.working_hours),
+      working_hours: whSerialize(
+        form.working_days,
+        form.working_open,
+        form.working_close,
+        form.working_24h,
+        lang
+      ),
+      working_hours_struct: {
+        always: form.working_24h,
+        open: form.working_24h ? "" : form.working_open,
+        close: form.working_24h ? "" : form.working_close,
+        days: form.working_days,
+      },
       address: trim(form.address),
       location: trim(form.location),
       delivery_info: trim(form.delivery_info),
@@ -1321,13 +1453,93 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
               <StepIntro title={t.opsTitle} sub={t.opsSub} />
               <div className="card p-5 sm:p-6 space-y-5">
                 <Field label={t.workingHours} required error={errors.working_hours}>
-                  <input
-                    className={inputCls}
-                    value={form.working_hours}
-                    onChange={(e) => set("working_hours", e.target.value)}
-                    placeholder={t.workingHoursPh}
-                    maxLength={300}
-                  />
+                  <div className="space-y-4">
+                    {/* working days */}
+                    <div>
+                      <span className="block text-xs font-semibold mb-2 text-muted">{t.whDays}</span>
+                      <div className="flex flex-wrap gap-2">
+                        {WH_DAYS.map((d) => {
+                          const on = form.working_days.includes(d.value);
+                          return (
+                            <button
+                              key={d.value}
+                              type="button"
+                              aria-pressed={on}
+                              onClick={() =>
+                                updateHours({
+                                  working_days: on
+                                    ? form.working_days.filter((x) => x !== d.value)
+                                    : [...form.working_days, d.value],
+                                })
+                              }
+                              className={cn(
+                                "rounded-full px-4 py-2 text-sm font-semibold border transition-all inline-flex items-center gap-1.5",
+                                on
+                                  ? "border-accent bg-[rgba(107,160,172,0.15)] text-app"
+                                  : "border-app text-muted hover:border-strong"
+                              )}
+                            >
+                              {on && <Check className="w-3.5 h-3.5 text-accent" />}
+                              {pick(d.label)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* 24-hour toggle */}
+                    <label className="inline-flex items-center gap-2 cursor-pointer select-none text-sm font-semibold">
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={form.working_24h}
+                        onChange={(e) => updateHours({ working_24h: e.target.checked })}
+                      />
+                      <span
+                        className={cn(
+                          "w-4.5 h-4.5 rounded-md border flex items-center justify-center shrink-0",
+                          form.working_24h ? "bg-accent border-accent text-brand-deep" : "border-strong"
+                        )}
+                      >
+                        {form.working_24h && <Check className="w-3 h-3" />}
+                      </span>
+                      {t.wh24}
+                    </label>
+
+                    {/* open / close time */}
+                    {!form.working_24h && (
+                      <div className="grid grid-cols-2 gap-3 max-w-sm">
+                        <label className="block">
+                          <span className="block text-xs font-semibold mb-1 text-muted">{t.whFrom}</span>
+                          <input
+                            type="time"
+                            className={inputCls}
+                            {...ltrInput}
+                            value={form.working_open}
+                            onChange={(e) => updateHours({ working_open: e.target.value })}
+                          />
+                        </label>
+                        <label className="block">
+                          <span className="block text-xs font-semibold mb-1 text-muted">{t.whTo}</span>
+                          <input
+                            type="time"
+                            className={inputCls}
+                            {...ltrInput}
+                            value={form.working_close}
+                            onChange={(e) => updateHours({ working_close: e.target.value })}
+                          />
+                        </label>
+                      </div>
+                    )}
+
+                    {/* live summary */}
+                    {form.working_hours && (
+                      <div className="flex items-start gap-2 text-sm text-muted rounded-lg border border-app px-3 py-2 bg-[rgba(107,160,172,0.06)]">
+                        <Clock className="w-4 h-4 mt-0.5 text-accent shrink-0" />
+                        <span dir="auto">{form.working_hours}</span>
+                      </div>
+                    )}
+                  </div>
                 </Field>
 
                 <div className="grid sm:grid-cols-2 gap-5">
