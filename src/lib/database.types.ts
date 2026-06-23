@@ -3447,7 +3447,8 @@ export type Database = {
         Args: {
           add_budget: number
           add_wallet: number
-          b_id: string          new_end: string
+          b_id: string
+          new_end: string
         }
         Returns: {
           balance_egp: number
