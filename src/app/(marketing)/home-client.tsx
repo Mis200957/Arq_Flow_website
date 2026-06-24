@@ -266,7 +266,7 @@ function Hero() {
   );
 }
 
-/* ================= Stats bar ================= */
+/* ================= Stats bar ================= 
 
 function Stats() {
   const t = useT({
@@ -303,7 +303,7 @@ function Stats() {
     </section>
   );
 }
-
+*/
 /* ================= Features grid ================= */
 
 function Features() {
@@ -507,7 +507,7 @@ function PricingPreview() {
   );
 }
 
-/* ================= Testimonials carousel ================= */
+/* ================= Testimonials carousel ================= 
 
 function Testimonials() {
   const { dir } = useLang();
@@ -631,7 +631,7 @@ function Testimonials() {
     </section>
   );
 }
-
+*/
 /* ================= FAQ ================= */
 
 function HomeFaq() {
