@@ -183,7 +183,7 @@ export default function AboutClient() {
 
   return (
     <>
-      <PageHero badge={t.badge} title={t.title} subtitle={t.sub} />
+      <PageHero badge={t.badge} title={t.title} />
       <Story />
       <div className="section-divider max-w-7xl mx-auto mt-16" />
       <Values />
