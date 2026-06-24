@@ -203,15 +203,17 @@ const TONES: { value: "formal" | "friendly" | "egyptian"; label: L; desc: L; exa
     desc: { ar: "دافئ وقريب من العميل، بدون تكلف", en: "Warm and approachable, without being stiff" },
     example: { ar: "«أهلاً بيك! 😊 إزاي أقدر أساعدك النهارده؟»", en: '"Hi there! 😊 How can I help you today?"' },
   },
-  {
-    value: "egyptian",
-    label: { ar: "مصري عامي", en: "Egyptian Casual" },
-    desc: { ar: "باللهجة المصرية، خفيف وقريب جداً من عملائك", en: "Egyptian dialect — light, local, and relatable" },
-    example: { ar: "«أهلاً يا فندم! 😄 تؤمر بإيه النهارده؟»", en: '"Ahlan ya fandem! 😄 What can I get you?"' },
-  },
+{
+  value: "professional",
+  label: { ar: "احترافي", en: "Professional" },
+  desc: {
+    ar: "أسلوب رسمي وواضح مناسب للشركات وخدمة العملاء والتواصل التجاري.", en: "A professional and polished tone for businesses, customer support, and commercial communication." },
+  example: {
+    ar: "«مرحباً، شكراً لتواصلك معنا. كيف يمكنني مساعدتك اليوم؟»", en: '"Hello, thank you for contacting us. How may I assist you today?"' },
+},
 ];
 
-const FALLBACKS: { value: "handover" | "collect" | "apologize"; label: L; desc: L }[] = [
+/* const FALLBACKS: { value: "handover" | "collect" | "apologize"; label: L; desc: L }[] = [
   {
     value: "handover",
     label: { ar: "تحويل لموظف", en: "Transfer to human" },
@@ -227,7 +229,7 @@ const FALLBACKS: { value: "handover" | "collect" | "apologize"; label: L; desc: 
     label: { ar: "اعتذار مهذب", en: "Polite apology" },
     desc: { ar: "يعتذر بلباقة ويوجّه العميل لقنوات التواصل الأخرى", en: "Apologizes gracefully and points to other contact channels" },
   },
-];
+]; */
 
 const MAX_IMAGE_MB = 5;
 const MAX_KB_MB = 10;
@@ -449,7 +451,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       toneL: "أسلوب الكلام",
       fallbackL: "لو المساعد مش عارف يجاوب؟",
       greetingL: "رسالة الترحيب (اختياري)",
-      greetingPh: "مثال: أهلاً بيك في {biz}! 👋 أنا المساعد الذكي — أقدر أساعدك في إيه النهارده؟",
+      greetingPh: "مثال: أهلاً بيك في {biz}! 👋 أنا خدمة العملاء — أقدر أساعدك في إيه النهارده؟",
       personalityL: "شخصية المساعد (اختياري)",
       personalityPh: "مثال: اسمه «سند»، مرح وسريع، بيحب يقترح الأطباق الأكثر مبيعاً",
       kbL: "قاعدة المعرفة",
