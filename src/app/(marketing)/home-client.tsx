@@ -684,14 +684,12 @@ export default function HomeClient() {
   return (
     <>
       <Hero />
-      <Stats />
       <Features />
       <div className="section-divider max-w-7xl mx-auto" />
       <HowItWorks />
       <Industries />
       <div className="section-divider max-w-7xl mx-auto" />
       <PricingPreview />
-      <Testimonials />
       <HomeFaq />
       <CTABanner />
     </>
