@@ -23,11 +23,11 @@ import {
 function Story() {
   const t = useT({
     ar: {
-      badge: "القصة",
-      title: "اتولدت من ملاحظة بسيطة",
-      p1: "ArqFlow اتأسست على إيد محسن «رازور» حجاج، مؤسس Al-Haggag Digital Systems، بعد ملاحظة اتكررت قدامه في كل بيزنس مصري تقريباً: صاحب المحل أو العيادة أو المطعم بيخسر عملاء كل يوم — مش عشان منتجه وحش، لكن عشان محدش فضي يرد على الواتساب.",
-      p2: "التكنولوجيا اللي بتحل المشكلة دي كانت موجودة، بس كانت معمولة بالإنجليزي، بأسعار بالدولار، ولشركات كبيرة. مفيش حد بناها للبيزنس المصري: بلهجته، وبجنيهه، وبطريقة شغله.",
-      p3: "فقرّرنا نبنيها إحنا. ArqFlow هي نظام كامل بيدّي أي نشاط مصري — من عربية الفول للمستشفى الخاص — موظف ذكاء اصطناعي خاص بيه، يتركّب في دقايق، وبسعر معقول بالجنيه.",
+      badge: "قصتنا",
+      title: "بدأت من مشكلة بنشوفها كل يوم",
+      p1: "ArqFlow بدأت بعد ملاحظة بسيطة: كتير من أصحاب المشاريع والعيادات والمطاعم بيضيع عليهم عملاء لأن مفيش وقت كفاية للرد على الرسائل والاستفسارات طول اليوم. المشكلة مش في الخدمة نفسها، لكن في متابعة العملاء بشكل مستمر.",
+      p2: "الحلول الموجودة كانت غالباً معقدة أو مكلفة بالنسبة لمعظم المشاريع الصغيرة والمتوسطة، وكثير منها متصمم لأسواق مختلفة عن السوق المصري. وده خلّى الاستفادة منها أصعب مما المفروض تكون عليه.",
+      p3: "عشان كده بنينا ArqFlow. منصة بتساعد الأنشطة التجارية على استخدام الذكاء الاصطناعي في التواصل مع العملاء والرد على الاستفسارات بشكل أسهل وأسرع، من غير تعقيد أو تكاليف مبالغ فيها.",
       mission: "مهمتنا",
       missionText: "كل بيزنس مصري يستاهل موظف ذكاء اصطناعي — مش بس الشركات الكبيرة اللي معاها ملايين.",
     },
@@ -174,12 +174,10 @@ export default function AboutClient() {
     ar: {
       badge: "من نحن",
       title: "بنبني موظفين أذكياء للبيزنس المصري",
-      sub: "ArqFlow مشروع من Al-Haggag Digital Systems — Built with purpose. Designed to convert.",
     },
     en: {
       badge: "About us",
       title: "We build smart employees for Egyptian businesses",
-      sub: "ArqFlow is a product of Al-Haggag Digital Systems — Built with purpose. Designed to convert.",
     },
   });
 
@@ -190,16 +188,6 @@ export default function AboutClient() {
       <div className="section-divider max-w-7xl mx-auto mt-16" />
       <Values />
       <Framework />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <Reveal>
-          <div className="glass p-6 flex items-center justify-center gap-3 text-center">
-            <Layers className="w-5 h-5 text-accent shrink-0" aria-hidden />
-            <p className="text-sm text-muted">
-              Mohsen “Razor” Haggag — Al-Haggag Digital Systems · ArqFlow
-            </p>
-          </div>
-        </Reveal>
-      </div>
       <CTABanner />
     </>
   );
