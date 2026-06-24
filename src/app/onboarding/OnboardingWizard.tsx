@@ -275,7 +275,6 @@ type FormState = {
   order_instructions: string;
   primary_goal: string;
   tone_of_voice: "formal" | "friendly" | "professional";
-  fallback_behavior: "handover" | "collect" | "apologize";
   greeting_message: string;
   assistant_personality: string;
   knowledge_base_raw: string;
@@ -342,7 +341,6 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
     order_instructions: "",
     primary_goal: "mixed",
     tone_of_voice: "professional",
-    fallback_behavior: "handover",
     greeting_message: "",
     assistant_personality: "",
     knowledge_base_raw: "",
@@ -449,7 +447,6 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       aiSub: "كل معلومة هنا بتخلي ردود المساعد أدق وأقرب لأسلوبك.",
       goalL: "الهدف الأساسي من المساعد",
       toneL: "أسلوب الكلام",
-      fallbackL: "لو المساعد مش عارف يجاوب؟",
       greetingL: "رسالة الترحيب (اختياري)",
       greetingPh: "مثال: أهلاً بيك في {biz}! 👋 أنا خدمة العملاء — أقدر أساعدك في إيه النهارده؟",
       personalityL: "شخصية المساعد (اختياري)",
@@ -589,7 +586,6 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       aiSub: "Everything you add here makes replies sharper and closer to your style.",
       goalL: "Primary goal of the assistant",
       toneL: "Tone of voice",
-      fallbackL: "When the assistant can't answer?",
       greetingL: "Greeting message (optional)",
       greetingPh: "e.g. Welcome to {biz}! 👋 I'm the AI assistant — how can I help you today?",
       personalityL: "Assistant personality (optional)",
@@ -876,7 +872,6 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       payment_methods: form.payment_methods,
       primary_goal: form.primary_goal,
       tone_of_voice: form.tone_of_voice,
-      fallback_behavior: form.fallback_behavior,
       greeting_message: trim(form.greeting_message),
       assistant_personality: trim(form.assistant_personality),
       knowledge_base_raw: trim(form.knowledge_base_raw),
@@ -948,7 +943,6 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
     const typeLabel = BUSINESS_TYPES.find((b) => b.value === form.business_type)?.label;
     const goalLabel = GOALS.find((g) => g.value === form.primary_goal)?.label;
     const toneLabel = TONES.find((x) => x.value === form.tone_of_voice);
-    const fbLabel = FALLBACKS.find((x) => x.value === form.fallback_behavior);
     const payLabels = form.payment_methods
       .map((v) => BIZ_PAYMENT_METHODS.find((m) => m.value === v))
       .filter(Boolean)
@@ -1005,7 +999,6 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
         items: [
           [t.goalL, goalLabel ? pick(goalLabel) : ""],
           [t.toneL, toneLabel ? pick(toneLabel.label) : ""],
-          [t.fallbackL, fbLabel ? pick(fbLabel.label) : ""],
           [t.greetingL, form.greeting_message],
           [t.personalityL, form.assistant_personality],
           [t.kbL, form.knowledge_base_raw ? `${form.knowledge_base_raw.slice(0, 120)}${form.knowledge_base_raw.length > 120 ? "…" : ""}` : ""],
@@ -1694,43 +1687,6 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
                   </div>
                 </div>
 
-                {/* fallback radio cards */}
-                <div role="radiogroup" aria-label={t.fallbackL}>
-                  <span className="block text-sm font-semibold mb-2">{t.fallbackL}</span>
-                  <div className="grid sm:grid-cols-3 gap-3">
-                    {FALLBACKS.map((fb) => {
-                      const on = form.fallback_behavior === fb.value;
-                      return (
-                        <button
-                          key={fb.value}
-                          type="button"
-                          role="radio"
-                          aria-checked={on}
-                          onClick={() => set("fallback_behavior", fb.value)}
-                          className={cn(
-                            "rounded-2xl border p-4 text-start transition-all flex flex-col gap-1.5",
-                            on
-                              ? "border-accent bg-[rgba(107,160,172,0.1)] shadow-[0_0_0_1px_var(--accent)]"
-                              : "border-app hover:border-strong"
-                          )}
-                        >
-                          <span className="flex items-center justify-between">
-                            <span className="font-bold text-sm">{pick(fb.label)}</span>
-                            <span
-                              className={cn(
-                                "w-4.5 h-4.5 rounded-full border flex items-center justify-center",
-                                on ? "border-accent bg-accent" : "border-strong"
-                              )}
-                            >
-                              {on && <span className="w-1.5 h-1.5 rounded-full bg-brand-deep" />}
-                            </span>
-                          </span>
-                          <span className="text-xs text-muted leading-relaxed">{pick(fb.desc)}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
 
                 <Field label={t.greetingL}>
                   <textarea
