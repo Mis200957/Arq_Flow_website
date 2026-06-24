@@ -190,7 +190,7 @@ const GOALS: { value: string; label: L }[] = [
   { value: "mixed", label: { ar: "كل ما سبق", en: "All of the above" } },
 ];
 
-const TONES: { value: "formal" | "friendly" | "egyptian"; label: L; desc: L; example: L }[] = [
+const TONES: { value: "formal" | "friendly" | "professional"; label: L; desc: L; example: L }[] = [
   {
     value: "formal",
     label: { ar: "رسمي", en: "Formal" },
@@ -274,7 +274,7 @@ type FormState = {
   return_policy: string;
   order_instructions: string;
   primary_goal: string;
-  tone_of_voice: "formal" | "friendly" | "egyptian";
+  tone_of_voice: "formal" | "friendly" | "professional";
   fallback_behavior: "handover" | "collect" | "apologize";
   greeting_message: string;
   assistant_personality: string;
@@ -341,7 +341,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
     return_policy: "",
     order_instructions: "",
     primary_goal: "mixed",
-    tone_of_voice: "egyptian",
+    tone_of_voice: "professional",
     fallback_behavior: "handover",
     greeting_message: "",
     assistant_personality: "",
