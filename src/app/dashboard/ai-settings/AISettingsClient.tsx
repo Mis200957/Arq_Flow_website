@@ -81,7 +81,9 @@ export default function AISettingsClient({ business }: Props) {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-4 lg:space-y-6">
+      {/* Two-up: Tone + Fallback side-by-side on wide screens */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-start">
       {/* Tone */}
       <div className="card p-6">
         <h3 className="font-bold mb-4">{t.tone}</h3>
@@ -122,6 +124,7 @@ export default function AISettingsClient({ business }: Props) {
             </button>
           ))}
         </div>
+      </div>
       </div>
 
       {/* Text fields */}

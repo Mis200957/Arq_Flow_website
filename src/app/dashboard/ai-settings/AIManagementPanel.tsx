@@ -114,7 +114,7 @@ export default function AIManagementPanel({ businessId, systemPrompt, initialFil
   ];
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-4 lg:space-y-6">
       {/* Editable system prompt */}
       <div className="card p-6">
         <h3 className="font-bold">{t.promptTitle}</h3>

@@ -70,7 +70,7 @@ export default function NotificationsClient({ userId, initial }: { userId: strin
   };
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1 p-1 rounded-xl bg-[rgba(238,237,210,0.05)]">
           {(["all", "unread"] as const).map((k) => (

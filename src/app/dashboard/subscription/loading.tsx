@@ -1,6 +1,6 @@
 export default function Loading() {
   return (
-    <div className="space-y-4 animate-pulse max-w-2xl">
+    <div className="space-y-4 animate-pulse">
       <div className="card skeleton h-56" />
       <div className="card skeleton h-28" />
       <div className="grid md:grid-cols-3 gap-3">

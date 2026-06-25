@@ -194,7 +194,7 @@ export default function SubscriptionClient({
   const payAmount = pkgPrice + setupDiff;
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-4 lg:space-y-6">
       {/* Current plan + wallet */}
       <div className="card p-6">
         <div className="flex items-center gap-3 mb-4">
