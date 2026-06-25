@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Plus, Edit2, Trash2, Package, ImageIcon } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
+import { Plus, Edit2, Trash2, Package, ImageIcon, Upload, X as XIcon } from "lucide-react";
 import { Modal, Field, EmptyState, Spinner } from "@/components/ui";
 import { useT, useLang } from "@/lib/i18n";
 import { cn, formatEGP } from "@/lib/utils";
@@ -15,7 +15,18 @@ interface Props {
   initialProducts: Product[];
 }
 
-const emptyForm = { name: "", price_egp: "", category: "", description: "", available: true };
+const emptyForm = { name: "", price_egp: "", category: "", description: "", available: true, image_url: "" as string | null };
+
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB cap on the source file (Base64 is ~33% larger)
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function ProductsClient({ businessId, initialProducts }: Props) {
   const { lang } = useLang();
@@ -24,13 +35,17 @@ export default function ProductsClient({ businessId, initialProducts }: Props) {
       addProduct: "أضف منتجاً", editProduct: "تعديل المنتج", name: "الاسم*", price: "السعر (ج.م)",
       category: "الفئة", description: "الوصف", available: "متاح", save: "حفظ", saving: "جاري الحفظ...",
       delete: "حذف", deleteConfirm: "حذف هذا المنتج؟", noProducts: "لا توجد منتجات",
-      image: "رابط الصورة",
+      image: "صورة المنتج", uploadImage: "اختر صورة", removeImage: "إزالة الصورة",
+      imageTooBig: "حجم الصورة كبير جداً (الحد الأقصى 2 ميجابايت)",
+      imageInvalid: "نوع الملف غير مدعوم",
     },
     en: {
       addProduct: "Add Product", editProduct: "Edit Product", name: "Name*", price: "Price (EGP)",
       category: "Category", description: "Description", available: "Available", save: "Save", saving: "Saving...",
       delete: "Delete", deleteConfirm: "Delete this product?", noProducts: "No products yet",
-      image: "Image URL",
+      image: "Product image", uploadImage: "Choose image", removeImage: "Remove image",
+      imageTooBig: "Image too large (max 2 MB)",
+      imageInvalid: "Unsupported file type",
     },
   });
 
@@ -39,13 +54,41 @@ export default function ProductsClient({ businessId, initialProducts }: Props) {
   const [editTarget, setEditTarget] = useState<Product | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
 
-  const openAdd = () => { setForm(emptyForm); setEditTarget(null); setModal("add"); };
+  const openAdd = () => { setForm(emptyForm); setEditTarget(null); setImageError(null); setModal("add"); };
   const openEdit = (p: Product) => {
-    setForm({ name: p.name, price_egp: p.price_egp?.toString() ?? "", category: p.category ?? "", description: p.description ?? "", available: p.available });
+    setForm({
+      name: p.name,
+      price_egp: p.price_egp?.toString() ?? "",
+      category: p.category ?? "",
+      description: p.description ?? "",
+      available: p.available,
+      image_url: p.image_url ?? "",
+    });
     setEditTarget(p);
+    setImageError(null);
     setModal("edit");
+  };
+
+  const handleImageSelect = async (file: File | undefined) => {
+    setImageError(null);
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setImageError(t.imageInvalid); return; }
+    if (file.size > MAX_IMAGE_BYTES) { setImageError(t.imageTooBig); return; }
+    try {
+      const base64 = await fileToBase64(file);
+      setForm((f) => ({ ...f, image_url: base64 }));
+    } catch {
+      setImageError(t.imageInvalid);
+    }
+  };
+
+  const clearImage = () => {
+    setForm((f) => ({ ...f, image_url: "" }));
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const save = async () => {
@@ -58,6 +101,7 @@ export default function ProductsClient({ businessId, initialProducts }: Props) {
       category: form.category || null,
       description: form.description || null,
       available: form.available,
+      image_url: form.image_url ? form.image_url : null,
     };
     if (modal === "add") {
       const { data } = await supabase.from("products").insert({ ...payload, sort_order: products.length }).select().single();
@@ -144,6 +188,44 @@ export default function ProductsClient({ businessId, initialProducts }: Props) {
           </div>
           <Field label={t.description}>
             <textarea className="input-base min-h-20" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+          </Field>
+          <Field label={t.image}>
+            <div className="flex items-center gap-3">
+              <div className="w-20 h-20 rounded-xl overflow-hidden bg-[rgba(238,237,210,0.05)] flex items-center justify-center shrink-0 border border-[var(--border)]">
+                {form.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={form.image_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon className="w-6 h-6 text-muted" />
+                )}
+              </div>
+              <div className="flex flex-col gap-2 flex-1 min-w-0">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleImageSelect(e.target.files?.[0])}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="btn-outline !px-3 !py-1.5 text-xs flex items-center gap-1.5 self-start"
+                >
+                  <Upload className="w-3.5 h-3.5" /> {t.uploadImage}
+                </button>
+                {form.image_url && (
+                  <button
+                    type="button"
+                    onClick={clearImage}
+                    className="btn-ghost !px-2 !py-1 text-xs text-[var(--danger)] flex items-center gap-1.5 self-start"
+                  >
+                    <XIcon className="w-3 h-3" /> {t.removeImage}
+                  </button>
+                )}
+                {imageError && <p className="text-xs text-[var(--danger)]">{imageError}</p>}
+              </div>
+            </div>
           </Field>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.available} onChange={(e) => setForm((f) => ({ ...f, available: e.target.checked }))} className="w-4 h-4 rounded" />

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Search, X, CheckCircle, Mic, Image, MapPin } from "lucide-react";
+import { Search, X, CheckCircle, RotateCcw, Mic, Image, MapPin } from "lucide-react";
 import { Badge, EmptyState, Spinner } from "@/components/ui";
 import { useT, useLang } from "@/lib/i18n";
 import { cn, timeAgo, STATUS_BADGE } from "@/lib/utils";
@@ -29,6 +29,7 @@ export default function ConversationsClient({ businessId, initialConversations }
       all: "الكل", open: "مفتوح", escalated: "مصعد", closed: "مغلق",
       noConvs: "لا توجد محادثات", selectConv: "اختر محادثة لعرض الرسائل",
       close: "إغلاق المحادثة", closing: "جاري الإغلاق...", closed2: "مغلقة",
+      reopen: "إعادة فتح المحادثة", reopening: "جاري إعادة الفتح...",
       unknown: "مجهول", audio: "[صوتي]", image: "[صورة]", location: "[موقع]",
     },
     en: {
@@ -36,6 +37,7 @@ export default function ConversationsClient({ businessId, initialConversations }
       all: "All", open: "Open", escalated: "Escalated", closed: "Closed",
       noConvs: "No conversations", selectConv: "Select a conversation to view messages",
       close: "Close conversation", closing: "Closing...", closed2: "Closed",
+      reopen: "Reopen conversation", reopening: "Reopening...",
       unknown: "Unknown", audio: "[Audio]", image: "[Image]", location: "[Location]",
     },
   });
@@ -47,6 +49,7 @@ export default function ConversationsClient({ businessId, initialConversations }
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [reopening, setReopening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const supabase = useMemo(() => createClient(), []);
 
@@ -102,7 +105,17 @@ export default function ConversationsClient({ businessId, initialConversations }
     setClosing(true);
     await supabase.from("conversations").update({ status: "closed" }).eq("id", selected.id);
     setSelected((prev) => prev ? { ...prev, status: "closed" } : prev);
+    setConvs((prev) => prev.map((c) => (c.id === selected.id ? { ...c, status: "closed" } : c)));
     setClosing(false);
+  };
+
+  const reopenConv = async () => {
+    if (!selected) return;
+    setReopening(true);
+    await supabase.from("conversations").update({ status: "open" }).eq("id", selected.id);
+    setSelected((prev) => prev ? { ...prev, status: "open" } : prev);
+    setConvs((prev) => prev.map((c) => (c.id === selected.id ? { ...c, status: "open" } : c)));
+    setReopening(false);
   };
 
   const mediaIcon = (mt: string) => {
@@ -194,7 +207,7 @@ export default function ConversationsClient({ businessId, initialConversations }
                 <p className="text-xs text-muted">{selected.customers?.phone}</p>
               </div>
               <Badge variant={STATUS_BADGE[selected.status] ?? "neutral"}>{selected.status}</Badge>
-              {selected.status !== "closed" && (
+              {selected.status !== "closed" ? (
                 <button
                   onClick={closeConv}
                   disabled={closing}
@@ -202,6 +215,15 @@ export default function ConversationsClient({ businessId, initialConversations }
                 >
                   {closing ? <Spinner className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
                   {closing ? t.closing : t.close}
+                </button>
+              ) : (
+                <button
+                  onClick={reopenConv}
+                  disabled={reopening}
+                  className="btn-outline !px-3 !py-1.5 text-xs flex items-center gap-1.5"
+                >
+                  {reopening ? <Spinner className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
+                  {reopening ? t.reopening : t.reopen}
                 </button>
               )}
             </div>

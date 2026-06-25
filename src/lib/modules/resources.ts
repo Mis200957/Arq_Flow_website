@@ -477,13 +477,12 @@ export const RESOURCES: Record<string, ResourceDescriptor> = {
   },
 
   /* ---------------- Commerce extensions ---------------- */
-  categories: {
-    table: "categories", titleField: "name", orderBy: { column: "sort_order", ascending: true },
-    baseFilter: [{ column: "kind", op: "eq", value: "product" }],
+  "delivery-areas": {
+    table: "delivery_zones", titleField: "name", orderBy: { column: "name", ascending: true },
     fields: [
-      { key: "name", label: L("اسم التصنيف", "Category name"), type: "text", required: true, list: true, search: true },
-      { key: "description", label: L("الوصف", "Description"), type: "textarea" },
-      { key: "kind", label: L("النوع", "Kind"), type: "text", fixed: "product" },
+      { key: "name", label: L("اسم المنطقة", "Area name"), type: "text", required: true, list: true, search: true },
+      { key: "fee_egp", label: L("رسوم التوصيل (ج.م)", "Fee (EGP)"), type: "money", list: true },
+      { key: "eta_text", label: L("مدة التوصيل", "ETA"), type: "text", list: true },
       fActive,
     ],
   },

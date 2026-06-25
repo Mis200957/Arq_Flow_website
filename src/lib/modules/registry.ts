@@ -31,7 +31,6 @@ export const CORE_MODULES: ModuleDef[] = [
   { key: "automation",     href: "/dashboard/automation",     icon: "Activity",        group: "core",    core: true, available: true,  label: { ar: "حالة الأتمتة",     en: "Automation Health" } },
   { key: "invoices",       href: "/dashboard/invoices",       icon: "Receipt",         group: "billing", core: true, available: true,  label: { ar: "الفواتير",         en: "Invoices" } },
   { key: "subscription",   href: "/dashboard/subscription",   icon: "Crown",           group: "billing", core: true, available: true,  label: { ar: "الاشتراك",         en: "Subscription" } },
-  { key: "files",          href: "/dashboard/files",          icon: "FolderOpen",      group: "system",  core: true, available: true,  label: { ar: "الملفات",          en: "Files" } },
   { key: "settings",       href: "/dashboard/settings",       icon: "Settings",        group: "system",  core: true, available: true,  label: { ar: "الإعدادات",        en: "Settings" } },
 ];
 
@@ -49,7 +48,7 @@ export const INDUSTRY_MODULES: ModuleDef[] = [
   { key: "services",        href: "/dashboard/services",        icon: "Wrench",       group: "industry", available: true,  label: { ar: "الخدمات",     en: "Services" } },
 
   /* ---- commerce extensions (soon) ---- */
-  { key: "categories",      href: "/dashboard/categories",      icon: "Tag",          group: "industry", available: true, label: { ar: "التصنيفات",   en: "Categories" } },
+  { key: "delivery-areas",  href: "/dashboard/delivery-areas",  icon: "MapPin",       group: "industry", available: true, label: { ar: "مناطق التوصيل", en: "Delivery Areas" } },
   { key: "inventory",       href: "/dashboard/inventory",       icon: "Boxes",        group: "industry", available: true, label: { ar: "المخزون",     en: "Inventory" } },
   { key: "delivery",        href: "/dashboard/delivery",        icon: "Truck",        group: "industry", available: true, label: { ar: "التوصيل",     en: "Delivery" } },
   { key: "promotions",      href: "/dashboard/promotions",      icon: "Percent",      group: "industry", available: true, label: { ar: "العروض",      en: "Promotions" } },
@@ -142,7 +141,6 @@ export const LEGACY_NAV_KEYS: string[] = [
   "automation",
   "invoices",
   "subscription",
-  "files",
   "settings",
 ];
 
@@ -162,7 +160,6 @@ export const CORE_TAIL_KEYS: string[] = [
   "automation",
   "invoices",
   "subscription",
-  "files",
   "settings",
 ];
 
