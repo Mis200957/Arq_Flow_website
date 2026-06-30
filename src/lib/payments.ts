@@ -396,8 +396,7 @@ async function applySubscriptionPayment(
     try {
       const signature = crypto
         .createHmac("sha256", secret)
-        .update(JSON.stringify(publ// test
-ad))
+        .update(JSON.stringify(publishPayload))
         .digest("hex");
       const res = await fetch(publishUrl, {
         method: "POST",
