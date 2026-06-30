@@ -25,10 +25,10 @@ var ALWAYS_KEEP = ["escalate", "Calculator"];                                  /
 var COMMON = ["customer_information", "search_knowledge_base", "fetch_business_hours", "send_link", "save_preference"]; // قراءة/معلومات لكل الباقات
 
 var VERTICAL_TOOLS = {
-  restaurant:         ["fitch_products", "fetch_categories", "delivery_zones", "promotions", "coupons", "order_track", "lookup_order_status", "save_transaction", "cancel_order"],
-  ecommerce:          ["fitch_products", "fetch_categories", "coupons", "promotions", "delivery_zones", "order_track", "lookup_order_status", "save_transaction", "cancel_order"],
-  store:              ["fitch_products", "fetch_categories", "order_track", "lookup_order_status", "save_transaction"],
-  pharmacy:           ["fitch_products", "order_track", "lookup_order_status", "save_transaction", "save_consultation_request"],
+  restaurant:         ["fitch_products", "fetch_categories", "delivery_zones", "promotions", "coupons", "order_track", "lookup_order_status", "save_transaction", "cancel_order", "send_product_photo"],
+  ecommerce:          ["fitch_products", "fetch_categories", "coupons", "promotions", "delivery_zones", "order_track", "lookup_order_status", "save_transaction", "cancel_order", "send_product_photo"],
+  store:              ["fitch_products", "fetch_categories", "order_track", "lookup_order_status", "save_transaction", "send_product_photo"],
+  pharmacy:           ["fitch_products", "order_track", "lookup_order_status", "save_transaction", "save_consultation_request", "send_product_photo"],
   clinic:             ["fitch_doctors", "fetch_medical_services", "fitch_appointments", "book_appointment", "cancel_appointment", "save_consultation_request"],
   medical_center:     ["fitch_doctors", "fetch_medical_services", "fitch_appointments", "book_appointment", "cancel_appointment", "save_consultation_request"],
   hotel:              ["fetch_rooms", "book_reservation", "cancel_reservation"],
@@ -162,6 +162,12 @@ function injectAndPrune(template, business, plan, options) {
     plan_id: b.plan_id || p.id || tier,
     tier: tier, plan_label: T.label,
     business_name: b.business_name || "",
+    bot_name: b.bot_name || b.business_name || "",
+    currency: b.currency || "ج.م",
+    escalation_message: b.escalation_message || "تمام، بحوّلك لأحد أعضاء الفريق وهيرد عليك في أقرب وقت 🙏",
+    rules: b.rules || "",
+    min_order_value: (b.min_order_value != null ? b.min_order_value : null),
+    delivery_fee: (b.delivery_fee != null ? b.delivery_fee : null),
     business_type: bt || null,
     industry_matched: matched,
     instance_name: b.instance_name || ("arq-" + String(b.order_id || "").toLowerCase()),

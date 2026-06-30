@@ -101,20 +101,32 @@ export function Field({
   hint,
   error,
   required,
+  help,
   children,
 }: {
   label: string;
   hint?: string;
   error?: string;
   required?: boolean;
+  help?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <label className="block">
-      <span className="block text-sm font-semibold mb-1.5">
-        {label}
-        {required && <span className="text-danger ms-1">*</span>}
-      </span>
+      {help ? (
+        <span className="text-sm font-semibold mb-1.5 flex items-center gap-1 flex-wrap">
+          <span>
+            {label}
+            {required && <span className="text-danger ms-1">*</span>}
+          </span>
+          {help}
+        </span>
+      ) : (
+        <span className="block text-sm font-semibold mb-1.5">
+          {label}
+          {required && <span className="text-danger ms-1">*</span>}
+        </span>
+      )}
       {children}
       {hint && !error && <span className="block text-xs text-muted mt-1">{hint}</span>}
       {error && <span className="block text-xs text-danger mt-1">{error}</span>}

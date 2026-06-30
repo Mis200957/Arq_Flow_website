@@ -2,22 +2,20 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, type ReactNode } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
-  ArrowLeft,
-  ArrowRight,
   Bot,
   Building2,
   Check,
   CheckCircle2,
-  ClipboardList,
   Clock,
   Copy,
   CreditCard,
   FileText,
   Globe,
+  HelpCircle,
   ImageIcon,
   MessageCircle,
   Music2,
@@ -190,7 +188,10 @@ const GOALS: { value: string; label: L }[] = [
   { value: "mixed", label: { ar: "كل ما سبق", en: "All of the above" } },
 ];
 
-const TONES: { value: "formal" | "friendly" | "professional"; label: L; desc: L; example: L }[] = [
+// Tone of voice. Internal value "egyptian" matches the backend zod enum
+// (see /api/onboarding/route.ts) — the UI labels it "Colloquial Language":
+// natural everyday conversational language, not overly casual or dialect-specific.
+const TONES: { value: "formal" | "friendly" | "egyptian"; label: L; desc: L; example: L }[] = [
   {
     value: "formal",
     label: { ar: "رسمي", en: "Formal" },
@@ -203,33 +204,42 @@ const TONES: { value: "formal" | "friendly" | "professional"; label: L; desc: L;
     desc: { ar: "دافئ وقريب من العميل، بدون تكلف", en: "Warm and approachable, without being stiff" },
     example: { ar: "«أهلاً بيك! 😊 إزاي أقدر أساعدك النهارده؟»", en: '"Hi there! 😊 How can I help you today?"' },
   },
-{
-  value: "professional",
-  label: { ar: "احترافي", en: "Professional" },
-  desc: {
-    ar: "أسلوب رسمي وواضح مناسب للشركات وخدمة العملاء والتواصل التجاري.", en: "A professional and polished tone for businesses, customer support, and commercial communication." },
-  example: {
-    ar: "«مرحباً، شكراً لتواصلك معنا. كيف يمكنني مساعدتك اليوم؟»", en: '"Hello, thank you for contacting us. How may I assist you today?"' },
-},
+  {
+    value: "egyptian",
+    label: { ar: "لغة دارجة", en: "Colloquial Language" },
+    desc: {
+      ar: "لغة يومية طبيعية ومريحة، سهلة الفهم بدون رسميات مبالغ فيها ولا لهجة محلية حادة.",
+      en: "Natural, everyday conversational language — comfortable and easy to understand, without being slang-heavy or dialect-specific.",
+    },
+    example: {
+      ar: "«أهلاً بيك، تحب نساعدك في إيه النهارده؟»",
+      en: '"Hi there — how can we help you today?"',
+    },
+  },
 ];
 
-/* const FALLBACKS: { value: "handover" | "collect" | "apologize"; label: L; desc: L }[] = [
-  {
-    value: "handover",
-    label: { ar: "تحويل لموظف", en: "Transfer to human" },
-    desc: { ar: "لو المساعد مش متأكد، يحوّل المحادثة فوراً لموظف بشري", en: "If unsure, the assistant hands the chat to a human agent" },
-  },
-  {
-    value: "collect",
-    label: { ar: "تسجيل بيانات العميل", en: "Collect contact info" },
-    desc: { ar: "ياخد اسم ورقم العميل ويوعده بالرد في أقرب وقت", en: "Takes the customer's name & number and promises a follow-up" },
-  },
-  {
-    value: "apologize",
-    label: { ar: "اعتذار مهذب", en: "Polite apology" },
-    desc: { ar: "يعتذر بلباقة ويوجّه العميل لقنوات التواصل الأخرى", en: "Apologizes gracefully and points to other contact channels" },
-  },
-]; */
+/* ---------- Order-collection field catalog ----------
+   The bot collects these fields from customers when taking an order.
+   Customer Name + Address are always required and cannot be removed. */
+const ORDER_FIELD_LOCKED: { id: string; label: L }[] = [
+  { id: "customer_name", label: { ar: "اسم العميل", en: "Customer Name" } },
+  { id: "address", label: { ar: "العنوان", en: "Address" } },
+];
+
+const ORDER_FIELD_PRESETS: { id: string; label: L }[] = [
+  { id: "payment_method", label: { ar: "طريقة الدفع", en: "Payment Method" } },
+  { id: "alt_phone", label: { ar: "رقم هاتف بديل", en: "Alternative Phone Number" } },
+  { id: "email", label: { ar: "البريد الإلكتروني", en: "Email Address" } },
+  { id: "order_details", label: { ar: "تفاصيل الطلب / المنتجات المطلوبة", en: "Order Details / Items" } },
+  { id: "quantity", label: { ar: "الكمية", en: "Quantity" } },
+  { id: "delivery_time", label: { ar: "موعد التسليم المفضل", en: "Preferred Delivery Time" } },
+  { id: "landmark", label: { ar: "علامة مميزة قرب العنوان", en: "Nearby Landmark" } },
+  { id: "notes", label: { ar: "ملاحظات إضافية", en: "Additional Notes" } },
+];
+
+type OrderFieldRow =
+  | { kind: "preset"; id: string }
+  | { kind: "custom"; id: string; label: string };
 
 const MAX_IMAGE_MB = 5;
 const MAX_KB_MB = 10;
@@ -272,9 +282,10 @@ type FormState = {
   payment_methods: string[];
   delivery_info: string;
   return_policy: string;
+  order_fields: OrderFieldRow[];
   order_instructions: string;
   primary_goal: string;
-  tone_of_voice: "formal" | "friendly" | "professional";
+  tone_of_voice: "formal" | "friendly" | "egyptian";
   greeting_message: string;
   assistant_personality: string;
   knowledge_base_raw: string;
@@ -285,10 +296,8 @@ type FormState = {
   transaction_ref: string;
 };
 
-const TOTAL_STEPS = 7;
-
 /* ============================================================
-   The wizard
+   The single-page form
    ============================================================ */
 export default function OnboardingWizard({ initialPlan }: { initialPlan: string | null }) {
   const router = useRouter();
@@ -307,8 +316,6 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
   }
 
   /* ---------- state ---------- */
-  const [step, setStep] = useState(0);
-  const [direction, setDirection] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPlanCards, setShowPlanCards] = useState(!validInitial);
   const [submitting, setSubmitting] = useState(false);
@@ -338,9 +345,13 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
     payment_methods: [],
     delivery_info: "",
     return_policy: "",
+    order_fields: [
+      { kind: "preset", id: "customer_name" },
+      { kind: "preset", id: "address" },
+    ],
     order_instructions: "",
     primary_goal: "mixed",
-    tone_of_voice: "professional",
+    tone_of_voice: "egyptian",
     greeting_message: "",
     assistant_personality: "",
     knowledge_base_raw: "",
@@ -365,15 +376,19 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
   /* ---------- dictionary ---------- */
   const t = useT({
     ar: {
-      stepOf: (a: number, b: number) => `الخطوة ${a} من ${b}`,
+      heroTitle: "جهّز مساعدك الذكي على واتساب",
+      heroSub: "اعمل الحساب في صفحة واحدة سريعة — كل اللي محتاجه، بدون خطوات ولا انتظار.",
       noRefresh: "بياناتك محفوظة مؤقتاً في هذه الصفحة — من فضلك لا تقم بتحديث المتصفح قبل إتمام الطلب.",
-      back: "السابق",
-      next: "التالي",
       submit: "تأكيد وإرسال الطلب",
       submitting: "جارٍ الإرسال…",
       required: "هذا الحقل مطلوب",
-      steps: ["الخطة", "النشاط", "التواصل", "التشغيل", "تدريب الذكاء", "المراجعة", "الدفع"],
-      // step 0
+      sectionPlan: "الخطة",
+      sectionBiz: "بيانات النشاط",
+      sectionContact: "بيانات التواصل",
+      sectionOps: "تفاصيل التشغيل",
+      sectionAI: "تدريب الذكاء",
+      sectionPay: "الدفع",
+      // plan
       planTitle: "اختر خطتك",
       planSub: "كل الخطط تشمل رسوم تأسيس لمرة واحدة + رصيد محادثات صالح ٣٠ يوم. تقدر تغيّر الخطة في أي وقت.",
       planSelected: "الخطة المختارة",
@@ -384,7 +399,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       monthly: "رصيد الباقة",
       planRequired: "اختر خطة للمتابعة",
       popular: "الأكثر طلباً",
-      // step 1
+      // business
       bizTitle: "عرّفنا على نشاطك",
       bizSub: "المساعد الذكي هيتكلم باسم نشاطك — كل تفصيلة بتفرق.",
       businessName: "اسم النشاط",
@@ -409,7 +424,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       notImage: "الملف لازم يكون صورة",
       uploadFailed: "فشل رفع الملف — حاول مرة أخرى",
       stillUploading: "في ملفات لسه بترفع — استنى ثواني",
-      // step 2
+      // contact
       contactTitle: "بيانات التواصل",
       contactSub: "هنستخدم البيانات دي للتفعيل وإرسال بيانات الدخول.",
       ownerName: "اسم المسؤول",
@@ -422,11 +437,10 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       whatsapp: "رقم الواتساب الخاص بالبوت",
       whatsappHint: "الرقم اللي المساعد الذكي هيرد منه على عملائك",
       sameAsPhone: "نفس رقم الموبايل",
-      // step 3
+      // operations
       opsTitle: "تفاصيل التشغيل",
       opsSub: "عشان المساعد يجاوب صح على أسئلة زي «فاتحين لحد كام؟» و«بتوصلوا فين؟»",
       workingHours: "مواعيد العمل",
-      workingHoursPh: "مثال: يومياً من 10 صباحاً حتى 11 مساءً — الجمعة إجازة",
       whDays: "أيام العمل",
       whFrom: "من",
       whTo: "إلى",
@@ -440,9 +454,17 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       deliveryPh: "مناطق التوصيل، الرسوم، مدة التوصيل…",
       returnL: "سياسة الاسترجاع (اختياري)",
       returnPh: "شروط الاسترجاع أو الاستبدال إن وجدت",
-      orderInsL: "تعليمات استلام الطلبات (اختياري)",
-      orderInsPh: "إيه البيانات اللي المساعد لازم ياخدها من العميل عند الطلب؟ (الاسم، العنوان، طريقة الدفع…)",
-      // step 4
+      // order collection
+      orderCollectL: "البيانات اللي المساعد بياخدها مع الطلب",
+      orderCollectSub: "اختار البيانات اللي المساعد لازم يجمعها من العميل قبل ما يتأكد الطلب. الاسم والعنوان مطلوبين دايماً.",
+      orderCollectRequired: "إلزامي",
+      orderCollectAdd: "إضافة بيانات أخرى",
+      orderCollectCustom: "إضافة حقل خاص",
+      orderCollectCustomPh: "اكتب اسم البيان (مثال: «رقم البطاقة الصحية»)",
+      orderCollectCustomSave: "إضافة",
+      orderCollectCustomCancel: "إلغاء",
+      orderCollectAllAdded: "تم اختيار كل البيانات المتاحة — تقدر تضيف حقل خاص بدل كده.",
+      // AI
       aiTitle: "درّب مساعدك الذكي",
       aiSub: "كل معلومة هنا بتخلي ردود المساعد أدق وأقرب لأسلوبك.",
       goalL: "الهدف الأساسي من المساعد",
@@ -468,19 +490,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       addProduct: "إضافة منتج",
       addService: "إضافة خدمة",
       optionalSection: "اختياري لكن موصى به",
-      example: "مثال",
-      // step 5
-      reviewTitle: "راجع بياناتك",
-      reviewSub: "اتأكد إن كل حاجة مظبوطة قبل الدفع — تقدر تعدّل أي قسم.",
-      edit: "تعديل",
-      total: "الإجمالي المطلوب",
-      totalHint: "رسوم التأسيس + رصيد الباقة",
-      notProvided: "—",
-      yes: "نعم",
-      faqsCount: (n: number) => `${n} سؤال`,
-      itemsCount: (n: number) => `${n} عنصر`,
-      filesCount: (n: number) => `${n} ملف`,
-      // step 6
+      // payment
       payTitle: "إتمام الدفع",
       paySub: "حوّل المبلغ على أي وسيلة من المتاحة، وبعدها سجّل رقم العملية وارفع صورة التحويل.",
       amountDue: "المبلغ المطلوب",
@@ -502,21 +512,48 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       screenshotRequired: "صورة التحويل مطلوبة",
       methodRequired: "اختر وسيلة الدفع",
       dupRef: "رقم العملية ده تم استخدامه قبل كده — راجع الرقم أو تواصل مع الدعم",
-      validationErr: "في بيانات غير صحيحة — راجع الخطوات السابقة",
+      validationErr: "في بيانات غير صحيحة — راجع الحقول أعلى الصفحة",
       genericErr: "حصل خطأ غير متوقع — حاول مرة أخرى أو تواصل مع الدعم",
       rateErr: "محاولات كتير متتالية — استنى دقيقة وحاول تاني",
       secureNote: "يتم مراجعة كل عملية دفع يدوياً خلال ساعات — هتوصلك بيانات الدخول على الواتساب والإيميل.",
       remove: "حذف",
+      help: "كيف؟",
+      helpClose: "إغلاق",
+      // URL helps
+      helpWebsite: {
+        title: "إزاي تجيب رابط موقعك؟",
+        body: "افتح موقعك في المتصفح، وانسخ العنوان كامل من شريط العنوان فوق (يبدأ بـ https://). مثال: https://example.com",
+      },
+      helpFacebook: {
+        title: "إزاي تجيب رابط صفحة فيسبوك؟",
+        body: "افتح صفحتك على فيسبوك من الكمبيوتر أو الموبايل، وانسخ الرابط من شريط العنوان. لو على الموبايل، اضغط على القائمة (•••) في الصفحة ثم «نسخ الرابط». مثال: https://facebook.com/yourpage",
+      },
+      helpInstagram: {
+        title: "إزاي تجيب رابط حسابك على إنستجرام؟",
+        body: "افتح بروفايلك على إنستجرام، اضغط على القائمة (•••) فوق الاسم ثم «نسخ رابط الملف الشخصي». أو من الكمبيوتر، انسخ الرابط من شريط العنوان. مثال: https://instagram.com/yourhandle",
+      },
+      helpTikTok: {
+        title: "إزاي تجيب رابط حسابك على تيك توك؟",
+        body: "افتح بروفايلك على تيك توك، اضغط على «مشاركة» (السهم) ثم «نسخ الرابط». مثال: https://tiktok.com/@yourhandle",
+      },
+      helpMaps: {
+        title: "إزاي تجيب رابط موقعك على جوجل ماب؟",
+        body: "افتح Google Maps، ابحث عن اسم نشاطك أو حدد الموقع على الخريطة، اضغط على «مشاركة Share» ثم «نسخ الرابط Copy link». مثال: https://maps.app.goo.gl/…",
+      },
     },
     en: {
-      stepOf: (a: number, b: number) => `Step ${a} of ${b}`,
+      heroTitle: "Set up your AI WhatsApp assistant",
+      heroSub: "Everything you need on a single page — no steps, no waiting.",
       noRefresh: "Your progress lives on this page — please don't refresh the browser before submitting.",
-      back: "Back",
-      next: "Next",
       submit: "Confirm & Submit Order",
       submitting: "Submitting…",
       required: "This field is required",
-      steps: ["Plan", "Business", "Contact", "Operations", "AI Training", "Review", "Payment"],
+      sectionPlan: "Plan",
+      sectionBiz: "Business",
+      sectionContact: "Contact",
+      sectionOps: "Operations",
+      sectionAI: "AI Training",
+      sectionPay: "Payment",
       planTitle: "Choose your plan",
       planSub: "Every plan includes a one-time setup fee + a 30-day conversation balance. You can change plans anytime.",
       planSelected: "Selected plan",
@@ -566,7 +603,6 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       opsTitle: "Operations",
       opsSub: 'So the assistant answers questions like "until when are you open?" and "do you deliver to…?"',
       workingHours: "Working hours",
-      workingHoursPh: "e.g. Daily 10 AM – 11 PM, closed Fridays",
       whDays: "Working days",
       whFrom: "From",
       whTo: "To",
@@ -580,8 +616,15 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       deliveryPh: "Delivery zones, fees, expected time…",
       returnL: "Return policy (optional)",
       returnPh: "Return / exchange conditions, if any",
-      orderInsL: "Order-taking instructions (optional)",
-      orderInsPh: "What should the assistant collect from customers when ordering? (name, address, payment…)",
+      orderCollectL: "Information the assistant collects with each order",
+      orderCollectSub: "Pick what the assistant should gather from the customer before confirming an order. Name and address are always required.",
+      orderCollectRequired: "Required",
+      orderCollectAdd: "Add another field",
+      orderCollectCustom: "Add custom field",
+      orderCollectCustomPh: "Type the field name (e.g. \"Health card number\")",
+      orderCollectCustomSave: "Add",
+      orderCollectCustomCancel: "Cancel",
+      orderCollectAllAdded: "All preset fields are already selected — you can still add a custom one.",
       aiTitle: "Train your AI assistant",
       aiSub: "Everything you add here makes replies sharper and closer to your style.",
       goalL: "Primary goal of the assistant",
@@ -607,17 +650,6 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       addProduct: "Add product",
       addService: "Add service",
       optionalSection: "Optional but recommended",
-      example: "Example",
-      reviewTitle: "Review your details",
-      reviewSub: "Make sure everything is correct before paying — you can edit any section.",
-      edit: "Edit",
-      total: "Total due",
-      totalHint: "Setup fee + package balance",
-      notProvided: "—",
-      yes: "Yes",
-      faqsCount: (n: number) => `${n} FAQ${n === 1 ? "" : "s"}`,
-      itemsCount: (n: number) => `${n} item${n === 1 ? "" : "s"}`,
-      filesCount: (n: number) => `${n} file${n === 1 ? "" : "s"}`,
       payTitle: "Complete your payment",
       paySub: "Transfer the amount via any method below, then enter the transaction reference and upload the receipt.",
       amountDue: "Amount due",
@@ -639,11 +671,33 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       screenshotRequired: "Transfer screenshot is required",
       methodRequired: "Pick a payment method",
       dupRef: "This transaction reference was already submitted — double-check it or contact support",
-      validationErr: "Some details are invalid — please review the previous steps",
+      validationErr: "Some details are invalid — please review the fields above",
       genericErr: "Something went wrong — try again or contact support",
       rateErr: "Too many attempts — wait a minute and try again",
       secureNote: "Every payment is reviewed manually within hours — your credentials arrive via WhatsApp & email.",
       remove: "Remove",
+      help: "How?",
+      helpClose: "Close",
+      helpWebsite: {
+        title: "How to get your website link",
+        body: "Open your website in a browser, then copy the full address from the URL bar at the top (starts with https://). Example: https://example.com",
+      },
+      helpFacebook: {
+        title: "How to get your Facebook page link",
+        body: "Open your page on Facebook on desktop or mobile and copy the URL from the address bar. On the mobile app: open your page, tap the (•••) menu, and choose \"Copy link\". Example: https://facebook.com/yourpage",
+      },
+      helpInstagram: {
+        title: "How to get your Instagram profile link",
+        body: "Open your profile in the Instagram app, tap (•••) next to your name and choose \"Copy profile URL\". Or on desktop, copy the URL from the address bar. Example: https://instagram.com/yourhandle",
+      },
+      helpTikTok: {
+        title: "How to get your TikTok profile link",
+        body: "Open your TikTok profile, tap the share icon (arrow), and choose \"Copy link\". Example: https://tiktok.com/@yourhandle",
+      },
+      helpMaps: {
+        title: "How to get your Google Maps location link",
+        body: "Open Google Maps, search for your business name or drop a pin on your exact spot, tap \"Share\", then \"Copy link\". Example: https://maps.app.goo.gl/…",
+      },
     },
   });
 
@@ -686,57 +740,47 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
     clearError("working_hours");
   };
 
-  const goTo = (target: number) => {
-    setDirection(target > step ? 1 : -1);
-    setStep(target);
-    setServerError(null);
-    requestAnimationFrame(() => topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  /* ---------- order-collection helpers ---------- */
+  const orderFieldLabel = (row: OrderFieldRow): string => {
+    if (row.kind === "custom") return row.label;
+    const locked = ORDER_FIELD_LOCKED.find((x) => x.id === row.id);
+    if (locked) return pick(locked.label);
+    const preset = ORDER_FIELD_PRESETS.find((x) => x.id === row.id);
+    return preset ? pick(preset.label) : row.id;
   };
 
-  const validateStep = (s: number): Record<string, string> => {
+  const isLockedOrderField = (row: OrderFieldRow): boolean =>
+    row.kind === "preset" && ORDER_FIELD_LOCKED.some((x) => x.id === row.id);
+
+  const serializeOrderFields = (rows: OrderFieldRow[]): string => {
+    const sep = lang === "ar" ? "، " : ", ";
+    return rows.map(orderFieldLabel).filter(Boolean).join(sep);
+  };
+
+  // Keep order_instructions text in sync with the structured list so the
+  // backend payload stays identical to the previous free-text version.
+  useEffect(() => {
+    setForm((f) => ({ ...f, order_instructions: serializeOrderFields(f.order_fields) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.order_fields, lang]);
+
+  const validateAll = (): Record<string, string> => {
     const e: Record<string, string> = {};
-    if (s === 0) {
-      if (!form.plan_id) e.plan_id = t.planRequired;
-    }
-    if (s === 1) {
-      if (form.business_name.trim().length < 2) e.business_name = t.required;
-      if (!form.business_type) e.business_type = t.required;
-      if (form.languages.length === 0) e.languages = t.langRequired;
-    }
-    if (s === 2) {
-      if (form.owner_name.trim().length < 2) e.owner_name = t.required;
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contact_email.trim())) e.contact_email = t.emailInvalid;
-      if (!normalizeEgyptPhone(form.contact_phone)) e.contact_phone = t.phoneInvalid;
-      if (!normalizeEgyptPhone(form.whatsapp_number)) e.whatsapp_number = t.phoneInvalid;
-    }
-    if (s === 3) {
-      if (form.working_days.length === 0) e.working_hours = t.whPickDays;
-      else if (!form.working_24h && (!form.working_open || !form.working_close))
-        e.working_hours = t.required;
-    }
-    if (s === 6) {
-      if (!form.payment_method) e.payment_method = t.methodRequired;
-      if (!/^\d{12}$/.test(form.transaction_ref)) e.transaction_ref = t.txRefInvalid;
-      if (!screenshot || screenshot.status !== "done" || !screenshot.path) e.screenshot = t.screenshotRequired;
-    }
+    if (!form.plan_id) e.plan_id = t.planRequired;
+    if (form.business_name.trim().length < 2) e.business_name = t.required;
+    if (!form.business_type) e.business_type = t.required;
+    if (form.languages.length === 0) e.languages = t.langRequired;
+    if (form.owner_name.trim().length < 2) e.owner_name = t.required;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contact_email.trim())) e.contact_email = t.emailInvalid;
+    if (!normalizeEgyptPhone(form.contact_phone)) e.contact_phone = t.phoneInvalid;
+    if (!normalizeEgyptPhone(form.whatsapp_number)) e.whatsapp_number = t.phoneInvalid;
+    if (form.working_days.length === 0) e.working_hours = t.whPickDays;
+    else if (!form.working_24h && (!form.working_open || !form.working_close)) e.working_hours = t.required;
+    if (!form.payment_method) e.payment_method = t.methodRequired;
+    if (!/^\d{12}$/.test(form.transaction_ref)) e.transaction_ref = t.txRefInvalid;
+    if (!screenshot || screenshot.status !== "done" || !screenshot.path) e.screenshot = t.screenshotRequired;
     return e;
   };
-
-  const next = () => {
-    const e = validateStep(step);
-    if (Object.keys(e).length) {
-      setErrors(e);
-      return;
-    }
-    if (anyUploading) {
-      setErrors({ _uploading: t.stillUploading });
-      return;
-    }
-    setErrors({});
-    goTo(Math.min(step + 1, TOTAL_STEPS - 1));
-  };
-
-  const back = () => goTo(Math.max(step - 1, 0));
 
   /* ---------- storage uploads ---------- */
   async function uploadToBucket(bucket: string, file: File): Promise<string> {
@@ -823,18 +867,35 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
   };
 
   /* ---------- submit ---------- */
+  const scrollToFirstError = (errKeys: string[]) => {
+    if (typeof document === "undefined") return;
+    for (const k of errKeys) {
+      const el = document.querySelector<HTMLElement>(`[data-err="${k}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+    }
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const submit = async () => {
-    const e = validateStep(6);
+    const e = validateAll();
     if (Object.keys(e).length) {
       setErrors(e);
+      scrollToFirstError(Object.keys(e));
       return;
     }
-    if (anyUploading || submitting) return;
+    if (anyUploading || submitting) {
+      setErrors((prev) => ({ ...prev, _uploading: t.stillUploading }));
+      return;
+    }
 
     setSubmitting(true);
     setServerError(null);
 
     const trim = (s: string) => s.trim();
+    const orderInstructions = serializeOrderFields(form.order_fields);
     const payload = {
       plan_id: form.plan_id,
       business_name: trim(form.business_name),
@@ -868,7 +929,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
       location: trim(form.location),
       delivery_info: trim(form.delivery_info),
       return_policy: trim(form.return_policy),
-      order_instructions: trim(form.order_instructions),
+      order_instructions: orderInstructions,
       payment_methods: form.payment_methods,
       primary_goal: form.primary_goal,
       tone_of_voice: form.tone_of_voice,
@@ -925,1096 +986,907 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
     }
   };
 
-  /* ---------- step icons for the progress rail ---------- */
-  const STEP_ICONS = [CreditCard, Building2, User, Clock, Bot, ClipboardList, Wallet];
-
-  /* ---------- shared motion variants ---------- */
-  const variants = {
-    enter: (dir: number) => ({ x: dir > 0 ? 56 : -56, opacity: 0 }),
-    center: { x: 0, opacity: 1 },
-    exit: (dir: number) => ({ x: dir > 0 ? -56 : 56, opacity: 0 }),
-  };
-
   const inputCls = "input-base";
   const ltrInput = { dir: "ltr" as const, style: { textAlign: "start" as const, direction: "ltr" as const } };
 
-  /* ---------- review data ---------- */
-  const reviewSections = useMemo(() => {
-    const typeLabel = BUSINESS_TYPES.find((b) => b.value === form.business_type)?.label;
-    const goalLabel = GOALS.find((g) => g.value === form.primary_goal)?.label;
-    const toneLabel = TONES.find((x) => x.value === form.tone_of_voice);
-    const payLabels = form.payment_methods
-      .map((v) => BIZ_PAYMENT_METHODS.find((m) => m.value === v))
-      .filter(Boolean)
-      .map((m) => pick(m!.label))
-      .join("، ");
-
-    return [
-      {
-        step: 1,
-        title: t.steps[1],
-        icon: Building2,
-        items: [
-          [t.businessName, form.business_name],
-          [t.businessType, typeLabel ? pick(typeLabel) : ""],
-          [t.descriptionL, form.description],
-          [t.websiteL, form.website],
-          [
-            t.languagesL,
-            form.languages.map((l) => (l === "ar" ? t.langAr : t.langEn)).join(" + "),
-          ],
-          [t.logoL, logo ? logo.name : ""],
-          [t.imagesL, images.length ? t.filesCount(images.length) : ""],
-        ] as [string, string][],
-      },
-      {
-        step: 2,
-        title: t.steps[2],
-        icon: User,
-        items: [
-          [t.ownerName, form.owner_name],
-          [t.email, form.contact_email],
-          [t.phone, form.contact_phone],
-          [t.whatsapp, form.whatsapp_number],
-        ] as [string, string][],
-      },
-      {
-        step: 3,
-        title: t.steps[3],
-        icon: Clock,
-        items: [
-          [t.workingHours, form.working_hours],
-          [t.addressL, form.address],
-          [t.locationL, form.location],
-          [t.bizPayments, payLabels],
-          [t.deliveryL, form.delivery_info],
-          [t.returnL, form.return_policy],
-          [t.orderInsL, form.order_instructions],
-        ] as [string, string][],
-      },
-      {
-        step: 4,
-        title: t.steps[4],
-        icon: Bot,
-        items: [
-          [t.goalL, goalLabel ? pick(goalLabel) : ""],
-          [t.toneL, toneLabel ? pick(toneLabel.label) : ""],
-          [t.greetingL, form.greeting_message],
-          [t.personalityL, form.assistant_personality],
-          [t.kbL, form.knowledge_base_raw ? `${form.knowledge_base_raw.slice(0, 120)}${form.knowledge_base_raw.length > 120 ? "…" : ""}` : ""],
-          [t.kbFilesL, kbFiles.length ? t.filesCount(kbFiles.length) : ""],
-          [t.faqsL, form.faqs.filter((f) => f.question.trim()).length ? t.faqsCount(form.faqs.filter((f) => f.question.trim()).length) : ""],
-          [t.productsL, form.products.filter((p) => p.name.trim()).length ? t.itemsCount(form.products.filter((p) => p.name.trim()).length) : ""],
-          [t.servicesL, form.services.filter((p) => p.name.trim()).length ? t.itemsCount(form.services.filter((p) => p.name.trim()).length) : ""],
-        ] as [string, string][],
-      },
-    ];
-  }, [form, logo, images, kbFiles, t, pick]);
+  // Payment channels visible in the form. Vodafone Cash is intentionally hidden;
+  // only InstaPay and WE Pay are offered to the customer here.
+  const visiblePaymentChannels = (Object.keys(PAYMENT_ACCOUNTS) as PaymentChannel[]).filter(
+    (ch) => ch !== "vodafone_cash"
+  );
 
   /* ============================================================
-     Render
+     Render — single page (all sections shown at once)
      ============================================================ */
   return (
     <main ref={topRef} className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12 scroll-mt-20">
-      {/* progress */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-muted">{t.stepOf(step + 1, TOTAL_STEPS)}</p>
-          <p className="text-sm font-bold text-accent">{t.steps[step]}</p>
-        </div>
-        <div className="h-1.5 rounded-full bg-[rgba(238,237,210,0.08)] overflow-hidden" role="progressbar"
-          aria-valuemin={1} aria-valuemax={TOTAL_STEPS} aria-valuenow={step + 1}>
-          <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-brand-teal to-brand-sky"
-            initial={false}
-            animate={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
-            transition={{ type: "spring", stiffness: 140, damping: 22 }}
-          />
-        </div>
-        {/* step dots */}
-        <div className="mt-4 flex items-center justify-between gap-1">
-          {STEP_ICONS.map((Icon, i) => {
-            const done = i < step;
-            const active = i === step;
-            const clickable = i < step;
-            return (
-              <button
-                key={i}
-                type="button"
-                disabled={!clickable}
-                onClick={() => clickable && goTo(i)}
-                aria-label={t.steps[i]}
-                className={cn(
-                  "flex flex-col items-center gap-1.5 flex-1 group",
-                  clickable ? "cursor-pointer" : "cursor-default"
-                )}
-              >
-                <span
-                  className={cn(
-                    "w-9 h-9 rounded-xl flex items-center justify-center border transition-all",
-                    active
-                      ? "bg-gradient-to-br from-brand-teal to-brand-sky text-white border-transparent shadow-[0_4px_20px_rgba(107,160,172,0.4)]"
-                      : done
-                        ? "bg-[rgba(107,160,172,0.15)] text-accent border-[rgba(107,160,172,0.3)] group-hover:border-accent"
-                        : "bg-[rgba(238,237,210,0.04)] text-muted border-app opacity-60"
-                  )}
-                >
-                  {done ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
-                </span>
-                <span
-                  className={cn(
-                    "text-[10px] font-semibold hidden sm:block",
-                    active ? "text-app" : "text-muted opacity-70"
-                  )}
-                >
-                  {t.steps[i]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+      {/* hero */}
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-extrabold">{t.heroTitle}</h1>
+        <p className="text-muted text-sm mt-1.5 leading-relaxed">{t.heroSub}</p>
       </div>
 
       {/* don't-refresh notice */}
-      {step > 0 && (
-        <p className="text-xs text-muted mb-4 flex items-center gap-1.5">
-          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-warning" />
-          {t.noRefresh}
-        </p>
-      )}
+      <p className="text-xs text-muted mb-6 flex items-center gap-1.5">
+        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-warning" />
+        {t.noRefresh}
+      </p>
 
-      {/* step body */}
-      <AnimatePresence mode="wait" custom={direction} initial={false}>
-        <motion.div
-          key={step}
-          custom={direction}
-          variants={variants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-        >
-          {/* ================= STEP 0 — PLAN ================= */}
-          {step === 0 && (
-            <section className="space-y-5">
-              <StepIntro title={t.planTitle} sub={t.planSub} />
+      <div className="space-y-8">
+        {/* ================= PLAN ================= */}
+        <section data-err="plan_id" className="space-y-5">
+          <SectionHeader icon={CreditCard} eyebrow={t.sectionPlan} title={t.planTitle} sub={t.planSub} />
 
-              {!showPlanCards && plan ? (
-                <div className="card p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4 border-[rgba(107,160,172,0.35)]">
-                  <div className="flex items-center gap-4">
-                    <span className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-teal to-brand-sky flex items-center justify-center text-white shrink-0">
-                      <CreditCard className="w-6 h-6" />
-                    </span>
-                    <div>
-                      <p className="text-xs text-muted font-semibold">{t.planSelected}</p>
-                      <p className="text-xl font-extrabold">{pick(plan.name)}</p>
-                      <p className="text-sm text-muted">
-                        {t.setup} {formatEGP(plan.setupFee, lang)} + {formatEGP(plan.monthlyFee, lang)} {t.monthly}
-                      </p>
-                    </div>
-                  </div>
-                  <button type="button" onClick={() => setShowPlanCards(true)} className="btn-outline !py-2 text-sm">
-                    {t.changePlan}
-                  </button>
-                </div>
-              ) : (
-                <div className="grid sm:grid-cols-3 gap-4">
-                  {PLANS.map((p) => {
-                    const selected = form.plan_id === p.id;
-                    return (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => {
-                          set("plan_id", p.id);
-                          setShowPlanCards(false);
-                        }}
-                        className={cn(
-                          "card card-hover p-5 text-start relative flex flex-col gap-3 transition-all",
-                          selected && "border-accent shadow-[0_0_0_1px_var(--accent),0_12px_40px_rgba(107,160,172,0.25)]"
-                        )}
-                      >
-                        {p.highlighted && (
-                          <span className="badge badge-accent absolute -top-2.5 start-4">{t.popular}</span>
-                        )}
-                        <p className="font-extrabold text-lg">{pick(p.name)}</p>
-                        <p className="text-xs text-muted leading-relaxed min-h-10">{pick(p.tagline)}</p>
-                        <div>
-                          <p className="text-2xl font-extrabold gradient-text" dir="ltr">
-                            {formatEGP(p.monthlyFee, lang)}
-                          </p>
-                          <p className="text-xs text-muted mt-0.5">
-                            {t.monthly} · {t.setup} {formatEGP(p.setupFee, lang)}
-                          </p>
-                        </div>
-                        <span
-                          className={cn(
-                            "mt-auto inline-flex items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-bold border",
-                            selected
-                              ? "bg-gradient-to-r from-brand-teal to-brand-sky text-white border-transparent"
-                              : "border-strong text-muted"
-                          )}
-                        >
-                          {selected && <Check className="w-4 h-4" />}
-                          {selected ? t.chosen : t.choose}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              {errors.plan_id && <ErrorLine msg={errors.plan_id} />}
-            </section>
-          )}
-
-          {/* ================= STEP 1 — BUSINESS ================= */}
-          {step === 1 && (
-            <section className="space-y-5">
-              <StepIntro title={t.bizTitle} sub={t.bizSub} />
-              <div className="card p-5 sm:p-6 space-y-5">
-                <div className="grid sm:grid-cols-2 gap-5">
-                  <Field label={t.businessName} required error={errors.business_name}>
-                    <input
-                      className={inputCls}
-                      value={form.business_name}
-                      onChange={(e) => set("business_name", e.target.value)}
-                      placeholder={t.businessNamePh}
-                      maxLength={200}
-                    />
-                  </Field>
-                  <Field label={t.businessType} required error={errors.business_type}>
-                    <select
-                      className={inputCls}
-                      value={form.business_type}
-                      onChange={(e) => set("business_type", e.target.value)}
-                    >
-                      <option value="">{t.selectType}</option>
-                      {BUSINESS_TYPES.map((b) => (
-                        <option key={b.value} value={b.value}>
-                          {pick(b.label)}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                </div>
-
-                <Field label={t.descriptionL}>
-                  <textarea
-                    className={cn(inputCls, "min-h-24 resize-y")}
-                    value={form.description}
-                    onChange={(e) => set("description", e.target.value)}
-                    placeholder={t.descriptionPh}
-                    maxLength={2000}
-                  />
-                </Field>
-
-                <Field label={t.websiteL}>
-                  <input
-                    className={inputCls}
-                    {...ltrInput}
-                    type="url"
-                    inputMode="url"
-                    value={form.website}
-                    onChange={(e) => set("website", e.target.value)}
-                    placeholder="https://example.com"
-                    maxLength={300}
-                  />
-                </Field>
-
-                {/* social */}
+          {!showPlanCards && plan ? (
+            <div className="card p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4 border-[rgba(107,160,172,0.35)]">
+              <div className="flex items-center gap-4">
+                <span className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-teal to-brand-sky flex items-center justify-center text-white shrink-0">
+                  <CreditCard className="w-6 h-6" />
+                </span>
                 <div>
-                  <span className="block text-sm font-semibold mb-1.5">{t.socialL}</span>
-                  <div className="grid sm:grid-cols-3 gap-3">
-                    {(
-                      [
-                        { key: "facebook", icon: Facebook, ph: "facebook.com/…" },
-                        { key: "instagram", icon: Instagram, ph: "instagram.com/…" },
-                        { key: "tiktok", icon: Music2, ph: "tiktok.com/@…" },
-                      ] as const
-                    ).map(({ key, icon: Icon, ph }) => (
-                      <div key={key} className="relative">
-                        <Icon className="w-4 h-4 text-muted absolute top-1/2 -translate-y-1/2 start-3.5 pointer-events-none" />
-                        <input
-                          className={cn(inputCls, "!ps-10")}
-                          {...ltrInput}
-                          aria-label={key}
-                          value={form.social[key]}
-                          onChange={(e) => set("social", { ...form.social, [key]: e.target.value })}
-                          placeholder={ph}
-                          maxLength={300}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* languages */}
-                <div>
-                  <span className="block text-sm font-semibold mb-1.5">
-                    {t.languagesL}
-                    <span className="text-danger ms-1">*</span>
-                  </span>
-                  <div className="flex gap-3">
-                    {(["ar", "en"] as const).map((l) => {
-                      const on = form.languages.includes(l);
-                      return (
-                        <label
-                          key={l}
-                          className={cn(
-                            "flex items-center gap-2 rounded-xl border px-4 py-2.5 cursor-pointer transition-all text-sm font-semibold select-none",
-                            on
-                              ? "border-accent bg-[rgba(107,160,172,0.12)] text-app"
-                              : "border-app text-muted hover:border-strong"
-                          )}
-                        >
-                          <input
-                            type="checkbox"
-                            className="sr-only"
-                            checked={on}
-                            onChange={() =>
-                              set(
-                                "languages",
-                                on ? form.languages.filter((x) => x !== l) : [...form.languages, l]
-                              )
-                            }
-                          />
-                          <span
-                            className={cn(
-                              "w-4.5 h-4.5 rounded-md border flex items-center justify-center",
-                              on ? "bg-accent border-accent text-brand-deep" : "border-strong"
-                            )}
-                          >
-                            {on && <Check className="w-3 h-3" />}
-                          </span>
-                          {l === "ar" ? t.langAr : t.langEn}
-                        </label>
-                      );
-                    })}
-                  </div>
-                  {errors.languages && <ErrorLine msg={errors.languages} />}
-                </div>
-
-                {/* logo */}
-                <div>
-                  <span className="block text-sm font-semibold mb-1.5">{t.logoL}</span>
-                  {logo ? (
-                    <UploadPreview item={logo} onRemove={() => setLogo(null)} removeLabel={t.remove} />
-                  ) : (
-                    <UploadDrop
-                      cta={t.uploadCta}
-                      hint={t.logoHint}
-                      accept="image/*"
-                      onFiles={(files) =>
-                        files[0] && handleSingleUpload(files[0], "business-assets", "logo", setLogo)
-                      }
-                    />
-                  )}
-                  {errors.logo && <ErrorLine msg={errors.logo} />}
-                </div>
-
-                {/* extra images */}
-                <div>
-                  <span className="block text-sm font-semibold mb-1.5">{t.imagesL}</span>
-                  <p className="text-xs text-muted mb-2">{t.imagesHint}</p>
-                  <div className="flex flex-wrap gap-3">
-                    {images.map((img) => (
-                      <UploadPreview
-                        key={img.id}
-                        item={img}
-                        onRemove={() => setImages((prev) => prev.filter((i) => i.id !== img.id))}
-                        removeLabel={t.remove}
-                        compact
-                      />
-                    ))}
-                    {images.length < MAX_EXTRA_IMAGES && (
-                      <UploadDrop
-                        cta={t.uploadCta}
-                        hint={`${images.length}/${MAX_EXTRA_IMAGES}`}
-                        accept="image/*"
-                        multiple
-                        compact
-                        onFiles={(files) => handleImagesUpload(files)}
-                      />
-                    )}
-                  </div>
-                  {errors.images && <ErrorLine msg={errors.images} />}
+                  <p className="text-xs text-muted font-semibold">{t.planSelected}</p>
+                  <p className="text-xl font-extrabold">{pick(plan.name)}</p>
+                  <p className="text-sm text-muted">
+                    {t.setup} {formatEGP(plan.setupFee, lang)} + {formatEGP(plan.monthlyFee, lang)} {t.monthly}
+                  </p>
                 </div>
               </div>
-            </section>
+              <button type="button" onClick={() => setShowPlanCards(true)} className="btn-outline !py-2 text-sm">
+                {t.changePlan}
+              </button>
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-3 gap-4">
+              {PLANS.map((p) => {
+                const selected = form.plan_id === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      set("plan_id", p.id);
+                      setShowPlanCards(false);
+                    }}
+                    className={cn(
+                      "card card-hover p-5 text-start relative flex flex-col gap-3 transition-all",
+                      selected && "border-accent shadow-[0_0_0_1px_var(--accent),0_12px_40px_rgba(107,160,172,0.25)]"
+                    )}
+                  >
+                    {p.highlighted && (
+                      <span className="badge badge-accent absolute -top-2.5 start-4">{t.popular}</span>
+                    )}
+                    <p className="font-extrabold text-lg">{pick(p.name)}</p>
+                    <p className="text-xs text-muted leading-relaxed min-h-10">{pick(p.tagline)}</p>
+                    <div>
+                      <p className="text-2xl font-extrabold gradient-text" dir="ltr">
+                        {formatEGP(p.monthlyFee, lang)}
+                      </p>
+                      <p className="text-xs text-muted mt-0.5">
+                        {t.monthly} · {t.setup} {formatEGP(p.setupFee, lang)}
+                      </p>
+                    </div>
+                    <span
+                      className={cn(
+                        "mt-auto inline-flex items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-bold border",
+                        selected
+                          ? "bg-gradient-to-r from-brand-teal to-brand-sky text-white border-transparent"
+                          : "border-strong text-muted"
+                      )}
+                    >
+                      {selected && <Check className="w-4 h-4" />}
+                      {selected ? t.chosen : t.choose}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           )}
+          {errors.plan_id && <ErrorLine msg={errors.plan_id} />}
+        </section>
 
-          {/* ================= STEP 2 — CONTACT ================= */}
-          {step === 2 && (
-            <section className="space-y-5">
-              <StepIntro title={t.contactTitle} sub={t.contactSub} />
-              <div className="card p-5 sm:p-6 space-y-5">
-                <Field label={t.ownerName} required error={errors.owner_name}>
+        {/* ================= BUSINESS ================= */}
+        <section className="space-y-5">
+          <SectionHeader icon={Building2} eyebrow={t.sectionBiz} title={t.bizTitle} sub={t.bizSub} />
+          <div className="card p-5 sm:p-6 space-y-5">
+            <div className="grid sm:grid-cols-2 gap-5">
+              <div data-err="business_name">
+                <Field label={t.businessName} required error={errors.business_name}>
                   <input
                     className={inputCls}
-                    value={form.owner_name}
-                    onChange={(e) => set("owner_name", e.target.value)}
-                    placeholder={t.ownerNamePh}
-                    autoComplete="name"
-                    maxLength={150}
-                  />
-                </Field>
-
-                <Field label={t.email} required error={errors.contact_email}>
-                  <input
-                    className={inputCls}
-                    {...ltrInput}
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    value={form.contact_email}
-                    onChange={(e) => set("contact_email", e.target.value)}
-                    placeholder="you@example.com"
+                    value={form.business_name}
+                    onChange={(e) => set("business_name", e.target.value)}
+                    placeholder={t.businessNamePh}
                     maxLength={200}
                   />
                 </Field>
-
-                <div className="grid sm:grid-cols-2 gap-5">
-                  <Field label={t.phone} required hint={t.phoneHint} error={errors.contact_phone}>
-                    <input
-                      className={inputCls}
-                      {...ltrInput}
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      value={form.contact_phone}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        setForm((f) => ({
-                          ...f,
-                          contact_phone: v,
-                          whatsapp_number: f.same_as_phone ? v : f.whatsapp_number,
-                        }));
-                        clearError("contact_phone");
-                        if (form.same_as_phone) clearError("whatsapp_number");
-                      }}
-                      placeholder="01XXXXXXXXX"
-                      maxLength={15}
-                    />
-                  </Field>
-
-                  <div>
-                    <Field label={t.whatsapp} required hint={t.whatsappHint} error={errors.whatsapp_number}>
-                      <input
-                        className={inputCls}
-                        {...ltrInput}
-                        type="tel"
-                        inputMode="tel"
-                        value={form.whatsapp_number}
-                        disabled={form.same_as_phone}
-                        onChange={(e) => set("whatsapp_number", e.target.value)}
-                        placeholder="01XXXXXXXXX"
-                        maxLength={15}
-                      />
-                    </Field>
-                    <label className="mt-2 flex items-center gap-2 text-sm text-muted cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        className="sr-only"
-                        checked={form.same_as_phone}
-                        onChange={(e) => {
-                          const on = e.target.checked;
-                          setForm((f) => ({
-                            ...f,
-                            same_as_phone: on,
-                            whatsapp_number: on ? f.contact_phone : f.whatsapp_number,
-                          }));
-                          if (on) clearError("whatsapp_number");
-                        }}
-                      />
-                      <span
-                        className={cn(
-                          "w-4.5 h-4.5 rounded-md border flex items-center justify-center shrink-0",
-                          form.same_as_phone ? "bg-accent border-accent text-brand-deep" : "border-strong"
-                        )}
-                      >
-                        {form.same_as_phone && <Check className="w-3 h-3" />}
-                      </span>
-                      {t.sameAsPhone}
-                    </label>
-                  </div>
-                </div>
               </div>
-            </section>
-          )}
-
-          {/* ================= STEP 3 — OPERATIONS ================= */}
-          {step === 3 && (
-            <section className="space-y-5">
-              <StepIntro title={t.opsTitle} sub={t.opsSub} />
-              <div className="card p-5 sm:p-6 space-y-5">
-                <Field label={t.workingHours} required error={errors.working_hours}>
-                  <div className="space-y-4">
-                    {/* working days */}
-                    <div>
-                      <span className="block text-xs font-semibold mb-2 text-muted">{t.whDays}</span>
-                      <div className="flex flex-wrap gap-2">
-                        {WH_DAYS.map((d) => {
-                          const on = form.working_days.includes(d.value);
-                          return (
-                            <button
-                              key={d.value}
-                              type="button"
-                              aria-pressed={on}
-                              onClick={() =>
-                                updateHours({
-                                  working_days: on
-                                    ? form.working_days.filter((x) => x !== d.value)
-                                    : [...form.working_days, d.value],
-                                })
-                              }
-                              className={cn(
-                                "rounded-full px-4 py-2 text-sm font-semibold border transition-all inline-flex items-center gap-1.5",
-                                on
-                                  ? "border-accent bg-[rgba(107,160,172,0.15)] text-app"
-                                  : "border-app text-muted hover:border-strong"
-                              )}
-                            >
-                              {on && <Check className="w-3.5 h-3.5 text-accent" />}
-                              {pick(d.label)}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* 24-hour toggle */}
-                    <label className="inline-flex items-center gap-2 cursor-pointer select-none text-sm font-semibold">
-                      <input
-                        type="checkbox"
-                        className="sr-only"
-                        checked={form.working_24h}
-                        onChange={(e) => updateHours({ working_24h: e.target.checked })}
-                      />
-                      <span
-                        className={cn(
-                          "w-4.5 h-4.5 rounded-md border flex items-center justify-center shrink-0",
-                          form.working_24h ? "bg-accent border-accent text-brand-deep" : "border-strong"
-                        )}
-                      >
-                        {form.working_24h && <Check className="w-3 h-3" />}
-                      </span>
-                      {t.wh24}
-                    </label>
-
-                    {/* open / close time */}
-                    {!form.working_24h && (
-                      <div className="grid grid-cols-2 gap-3 max-w-sm">
-                        <label className="block">
-                          <span className="block text-xs font-semibold mb-1 text-muted">{t.whFrom}</span>
-                          <input
-                            type="time"
-                            className={inputCls}
-                            {...ltrInput}
-                            value={form.working_open}
-                            onChange={(e) => updateHours({ working_open: e.target.value })}
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="block text-xs font-semibold mb-1 text-muted">{t.whTo}</span>
-                          <input
-                            type="time"
-                            className={inputCls}
-                            {...ltrInput}
-                            value={form.working_close}
-                            onChange={(e) => updateHours({ working_close: e.target.value })}
-                          />
-                        </label>
-                      </div>
-                    )}
-
-                    {/* live summary */}
-                    {form.working_hours && (
-                      <div className="flex items-start gap-2 text-sm text-muted rounded-lg border border-app px-3 py-2 bg-[rgba(107,160,172,0.06)]">
-                        <Clock className="w-4 h-4 mt-0.5 text-accent shrink-0" />
-                        <span dir="auto">{form.working_hours}</span>
-                      </div>
-                    )}
-                  </div>
-                </Field>
-
-                <div className="grid sm:grid-cols-2 gap-5">
-                  <Field label={t.addressL}>
-                    <input
-                      className={inputCls}
-                      value={form.address}
-                      onChange={(e) => set("address", e.target.value)}
-                      placeholder={t.addressPh}
-                      maxLength={500}
-                    />
-                  </Field>
-                  <Field label={t.locationL}>
-                    <input
-                      className={inputCls}
-                      {...ltrInput}
-                      type="url"
-                      inputMode="url"
-                      value={form.location}
-                      onChange={(e) => set("location", e.target.value)}
-                      placeholder="https://maps.app.goo.gl/…"
-                      maxLength={500}
-                    />
-                  </Field>
-                </div>
-
-                {/* business payment methods chips */}
-                <div>
-                  <span className="block text-sm font-semibold mb-2">{t.bizPayments}</span>
-                  <div className="flex flex-wrap gap-2">
-                    {BIZ_PAYMENT_METHODS.map((m) => {
-                      const on = form.payment_methods.includes(m.value);
-                      return (
-                        <button
-                          key={m.value}
-                          type="button"
-                          aria-pressed={on}
-                          onClick={() =>
-                            set(
-                              "payment_methods",
-                              on
-                                ? form.payment_methods.filter((x) => x !== m.value)
-                                : [...form.payment_methods, m.value]
-                            )
-                          }
-                          className={cn(
-                            "rounded-full px-4 py-2 text-sm font-semibold border transition-all inline-flex items-center gap-1.5",
-                            on
-                              ? "border-accent bg-[rgba(107,160,172,0.15)] text-app"
-                              : "border-app text-muted hover:border-strong"
-                          )}
-                        >
-                          {on && <Check className="w-3.5 h-3.5 text-accent" />}
-                          {pick(m.label)}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <Field label={t.deliveryL}>
-                  <textarea
-                    className={cn(inputCls, "min-h-20 resize-y")}
-                    value={form.delivery_info}
-                    onChange={(e) => set("delivery_info", e.target.value)}
-                    placeholder={t.deliveryPh}
-                    maxLength={1000}
-                  />
-                </Field>
-                <Field label={t.returnL}>
-                  <textarea
-                    className={cn(inputCls, "min-h-20 resize-y")}
-                    value={form.return_policy}
-                    onChange={(e) => set("return_policy", e.target.value)}
-                    placeholder={t.returnPh}
-                    maxLength={1000}
-                  />
-                </Field>
-                <Field label={t.orderInsL}>
-                  <textarea
-                    className={cn(inputCls, "min-h-20 resize-y")}
-                    value={form.order_instructions}
-                    onChange={(e) => set("order_instructions", e.target.value)}
-                    placeholder={t.orderInsPh}
-                    maxLength={1000}
-                  />
-                </Field>
-              </div>
-            </section>
-          )}
-
-          {/* ================= STEP 4 — AI TRAINING ================= */}
-          {step === 4 && (
-            <section className="space-y-5">
-              <StepIntro title={t.aiTitle} sub={t.aiSub} />
-
-              <div className="card p-5 sm:p-6 space-y-6">
-                <Field label={t.goalL}>
+              <div data-err="business_type">
+                <Field label={t.businessType} required error={errors.business_type}>
                   <select
                     className={inputCls}
-                    value={form.primary_goal}
-                    onChange={(e) => set("primary_goal", e.target.value)}
+                    value={form.business_type}
+                    onChange={(e) => set("business_type", e.target.value)}
                   >
-                    {GOALS.map((g) => (
-                      <option key={g.value} value={g.value}>
-                        {pick(g.label)}
+                    <option value="">{t.selectType}</option>
+                    {BUSINESS_TYPES.map((b) => (
+                      <option key={b.value} value={b.value}>
+                        {pick(b.label)}
                       </option>
                     ))}
                   </select>
                 </Field>
+              </div>
+            </div>
 
-                {/* tone radio cards */}
-                <div role="radiogroup" aria-label={t.toneL}>
-                  <span className="block text-sm font-semibold mb-2">{t.toneL}</span>
-                  <div className="grid sm:grid-cols-3 gap-3">
-                    {TONES.map((tone) => {
-                      const on = form.tone_of_voice === tone.value;
-                      return (
-                        <button
-                          key={tone.value}
-                          type="button"
-                          role="radio"
-                          aria-checked={on}
-                          onClick={() => set("tone_of_voice", tone.value)}
+            <Field label={t.descriptionL}>
+              <textarea
+                className={cn(inputCls, "min-h-24 resize-y")}
+                value={form.description}
+                onChange={(e) => set("description", e.target.value)}
+                placeholder={t.descriptionPh}
+                maxLength={2000}
+              />
+            </Field>
+
+            <Field
+              label={t.websiteL}
+              help={<HelpTip label={t.help} title={t.helpWebsite.title} body={t.helpWebsite.body} />}
+            >
+              <input
+                className={inputCls}
+                {...ltrInput}
+                type="url"
+                inputMode="url"
+                value={form.website}
+                onChange={(e) => set("website", e.target.value)}
+                placeholder="https://example.com"
+                maxLength={300}
+              />
+            </Field>
+
+            {/* social */}
+            <div>
+              <span className="block text-sm font-semibold mb-1.5">{t.socialL}</span>
+              <div className="grid sm:grid-cols-3 gap-3">
+                {(
+                  [
+                    {
+                      key: "facebook",
+                      icon: Facebook,
+                      ph: "facebook.com/…",
+                      help: { title: t.helpFacebook.title, body: t.helpFacebook.body },
+                    },
+                    {
+                      key: "instagram",
+                      icon: Instagram,
+                      ph: "instagram.com/…",
+                      help: { title: t.helpInstagram.title, body: t.helpInstagram.body },
+                    },
+                    {
+                      key: "tiktok",
+                      icon: Music2,
+                      ph: "tiktok.com/@…",
+                      help: { title: t.helpTikTok.title, body: t.helpTikTok.body },
+                    },
+                  ] as const
+                ).map(({ key, icon: Icon, ph, help }) => (
+                  <div key={key} className="relative">
+                    <Icon className="w-4 h-4 text-muted absolute top-1/2 -translate-y-1/2 start-3.5 pointer-events-none" />
+                    <input
+                      className={cn(inputCls, "!ps-10 !pe-10")}
+                      {...ltrInput}
+                      aria-label={key}
+                      value={form.social[key]}
+                      onChange={(e) => set("social", { ...form.social, [key]: e.target.value })}
+                      placeholder={ph}
+                      maxLength={300}
+                    />
+                    <span className="absolute top-1/2 -translate-y-1/2 end-2.5">
+                      <HelpTip label={t.help} title={help.title} body={help.body} />
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* languages */}
+            <div data-err="languages">
+              <span className="block text-sm font-semibold mb-1.5">
+                {t.languagesL}
+                <span className="text-danger ms-1">*</span>
+              </span>
+              <div className="flex gap-3">
+                {(["ar", "en"] as const).map((l) => {
+                  const on = form.languages.includes(l);
+                  return (
+                    <label
+                      key={l}
+                      className={cn(
+                        "flex items-center gap-2 rounded-xl border px-4 py-2.5 cursor-pointer transition-all text-sm font-semibold select-none",
+                        on
+                          ? "border-accent bg-[rgba(107,160,172,0.12)] text-app"
+                          : "border-app text-muted hover:border-strong"
+                      )}
+                    >
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={on}
+                        onChange={() =>
+                          set(
+                            "languages",
+                            on ? form.languages.filter((x) => x !== l) : [...form.languages, l]
+                          )
+                        }
+                      />
+                      <span
+                        className={cn(
+                          "w-4.5 h-4.5 rounded-md border flex items-center justify-center",
+                          on ? "bg-accent border-accent text-brand-deep" : "border-strong"
+                        )}
+                      >
+                        {on && <Check className="w-3 h-3" />}
+                      </span>
+                      {l === "ar" ? t.langAr : t.langEn}
+                    </label>
+                  );
+                })}
+              </div>
+              {errors.languages && <ErrorLine msg={errors.languages} />}
+            </div>
+
+            {/* logo */}
+            <div>
+              <span className="block text-sm font-semibold mb-1.5">{t.logoL}</span>
+              {logo ? (
+                <UploadPreview item={logo} onRemove={() => setLogo(null)} removeLabel={t.remove} />
+              ) : (
+                <UploadDrop
+                  cta={t.uploadCta}
+                  hint={t.logoHint}
+                  accept="image/*"
+                  onFiles={(files) =>
+                    files[0] && handleSingleUpload(files[0], "business-assets", "logo", setLogo)
+                  }
+                />
+              )}
+              {errors.logo && <ErrorLine msg={errors.logo} />}
+            </div>
+
+            {/* extra images */}
+            <div>
+              <span className="block text-sm font-semibold mb-1.5">{t.imagesL}</span>
+              <p className="text-xs text-muted mb-2">{t.imagesHint}</p>
+              <div className="flex flex-wrap gap-3">
+                {images.map((img) => (
+                  <UploadPreview
+                    key={img.id}
+                    item={img}
+                    onRemove={() => setImages((prev) => prev.filter((i) => i.id !== img.id))}
+                    removeLabel={t.remove}
+                    compact
+                  />
+                ))}
+                {images.length < MAX_EXTRA_IMAGES && (
+                  <UploadDrop
+                    cta={t.uploadCta}
+                    hint={`${images.length}/${MAX_EXTRA_IMAGES}`}
+                    accept="image/*"
+                    multiple
+                    compact
+                    onFiles={(files) => handleImagesUpload(files)}
+                  />
+                )}
+              </div>
+              {errors.images && <ErrorLine msg={errors.images} />}
+            </div>
+          </div>
+        </section>
+
+        {/* ================= CONTACT ================= */}
+        <section className="space-y-5">
+          <SectionHeader icon={User} eyebrow={t.sectionContact} title={t.contactTitle} sub={t.contactSub} />
+          <div className="card p-5 sm:p-6 space-y-5">
+            <div data-err="owner_name">
+              <Field label={t.ownerName} required error={errors.owner_name}>
+                <input
+                  className={inputCls}
+                  value={form.owner_name}
+                  onChange={(e) => set("owner_name", e.target.value)}
+                  placeholder={t.ownerNamePh}
+                  autoComplete="name"
+                  maxLength={150}
+                />
+              </Field>
+            </div>
+
+            <div data-err="contact_email">
+              <Field label={t.email} required error={errors.contact_email}>
+                <input
+                  className={inputCls}
+                  {...ltrInput}
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={form.contact_email}
+                  onChange={(e) => set("contact_email", e.target.value)}
+                  placeholder="you@example.com"
+                  maxLength={200}
+                />
+              </Field>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-5">
+              <div data-err="contact_phone">
+                <Field label={t.phone} required hint={t.phoneHint} error={errors.contact_phone}>
+                  <input
+                    className={inputCls}
+                    {...ltrInput}
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    value={form.contact_phone}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setForm((f) => ({
+                        ...f,
+                        contact_phone: v,
+                        whatsapp_number: f.same_as_phone ? v : f.whatsapp_number,
+                      }));
+                      clearError("contact_phone");
+                      if (form.same_as_phone) clearError("whatsapp_number");
+                    }}
+                    placeholder="01XXXXXXXXX"
+                    maxLength={15}
+                  />
+                </Field>
+              </div>
+
+              <div data-err="whatsapp_number">
+                <Field label={t.whatsapp} required hint={t.whatsappHint} error={errors.whatsapp_number}>
+                  <input
+                    className={inputCls}
+                    {...ltrInput}
+                    type="tel"
+                    inputMode="tel"
+                    value={form.whatsapp_number}
+                    disabled={form.same_as_phone}
+                    onChange={(e) => set("whatsapp_number", e.target.value)}
+                    placeholder="01XXXXXXXXX"
+                    maxLength={15}
+                  />
+                </Field>
+                <label className="mt-2 flex items-center gap-2 text-sm text-muted cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="sr-only"
+                    checked={form.same_as_phone}
+                    onChange={(e) => {
+                      const on = e.target.checked;
+                      setForm((f) => ({
+                        ...f,
+                        same_as_phone: on,
+                        whatsapp_number: on ? f.contact_phone : f.whatsapp_number,
+                      }));
+                      if (on) clearError("whatsapp_number");
+                    }}
+                  />
+                  <span
+                    className={cn(
+                      "w-4.5 h-4.5 rounded-md border flex items-center justify-center shrink-0",
+                      form.same_as_phone ? "bg-accent border-accent text-brand-deep" : "border-strong"
+                    )}
+                  >
+                    {form.same_as_phone && <Check className="w-3 h-3" />}
+                  </span>
+                  {t.sameAsPhone}
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================= OPERATIONS ================= */}
+        <section className="space-y-5">
+          <SectionHeader icon={Clock} eyebrow={t.sectionOps} title={t.opsTitle} sub={t.opsSub} />
+          <div className="card p-5 sm:p-6 space-y-5">
+            <div data-err="working_hours">
+              <Field label={t.workingHours} required error={errors.working_hours}>
+                <div className="space-y-4">
+                  {/* working days */}
+                  <div>
+                    <span className="block text-xs font-semibold mb-2 text-muted">{t.whDays}</span>
+                    <div className="flex flex-wrap gap-2">
+                      {WH_DAYS.map((d) => {
+                        const on = form.working_days.includes(d.value);
+                        return (
+                          <button
+                            key={d.value}
+                            type="button"
+                            aria-pressed={on}
+                            onClick={() =>
+                              updateHours({
+                                working_days: on
+                                  ? form.working_days.filter((x) => x !== d.value)
+                                  : [...form.working_days, d.value],
+                              })
+                            }
+                            className={cn(
+                              "rounded-full px-4 py-2 text-sm font-semibold border transition-all inline-flex items-center gap-1.5",
+                              on
+                                ? "border-accent bg-[rgba(107,160,172,0.15)] text-app"
+                                : "border-app text-muted hover:border-strong"
+                            )}
+                          >
+                            {on && <Check className="w-3.5 h-3.5 text-accent" />}
+                            {pick(d.label)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 24-hour toggle */}
+                  <label className="inline-flex items-center gap-2 cursor-pointer select-none text-sm font-semibold">
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={form.working_24h}
+                      onChange={(e) => updateHours({ working_24h: e.target.checked })}
+                    />
+                    <span
+                      className={cn(
+                        "w-4.5 h-4.5 rounded-md border flex items-center justify-center shrink-0",
+                        form.working_24h ? "bg-accent border-accent text-brand-deep" : "border-strong"
+                      )}
+                    >
+                      {form.working_24h && <Check className="w-3 h-3" />}
+                    </span>
+                    {t.wh24}
+                  </label>
+
+                  {/* open / close time */}
+                  {!form.working_24h && (
+                    <div className="grid grid-cols-2 gap-3 max-w-sm">
+                      <label className="block">
+                        <span className="block text-xs font-semibold mb-1 text-muted">{t.whFrom}</span>
+                        <input
+                          type="time"
+                          className={inputCls}
+                          {...ltrInput}
+                          value={form.working_open}
+                          onChange={(e) => updateHours({ working_open: e.target.value })}
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="block text-xs font-semibold mb-1 text-muted">{t.whTo}</span>
+                        <input
+                          type="time"
+                          className={inputCls}
+                          {...ltrInput}
+                          value={form.working_close}
+                          onChange={(e) => updateHours({ working_close: e.target.value })}
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {/* live summary */}
+                  {form.working_hours && (
+                    <div className="flex items-start gap-2 text-sm text-muted rounded-lg border border-app px-3 py-2 bg-[rgba(107,160,172,0.06)]">
+                      <Clock className="w-4 h-4 mt-0.5 text-accent shrink-0" />
+                      <span dir="auto">{form.working_hours}</span>
+                    </div>
+                  )}
+                </div>
+              </Field>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-5">
+              <Field label={t.addressL}>
+                <input
+                  className={inputCls}
+                  value={form.address}
+                  onChange={(e) => set("address", e.target.value)}
+                  placeholder={t.addressPh}
+                  maxLength={500}
+                />
+              </Field>
+              <Field
+                label={t.locationL}
+                help={<HelpTip label={t.help} title={t.helpMaps.title} body={t.helpMaps.body} />}
+              >
+                <input
+                  className={inputCls}
+                  {...ltrInput}
+                  type="url"
+                  inputMode="url"
+                  value={form.location}
+                  onChange={(e) => set("location", e.target.value)}
+                  placeholder="https://maps.app.goo.gl/…"
+                  maxLength={500}
+                />
+              </Field>
+            </div>
+
+            {/* business payment methods chips */}
+            <div>
+              <span className="block text-sm font-semibold mb-2">{t.bizPayments}</span>
+              <div className="flex flex-wrap gap-2">
+                {BIZ_PAYMENT_METHODS.map((m) => {
+                  const on = form.payment_methods.includes(m.value);
+                  return (
+                    <button
+                      key={m.value}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() =>
+                        set(
+                          "payment_methods",
+                          on
+                            ? form.payment_methods.filter((x) => x !== m.value)
+                            : [...form.payment_methods, m.value]
+                        )
+                      }
+                      className={cn(
+                        "rounded-full px-4 py-2 text-sm font-semibold border transition-all inline-flex items-center gap-1.5",
+                        on
+                          ? "border-accent bg-[rgba(107,160,172,0.15)] text-app"
+                          : "border-app text-muted hover:border-strong"
+                      )}
+                    >
+                      {on && <Check className="w-3.5 h-3.5 text-accent" />}
+                      {pick(m.label)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Field label={t.deliveryL}>
+              <textarea
+                className={cn(inputCls, "min-h-20 resize-y")}
+                value={form.delivery_info}
+                onChange={(e) => set("delivery_info", e.target.value)}
+                placeholder={t.deliveryPh}
+                maxLength={1000}
+              />
+            </Field>
+            <Field label={t.returnL}>
+              <textarea
+                className={cn(inputCls, "min-h-20 resize-y")}
+                value={form.return_policy}
+                onChange={(e) => set("return_policy", e.target.value)}
+                placeholder={t.returnPh}
+                maxLength={1000}
+              />
+            </Field>
+
+            {/* order collection — structured selectable list */}
+            <OrderFieldsPicker
+              t={t}
+              rows={form.order_fields}
+              labelOf={orderFieldLabel}
+              isLocked={isLockedOrderField}
+              presets={ORDER_FIELD_PRESETS}
+              pick={pick}
+              onChange={(rows) => set("order_fields", rows)}
+            />
+          </div>
+        </section>
+
+        {/* ================= AI TRAINING ================= */}
+        <section className="space-y-5">
+          <SectionHeader icon={Bot} eyebrow={t.sectionAI} title={t.aiTitle} sub={t.aiSub} />
+
+          <div className="card p-5 sm:p-6 space-y-6">
+            <Field label={t.goalL}>
+              <select
+                className={inputCls}
+                value={form.primary_goal}
+                onChange={(e) => set("primary_goal", e.target.value)}
+              >
+                {GOALS.map((g) => (
+                  <option key={g.value} value={g.value}>
+                    {pick(g.label)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            {/* tone radio cards */}
+            <div role="radiogroup" aria-label={t.toneL}>
+              <span className="block text-sm font-semibold mb-2">{t.toneL}</span>
+              <div className="grid sm:grid-cols-3 gap-3">
+                {TONES.map((tone) => {
+                  const on = form.tone_of_voice === tone.value;
+                  return (
+                    <button
+                      key={tone.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => set("tone_of_voice", tone.value)}
+                      className={cn(
+                        "rounded-2xl border p-4 text-start transition-all flex flex-col gap-2",
+                        on
+                          ? "border-accent bg-[rgba(107,160,172,0.1)] shadow-[0_0_0_1px_var(--accent)]"
+                          : "border-app hover:border-strong"
+                      )}
+                    >
+                      <span className="flex items-center justify-between">
+                        <span className="font-bold text-sm">{pick(tone.label)}</span>
+                        <span
                           className={cn(
-                            "rounded-2xl border p-4 text-start transition-all flex flex-col gap-2",
-                            on
-                              ? "border-accent bg-[rgba(107,160,172,0.1)] shadow-[0_0_0_1px_var(--accent)]"
-                              : "border-app hover:border-strong"
+                            "w-4.5 h-4.5 rounded-full border flex items-center justify-center",
+                            on ? "border-accent bg-accent" : "border-strong"
                           )}
                         >
-                          <span className="flex items-center justify-between">
-                            <span className="font-bold text-sm">{pick(tone.label)}</span>
-                            <span
-                              className={cn(
-                                "w-4.5 h-4.5 rounded-full border flex items-center justify-center",
-                                on ? "border-accent bg-accent" : "border-strong"
-                              )}
-                            >
-                              {on && <span className="w-1.5 h-1.5 rounded-full bg-brand-deep" />}
-                            </span>
-                          </span>
-                          <span className="text-xs text-muted leading-relaxed">{pick(tone.desc)}</span>
-                          <span className="text-xs text-accent leading-relaxed mt-auto pt-1 border-t border-app">
-                            {pick(tone.example)}
-                          </span>
-                        </button>
-                      );
-                    })}
+                          {on && <span className="w-1.5 h-1.5 rounded-full bg-brand-deep" />}
+                        </span>
+                      </span>
+                      <span className="text-xs text-muted leading-relaxed">{pick(tone.desc)}</span>
+                      <span className="text-xs text-accent leading-relaxed mt-auto pt-1 border-t border-app">
+                        {pick(tone.example)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Field label={t.greetingL}>
+              <textarea
+                className={cn(inputCls, "min-h-20 resize-y")}
+                value={form.greeting_message}
+                onChange={(e) => set("greeting_message", e.target.value)}
+                placeholder={t.greetingPh.replace("{biz}", form.business_name.trim() || (lang === "ar" ? "اسم نشاطك" : "your business"))}
+                maxLength={500}
+              />
+            </Field>
+
+            <Field label={t.personalityL}>
+              <textarea
+                className={cn(inputCls, "min-h-20 resize-y")}
+                value={form.assistant_personality}
+                onChange={(e) => set("assistant_personality", e.target.value)}
+                placeholder={t.personalityPh}
+                maxLength={1000}
+              />
+            </Field>
+
+            <Field label={t.kbL}>
+              <textarea
+                className={cn(inputCls, "min-h-40 resize-y")}
+                value={form.knowledge_base_raw}
+                onChange={(e) => set("knowledge_base_raw", e.target.value)}
+                placeholder={t.kbPh}
+                maxLength={20000}
+              />
+            </Field>
+
+            {/* kb file uploads */}
+            <div>
+              <span className="block text-sm font-semibold mb-2">{t.kbFilesL}</span>
+              <div className="space-y-2">
+                {kbFiles.map((f) => (
+                  <div
+                    key={f.id}
+                    className="flex items-center gap-3 rounded-xl border border-app bg-[rgba(7,15,28,0.5)] px-3.5 py-2.5"
+                  >
+                    {f.status === "uploading" ? (
+                      <Spinner className="w-4 h-4 text-accent" />
+                    ) : (
+                      <FileText className="w-4 h-4 text-accent shrink-0" />
+                    )}
+                    <span className="text-sm truncate flex-1" dir="ltr" style={{ textAlign: "start" }}>
+                      {f.name}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={t.remove}
+                      onClick={() => setKbFiles((prev) => prev.filter((x) => x.id !== f.id))}
+                      className="btn-ghost !p-1.5 text-danger"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                </div>
+                ))}
+                <UploadDrop
+                  cta={t.uploadFileCta}
+                  hint="PDF / DOCX / TXT"
+                  accept=".pdf,.doc,.docx,.txt"
+                  multiple
+                  onFiles={(files) => handleKbUpload(files)}
+                />
+              </div>
+              {errors.kb_files && <ErrorLine msg={errors.kb_files} />}
+            </div>
+          </div>
 
-
-                <Field label={t.greetingL}>
-                  <textarea
-                    className={cn(inputCls, "min-h-20 resize-y")}
-                    value={form.greeting_message}
-                    onChange={(e) => set("greeting_message", e.target.value)}
-                    placeholder={t.greetingPh.replace("{biz}", form.business_name.trim() || (lang === "ar" ? "اسم نشاطك" : "your business"))}
+          {/* FAQs */}
+          <DynamicSection
+            title={t.faqsL}
+            tag={t.optionalSection}
+            addLabel={t.addFaq}
+            onAdd={() => set("faqs", [...form.faqs, { question: "", answer: "" }])}
+          >
+            {form.faqs.map((f, i) => (
+              <div key={i} className="rounded-xl border border-app p-4 space-y-3 relative">
+                <RemoveRowBtn
+                  label={t.remove}
+                  onClick={() => set("faqs", form.faqs.filter((_, x) => x !== i))}
+                />
+                <Field label={`${t.faqQ} ${i + 1}`}>
+                  <input
+                    className={inputCls}
+                    value={f.question}
+                    onChange={(e) =>
+                      set("faqs", form.faqs.map((row, x) => (x === i ? { ...row, question: e.target.value } : row)))
+                    }
+                    placeholder={t.faqQPh}
                     maxLength={500}
                   />
                 </Field>
-
-                <Field label={t.personalityL}>
+                <Field label={t.faqA}>
                   <textarea
-                    className={cn(inputCls, "min-h-20 resize-y")}
-                    value={form.assistant_personality}
-                    onChange={(e) => set("assistant_personality", e.target.value)}
-                    placeholder={t.personalityPh}
-                    maxLength={1000}
+                    className={cn(inputCls, "min-h-16 resize-y")}
+                    value={f.answer}
+                    onChange={(e) =>
+                      set("faqs", form.faqs.map((row, x) => (x === i ? { ...row, answer: e.target.value } : row)))
+                    }
+                    placeholder={t.faqAPh}
+                    maxLength={2000}
                   />
                 </Field>
-
-                <Field label={t.kbL}>
-                  <textarea
-                    className={cn(inputCls, "min-h-40 resize-y")}
-                    value={form.knowledge_base_raw}
-                    onChange={(e) => set("knowledge_base_raw", e.target.value)}
-                    placeholder={t.kbPh}
-                    maxLength={20000}
-                  />
-                </Field>
-
-                {/* kb file uploads */}
-                <div>
-                  <span className="block text-sm font-semibold mb-2">{t.kbFilesL}</span>
-                  <div className="space-y-2">
-                    {kbFiles.map((f) => (
-                      <div
-                        key={f.id}
-                        className="flex items-center gap-3 rounded-xl border border-app bg-[rgba(7,15,28,0.5)] px-3.5 py-2.5"
-                      >
-                        {f.status === "uploading" ? (
-                          <Spinner className="w-4 h-4 text-accent" />
-                        ) : (
-                          <FileText className="w-4 h-4 text-accent shrink-0" />
-                        )}
-                        <span className="text-sm truncate flex-1" dir="ltr" style={{ textAlign: "start" }}>
-                          {f.name}
-                        </span>
-                        <button
-                          type="button"
-                          aria-label={t.remove}
-                          onClick={() => setKbFiles((prev) => prev.filter((x) => x.id !== f.id))}
-                          className="btn-ghost !p-1.5 text-danger"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                    <UploadDrop
-                      cta={t.uploadFileCta}
-                      hint="PDF / DOCX / TXT"
-                      accept=".pdf,.doc,.docx,.txt"
-                      multiple
-                      onFiles={(files) => handleKbUpload(files)}
-                    />
-                  </div>
-                  {errors.kb_files && <ErrorLine msg={errors.kb_files} />}
-                </div>
               </div>
+            ))}
+          </DynamicSection>
 
-              {/* FAQs */}
-              <DynamicSection
-                title={t.faqsL}
-                tag={t.optionalSection}
-                addLabel={t.addFaq}
-                onAdd={() => set("faqs", [...form.faqs, { question: "", answer: "" }])}
-              >
-                {form.faqs.map((f, i) => (
-                  <div key={i} className="rounded-xl border border-app p-4 space-y-3 relative">
-                    <RemoveRowBtn
-                      label={t.remove}
-                      onClick={() => set("faqs", form.faqs.filter((_, x) => x !== i))}
-                    />
-                    <Field label={`${t.faqQ} ${i + 1}`}>
-                      <input
-                        className={inputCls}
-                        value={f.question}
-                        onChange={(e) =>
-                          set("faqs", form.faqs.map((row, x) => (x === i ? { ...row, question: e.target.value } : row)))
-                        }
-                        placeholder={t.faqQPh}
-                        maxLength={500}
-                      />
-                    </Field>
-                    <Field label={t.faqA}>
-                      <textarea
-                        className={cn(inputCls, "min-h-16 resize-y")}
-                        value={f.answer}
-                        onChange={(e) =>
-                          set("faqs", form.faqs.map((row, x) => (x === i ? { ...row, answer: e.target.value } : row)))
-                        }
-                        placeholder={t.faqAPh}
-                        maxLength={2000}
-                      />
-                    </Field>
-                  </div>
-                ))}
-              </DynamicSection>
+          {/* products */}
+          <DynamicSection
+            title={t.productsL}
+            tag={t.optionalSection}
+            addLabel={t.addProduct}
+            onAdd={() => set("products", [...form.products, { name: "", price: "", description: "" }])}
+          >
+            {form.products.map((p, i) => (
+              <ItemRowEditor
+                key={i}
+                row={p}
+                t={{ name: t.itemName, price: t.itemPrice, desc: t.itemDesc, remove: t.remove }}
+                onChange={(row) => set("products", form.products.map((r, x) => (x === i ? row : r)))}
+                onRemove={() => set("products", form.products.filter((_, x) => x !== i))}
+              />
+            ))}
+          </DynamicSection>
 
-              {/* products */}
-              <DynamicSection
-                title={t.productsL}
-                tag={t.optionalSection}
-                addLabel={t.addProduct}
-                onAdd={() => set("products", [...form.products, { name: "", price: "", description: "" }])}
-              >
-                {form.products.map((p, i) => (
-                  <ItemRowEditor
-                    key={i}
-                    row={p}
-                    t={{ name: t.itemName, price: t.itemPrice, desc: t.itemDesc, remove: t.remove }}
-                    onChange={(row) => set("products", form.products.map((r, x) => (x === i ? row : r)))}
-                    onRemove={() => set("products", form.products.filter((_, x) => x !== i))}
-                  />
-                ))}
-              </DynamicSection>
+          {/* services */}
+          <DynamicSection
+            title={t.servicesL}
+            tag={t.optionalSection}
+            addLabel={t.addService}
+            onAdd={() => set("services", [...form.services, { name: "", price: "", description: "" }])}
+          >
+            {form.services.map((p, i) => (
+              <ItemRowEditor
+                key={i}
+                row={p}
+                t={{ name: t.itemName, price: t.itemPrice, desc: t.itemDesc, remove: t.remove }}
+                onChange={(row) => set("services", form.services.map((r, x) => (x === i ? row : r)))}
+                onRemove={() => set("services", form.services.filter((_, x) => x !== i))}
+              />
+            ))}
+          </DynamicSection>
+        </section>
 
-              {/* services */}
-              <DynamicSection
-                title={t.servicesL}
-                tag={t.optionalSection}
-                addLabel={t.addService}
-                onAdd={() => set("services", [...form.services, { name: "", price: "", description: "" }])}
-              >
-                {form.services.map((p, i) => (
-                  <ItemRowEditor
-                    key={i}
-                    row={p}
-                    t={{ name: t.itemName, price: t.itemPrice, desc: t.itemDesc, remove: t.remove }}
-                    onChange={(row) => set("services", form.services.map((r, x) => (x === i ? row : r)))}
-                    onRemove={() => set("services", form.services.filter((_, x) => x !== i))}
-                  />
-                ))}
-              </DynamicSection>
-            </section>
-          )}
+        {/* ================= PAYMENT ================= */}
+        {plan && (
+          <section className="space-y-5">
+            <SectionHeader icon={Wallet} eyebrow={t.sectionPay} title={t.payTitle} sub={t.paySub} />
 
-          {/* ================= STEP 5 — REVIEW ================= */}
-          {step === 5 && (
-            <section className="space-y-5">
-              <StepIntro title={t.reviewTitle} sub={t.reviewSub} />
+            {/* amount due */}
+            <div className="glass-strong p-6 text-center relative overflow-hidden">
+              <div className="glow-orb w-48 h-48 bg-brand-teal -top-16 -end-16 opacity-25" />
+              <p className="text-sm text-muted font-semibold">{t.amountDue}</p>
+              <p className="text-4xl sm:text-5xl font-extrabold gradient-text mt-2" dir="ltr">
+                {formatEGP(planTotal(plan), lang)}
+              </p>
+              <p className="text-xs text-muted mt-2">
+                {pick(plan.name)} — {t.setup} {formatEGP(plan.setupFee, lang)} + {formatEGP(plan.monthlyFee, lang)} {t.monthly}
+              </p>
+            </div>
 
-              {/* plan + total */}
-              {plan && (
-                <div className="card p-5 sm:p-6 border-[rgba(107,160,172,0.35)]">
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                      <span className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-teal to-brand-sky flex items-center justify-center text-white shrink-0">
-                        <CreditCard className="w-6 h-6" />
+            {/* method cards */}
+            <div data-err="payment_method">
+              <span className="block text-sm font-semibold mb-2">
+                {t.payHow}
+                <span className="text-danger ms-1">*</span>
+              </span>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {visiblePaymentChannels.map((ch) => {
+                  const acc = PAYMENT_ACCOUNTS[ch];
+                  const on = form.payment_method === ch;
+                  return (
+                    <button
+                      key={ch}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => set("payment_method", ch)}
+                      className={cn(
+                        "rounded-2xl border p-4 text-start transition-all",
+                        on
+                          ? "border-accent bg-[rgba(107,160,172,0.1)] shadow-[0_0_0_1px_var(--accent)]"
+                          : "border-app hover:border-strong"
+                      )}
+                    >
+                      <span className="flex items-center justify-between">
+                        <span className="font-bold text-sm flex items-center gap-2">
+                          <Wallet className={cn("w-4 h-4", on ? "text-accent" : "text-muted")} />
+                          {pick(acc.label)}
+                        </span>
+                        <span
+                          className={cn(
+                            "w-4.5 h-4.5 rounded-full border flex items-center justify-center",
+                            on ? "border-accent bg-accent" : "border-strong"
+                          )}
+                        >
+                          {on && <span className="w-1.5 h-1.5 rounded-full bg-brand-deep" />}
+                        </span>
                       </span>
-                      <div>
-                        <p className="font-extrabold text-lg">{pick(plan.name)}</p>
-                        <p className="text-xs text-muted">
-                          {t.setup} {formatEGP(plan.setupFee, lang)} + {formatEGP(plan.monthlyFee, lang)} {t.monthly}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-end">
-                      <p className="text-xs text-muted font-semibold">{t.total}</p>
-                      <p className="text-2xl font-extrabold gradient-text" dir="ltr">
-                        {formatEGP(planTotal(plan), lang)}
-                      </p>
-                      <p className="text-[11px] text-muted">{t.totalHint}</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowPlanCards(true);
-                      goTo(0);
-                    }}
-                    className="btn-ghost !px-3 text-xs mt-3 text-accent"
-                  >
-                    {t.changePlan}
-                  </button>
-                </div>
-              )}
-
-              {reviewSections.map((sec) => {
-                const items = sec.items.filter(([, v]) => v && v.trim());
-                const Icon = sec.icon;
-                return (
-                  <div key={sec.step} className="card p-5 sm:p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <p className="font-bold flex items-center gap-2">
-                        <span className="w-8 h-8 rounded-lg bg-[rgba(107,160,172,0.12)] text-accent flex items-center justify-center">
-                          <Icon className="w-4 h-4" />
-                        </span>
-                        {sec.title}
-                      </p>
-                      <button type="button" onClick={() => goTo(sec.step)} className="btn-ghost !px-3 text-xs text-accent">
-                        {t.edit}
-                      </button>
-                    </div>
-                    {items.length === 0 ? (
-                      <p className="text-sm text-muted">{t.notProvided}</p>
-                    ) : (
-                      <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3">
-                        {items.map(([k, v]) => (
-                          <div key={k} className="min-w-0">
-                            <dt className="text-xs text-muted font-semibold">{k}</dt>
-                            <dd className="text-sm mt-0.5 break-words">{v}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    )}
-                  </div>
-                );
-              })}
-            </section>
-          )}
-
-          {/* ================= STEP 6 — PAYMENT ================= */}
-          {step === 6 && plan && (
-            <section className="space-y-5">
-              <StepIntro title={t.payTitle} sub={t.paySub} />
-
-              {/* amount due */}
-              <div className="glass-strong p-6 text-center relative overflow-hidden">
-                <div className="glow-orb w-48 h-48 bg-brand-teal -top-16 -end-16 opacity-25" />
-                <p className="text-sm text-muted font-semibold">{t.amountDue}</p>
-                <p className="text-4xl sm:text-5xl font-extrabold gradient-text mt-2" dir="ltr">
-                  {formatEGP(planTotal(plan), lang)}
-                </p>
-                <p className="text-xs text-muted mt-2">
-                  {pick(plan.name)} — {t.setup} {formatEGP(plan.setupFee, lang)} + {formatEGP(plan.monthlyFee, lang)} {t.monthly}
-                </p>
+                    </button>
+                  );
+                })}
               </div>
+              {errors.payment_method && <ErrorLine msg={errors.payment_method} />}
+            </div>
 
-              {/* method cards */}
-              <div>
-                <span className="block text-sm font-semibold mb-2">
-                  {t.payHow}
-                  <span className="text-danger ms-1">*</span>
-                </span>
-                <div className="grid sm:grid-cols-3 gap-3">
-                  {(Object.keys(PAYMENT_ACCOUNTS) as PaymentChannel[]).map((ch) => {
-                    const acc = PAYMENT_ACCOUNTS[ch];
-                    const on = form.payment_method === ch;
-                    return (
-                      <button
-                        key={ch}
-                        type="button"
-                        role="radio"
-                        aria-checked={on}
-                        onClick={() => set("payment_method", ch)}
-                        className={cn(
-                          "rounded-2xl border p-4 text-start transition-all",
-                          on
-                            ? "border-accent bg-[rgba(107,160,172,0.1)] shadow-[0_0_0_1px_var(--accent)]"
-                            : "border-app hover:border-strong"
-                        )}
+            {/* revealed account */}
+            <AnimatePresence>
+              {form.payment_method && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="card p-5">
+                    <p className="text-xs text-muted font-semibold mb-1.5">{t.accountNumber}</p>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <code
+                        className="text-2xl font-extrabold tracking-[0.15em] text-accent"
+                        dir="ltr"
                       >
-                        <span className="flex items-center justify-between">
-                          <span className="font-bold text-sm flex items-center gap-2">
-                            <Wallet className={cn("w-4 h-4", on ? "text-accent" : "text-muted")} />
-                            {pick(acc.label)}
-                          </span>
-                          <span
-                            className={cn(
-                              "w-4.5 h-4.5 rounded-full border flex items-center justify-center",
-                              on ? "border-accent bg-accent" : "border-strong"
-                            )}
-                          >
-                            {on && <span className="w-1.5 h-1.5 rounded-full bg-brand-deep" />}
-                          </span>
-                        </span>
+                        {PAYMENT_ACCOUNTS[form.payment_method].number}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => copyAccount(PAYMENT_ACCOUNTS[form.payment_method!].number)}
+                        className="btn-outline !py-1.5 !px-3 text-xs"
+                      >
+                        {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copied ? t.copiedMsg : t.copy}
                       </button>
-                    );
-                  })}
-                </div>
-                {errors.payment_method && <ErrorLine msg={errors.payment_method} />}
-              </div>
-
-              {/* revealed account */}
-              <AnimatePresence>
-                {form.payment_method && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="card p-5">
-                      <p className="text-xs text-muted font-semibold mb-1.5">{t.accountNumber}</p>
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <code
-                          className="text-2xl font-extrabold tracking-[0.15em] text-accent"
-                          dir="ltr"
-                        >
-                          {PAYMENT_ACCOUNTS[form.payment_method].number}
-                        </code>
-                        <button
-                          type="button"
-                          onClick={() => copyAccount(PAYMENT_ACCOUNTS[form.payment_method!].number)}
-                          className="btn-outline !py-1.5 !px-3 text-xs"
-                        >
-                          {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
-                          {copied ? t.copiedMsg : t.copy}
-                        </button>
-                      </div>
-                      <ol className="mt-4 space-y-2">
-                        {t.payInstructions.map((line, i) => (
-                          <li key={i} className="flex items-start gap-2.5 text-sm text-muted">
-                            <span className="w-5 h-5 rounded-full bg-[rgba(107,160,172,0.15)] text-accent text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                              {i + 1}
-                            </span>
-                            {line}
-                          </li>
-                        ))}
-                      </ol>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    <ol className="mt-4 space-y-2">
+                      {t.payInstructions.map((line, i) => (
+                        <li key={i} className="flex items-start gap-2.5 text-sm text-muted">
+                          <span className="w-5 h-5 rounded-full bg-[rgba(107,160,172,0.15)] text-accent text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                            {i + 1}
+                          </span>
+                          {line}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-              <div className="card p-5 sm:p-6 space-y-5">
-                {/* transaction ref */}
+            <div className="card p-5 sm:p-6 space-y-5">
+              {/* transaction ref */}
+              <div data-err="transaction_ref">
                 <Field
                   label={t.txRefL}
                   required
@@ -2035,90 +1907,64 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
                     placeholder={t.txRefPh}
                   />
                 </Field>
-
-                {/* screenshot */}
-                <div>
-                  <span className="block text-sm font-semibold mb-1.5">
-                    {t.screenshotL}
-                    <span className="text-danger ms-1">*</span>
-                  </span>
-                  <p className="text-xs text-muted mb-2">{t.screenshotHint}</p>
-                  {screenshot ? (
-                    <UploadPreview
-                      item={screenshot}
-                      onRemove={() => setScreenshot(null)}
-                      removeLabel={t.remove}
-                    />
-                  ) : (
-                    <UploadDrop
-                      cta={t.uploadCta}
-                      hint={t.logoHint}
-                      accept="image/*"
-                      onFiles={(files) =>
-                        files[0] && handleSingleUpload(files[0], "payment-screenshots", "screenshot", setScreenshot)
-                      }
-                    />
-                  )}
-                  {errors.screenshot && <ErrorLine msg={errors.screenshot} />}
-                </div>
-
-                {serverError && (
-                  <div className="rounded-xl border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.08)] px-4 py-3 flex items-start gap-2.5 text-sm text-danger">
-                    <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
-                    {serverError}
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={submit}
-                  disabled={submitting || anyUploading}
-                  className="btn-primary w-full !py-4 text-base"
-                >
-                  {submitting ? (
-                    <>
-                      <Spinner className="w-5 h-5" /> {t.submitting}
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-5 h-5" /> {t.submit}
-                    </>
-                  )}
-                </button>
-                <p className="text-xs text-muted text-center">{t.secureNote}</p>
               </div>
-            </section>
-          )}
-        </motion.div>
-      </AnimatePresence>
 
-      {errors._uploading && <ErrorLine msg={errors._uploading} />}
+              {/* screenshot */}
+              <div data-err="screenshot">
+                <span className="block text-sm font-semibold mb-1.5">
+                  {t.screenshotL}
+                  <span className="text-danger ms-1">*</span>
+                </span>
+                <p className="text-xs text-muted mb-2">{t.screenshotHint}</p>
+                {screenshot ? (
+                  <UploadPreview
+                    item={screenshot}
+                    onRemove={() => setScreenshot(null)}
+                    removeLabel={t.remove}
+                  />
+                ) : (
+                  <UploadDrop
+                    cta={t.uploadCta}
+                    hint={t.logoHint}
+                    accept="image/*"
+                    onFiles={(files) =>
+                      files[0] && handleSingleUpload(files[0], "payment-screenshots", "screenshot", setScreenshot)
+                    }
+                  />
+                )}
+                {errors.screenshot && <ErrorLine msg={errors.screenshot} />}
+              </div>
 
-      {/* nav buttons (hidden on payment step — it has its own submit) */}
-      <div className="mt-8 flex items-center justify-between gap-3">
-        {step > 0 ? (
-          <button type="button" onClick={back} disabled={submitting} className="btn-outline">
-            <ArrowRight className="w-4 h-4 hidden rtl:block" />
-            <ArrowLeft className="w-4 h-4 rtl:hidden" />
-            {t.back}
-          </button>
-        ) : (
-          <span />
-        )}
-        {step < TOTAL_STEPS - 1 && (
-          <button type="button" onClick={next} disabled={anyUploading} className="btn-primary min-w-32">
-            {anyUploading ? (
-              <Spinner className="w-4 h-4" />
-            ) : (
-              <>
-                {t.next}
-                <ArrowLeft className="w-4 h-4 hidden rtl:block" />
-                <ArrowRight className="w-4 h-4 rtl:hidden" />
-              </>
-            )}
-          </button>
+              {serverError && (
+                <div className="rounded-xl border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.08)] px-4 py-3 flex items-start gap-2.5 text-sm text-danger">
+                  <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+                  {serverError}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={submit}
+                disabled={submitting || anyUploading}
+                className="btn-primary w-full !py-4 text-base"
+              >
+                {submitting ? (
+                  <>
+                    <Spinner className="w-5 h-5" /> {t.submitting}
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-5 h-5" /> {t.submit}
+                  </>
+                )}
+              </button>
+              <p className="text-xs text-muted text-center">{t.secureNote}</p>
+            </div>
+          </section>
         )}
       </div>
+
+      {errors._uploading && <ErrorLine msg={errors._uploading} />}
     </main>
   );
 }
@@ -2126,11 +1972,27 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
 /* ============================================================
    Small internal components
    ============================================================ */
-function StepIntro({ title, sub }: { title: string; sub: string }) {
+function SectionHeader({
+  icon: Icon,
+  eyebrow,
+  title,
+  sub,
+}: {
+  icon: typeof Building2;
+  eyebrow: string;
+  title: string;
+  sub: string;
+}) {
   return (
-    <div>
-      <h1 className="text-2xl sm:text-3xl font-extrabold">{title}</h1>
-      <p className="text-muted text-sm mt-1.5 leading-relaxed">{sub}</p>
+    <div className="flex items-start gap-3">
+      <span className="w-10 h-10 rounded-xl bg-[rgba(107,160,172,0.12)] text-accent flex items-center justify-center shrink-0 mt-0.5">
+        <Icon className="w-5 h-5" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-bold tracking-wider uppercase text-accent">{eyebrow}</p>
+        <h2 className="text-xl sm:text-2xl font-extrabold leading-tight">{title}</h2>
+        <p className="text-muted text-sm mt-1 leading-relaxed">{sub}</p>
+      </div>
     </div>
   );
 }
@@ -2141,6 +2003,70 @@ function ErrorLine({ msg }: { msg: string }) {
       <AlertCircle className="w-3.5 h-3.5 shrink-0" />
       {msg}
     </p>
+  );
+}
+
+/* HelpTip — contextual help shown on hover (desktop) or tap (mobile). */
+function HelpTip({ label, title, body }: { label: string; title: string; body: string }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("touchstart", handler);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("touchstart", handler);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <span
+      ref={wrapRef}
+      className="relative inline-flex align-middle"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
+        className="inline-flex items-center gap-1 text-[11px] font-semibold text-muted hover:text-accent transition-colors rounded-full px-1.5 py-0.5 border border-transparent hover:border-app"
+        aria-label={`${label} — ${title}`}
+        aria-expanded={open}
+      >
+        <HelpCircle className="w-3.5 h-3.5" />
+        <span>{label}</span>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.span
+            role="tooltip"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className="absolute z-50 top-full mt-2 start-0 w-72 max-w-[80vw] rounded-xl border border-app bg-[rgba(7,15,28,0.97)] backdrop-blur-md p-3 shadow-2xl text-start cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="block text-xs font-bold text-accent mb-1">{title}</span>
+            <span className="block text-xs text-muted leading-relaxed whitespace-pre-line" dir="auto">
+              {body}
+            </span>
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </span>
   );
 }
 
@@ -2323,6 +2249,226 @@ function ItemRowEditor({
             maxLength={500}
           />
         </Field>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Order-fields picker — structured list for "what to collect with each order"
+   ============================================================ */
+type OrderPickerT = {
+  orderCollectL: string;
+  orderCollectSub: string;
+  orderCollectRequired: string;
+  orderCollectAdd: string;
+  orderCollectCustom: string;
+  orderCollectCustomPh: string;
+  orderCollectCustomSave: string;
+  orderCollectCustomCancel: string;
+  orderCollectAllAdded: string;
+  remove: string;
+};
+
+function OrderFieldsPicker({
+  t,
+  rows,
+  labelOf,
+  isLocked,
+  presets,
+  pick,
+  onChange,
+}: {
+  t: OrderPickerT;
+  rows: OrderFieldRow[];
+  labelOf: (row: OrderFieldRow) => string;
+  isLocked: (row: OrderFieldRow) => boolean;
+  presets: { id: string; label: L }[];
+  pick: <T,>(p: { ar: T; en: T }) => T;
+  onChange: (rows: OrderFieldRow[]) => void;
+}) {
+  const [addOpen, setAddOpen] = useState(false);
+  const [customMode, setCustomMode] = useState(false);
+  const [customValue, setCustomValue] = useState("");
+  const addRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!addOpen) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (addRef.current && !addRef.current.contains(e.target as Node)) {
+        setAddOpen(false);
+        setCustomMode(false);
+        setCustomValue("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("touchstart", handler);
+    return () => {
+      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("touchstart", handler);
+    };
+  }, [addOpen]);
+
+  const presetSelectedIds = new Set(
+    rows.filter((r): r is { kind: "preset"; id: string } => r.kind === "preset").map((r) => r.id)
+  );
+  const remainingPresets = presets.filter((p) => !presetSelectedIds.has(p.id));
+
+  const addPreset = (id: string) => {
+    onChange([...rows, { kind: "preset", id }]);
+    setAddOpen(false);
+  };
+
+  const addCustom = () => {
+    const value = customValue.trim();
+    if (!value) return;
+    const id = `custom_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    onChange([...rows, { kind: "custom", id, label: value }]);
+    setCustomValue("");
+    setCustomMode(false);
+    setAddOpen(false);
+  };
+
+  const removeAt = (idx: number) => {
+    onChange(rows.filter((_, i) => i !== idx));
+  };
+
+  return (
+    <div>
+      <span className="block text-sm font-semibold mb-1.5">{t.orderCollectL}</span>
+      <p className="text-xs text-muted mb-3">{t.orderCollectSub}</p>
+
+      <div className="flex flex-wrap gap-2">
+        {rows.map((row, i) => {
+          const locked = isLocked(row);
+          return (
+            <span
+              key={row.kind === "preset" ? `p_${row.id}` : `c_${row.id}`}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold border",
+                locked
+                  ? "border-accent bg-[rgba(107,160,172,0.2)] text-app"
+                  : "border-app bg-[rgba(107,160,172,0.08)] text-app"
+              )}
+            >
+              <Check className="w-3.5 h-3.5 text-accent" />
+              <span>{labelOf(row)}</span>
+              {locked ? (
+                <span className="ms-1 text-[10px] font-bold uppercase tracking-wider text-accent opacity-80">
+                  {t.orderCollectRequired}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  aria-label={t.remove}
+                  onClick={() => removeAt(i)}
+                  className="ms-1 -me-1 w-5 h-5 rounded-full flex items-center justify-center text-muted hover:text-danger hover:bg-[rgba(248,113,113,0.12)] transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </span>
+          );
+        })}
+
+        <div ref={addRef} className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setAddOpen((o) => !o);
+              setCustomMode(false);
+              setCustomValue("");
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold border border-dashed border-strong text-muted hover:text-accent hover:border-accent transition-colors"
+            aria-expanded={addOpen}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            {t.orderCollectAdd}
+          </button>
+          <AnimatePresence>
+            {addOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.15 }}
+                className="absolute z-40 top-full mt-2 start-0 min-w-[260px] max-w-[90vw] rounded-xl border border-app bg-[rgba(7,15,28,0.97)] backdrop-blur-md p-2 shadow-2xl"
+              >
+                {!customMode && (
+                  <>
+                    {remainingPresets.length === 0 ? (
+                      <p className="text-xs text-muted px-2 py-1.5">{t.orderCollectAllAdded}</p>
+                    ) : (
+                      <ul className="max-h-64 overflow-y-auto">
+                        {remainingPresets.map((p) => (
+                          <li key={p.id}>
+                            <button
+                              type="button"
+                              onClick={() => addPreset(p.id)}
+                              className="w-full text-start px-3 py-2 rounded-lg text-sm hover:bg-[rgba(107,160,172,0.1)] transition-colors flex items-center gap-2"
+                            >
+                              <Plus className="w-3.5 h-3.5 text-accent shrink-0" />
+                              {pick(p.label)}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="border-t border-app mt-1.5 pt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setCustomMode(true)}
+                        className="w-full text-start px-3 py-2 rounded-lg text-sm hover:bg-[rgba(107,160,172,0.1)] transition-colors flex items-center gap-2 text-accent font-semibold"
+                      >
+                        <Plus className="w-3.5 h-3.5 shrink-0" />
+                        {t.orderCollectCustom}
+                      </button>
+                    </div>
+                  </>
+                )}
+                {customMode && (
+                  <div className="p-1.5 space-y-2 w-72 max-w-[80vw]">
+                    <input
+                      autoFocus
+                      className="input-base text-sm"
+                      placeholder={t.orderCollectCustomPh}
+                      value={customValue}
+                      onChange={(e) => setCustomValue(e.target.value.slice(0, 80))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addCustom();
+                        }
+                      }}
+                      maxLength={80}
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCustomMode(false);
+                          setCustomValue("");
+                        }}
+                        className="btn-ghost !py-1.5 !px-3 text-xs"
+                      >
+                        {t.orderCollectCustomCancel}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={addCustom}
+                        disabled={!customValue.trim()}
+                        className="btn-primary !py-1.5 !px-3 text-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        {t.orderCollectCustomSave}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   );

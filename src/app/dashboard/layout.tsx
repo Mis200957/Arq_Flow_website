@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { resolveCapabilities } from "@/lib/capabilities";
 import DashboardShell from "./DashboardShell";
+import SuspendedScreen from "./SuspendedScreen";
+import { PAYMENT_ACCOUNTS, type PaymentChannel } from "@/lib/plans";
 
 export default async function DashboardLayout({
   children,
@@ -30,6 +32,56 @@ export default async function DashboardLayout({
     .single();
 
   if (!business) redirect("/onboarding");
+
+  // Suspended businesses can't access ANY part of the dashboard. We hard-block
+  // here (server-side) and render a renewal screen instead. Once the admin
+  // approves the renewal payment, applySubscriptionPayment flips the row back
+  // to active (and tops up usage_counters); a realtime listener in the
+  // SuspendedScreen refreshes the page automatically.
+  if (business.status === "suspended") {
+    const planQ = supabase.from("plans").select("*").eq("id", business.plan_id).single();
+    const usageQ = supabase
+      .from("usage_counters")
+      .select("*")
+      .eq("business_id", business.id)
+      .order("period_start", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const settingsQ = supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["payment_accounts", "payment_instapay", "payment_vodafone", "payment_wepay"]);
+
+    const [{ data: planFull }, { data: usage }, { data: settings }] = await Promise.all([
+      planQ,
+      usageQ,
+      settingsQ,
+    ]);
+
+    // Resolve receiving accounts (DB -> static fallback).
+    const settingsMap = Object.fromEntries((settings ?? []).map((s) => [s.key, s.value]));
+    const acctObj = (settingsMap["payment_accounts"] ?? {}) as Record<string, unknown>;
+    const accounts: Record<PaymentChannel, string> = {
+      instapay: String(
+        acctObj.instapay ?? settingsMap["payment_instapay"] ?? PAYMENT_ACCOUNTS.instapay.number
+      ),
+      vodafone_cash: String(
+        acctObj.vodafone_cash ?? settingsMap["payment_vodafone"] ?? PAYMENT_ACCOUNTS.vodafone_cash.number
+      ),
+      wepay: String(
+        acctObj.wepay ?? settingsMap["payment_wepay"] ?? PAYMENT_ACCOUNTS.wepay.number
+      ),
+    };
+
+    return (
+      <SuspendedScreen
+        business={business}
+        plan={planFull}
+        usage={usage}
+        accounts={accounts}
+      />
+    );
+  }
 
   // Plan capabilities drive which modules/features this tenant can use.
   const { data: plan } = await supabase
