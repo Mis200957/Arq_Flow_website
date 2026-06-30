@@ -285,6 +285,10 @@ async function applySubscriptionPayment(
     plan.token_budget_egp ?? Number(plan.monthly_fee_egp) - Number(plan.margin_egp ?? 0)
   );
   const isPlanChange = String(plan.id) !== String(business.plan_id);
+  // Capture pre-renewal status: if the bot was suspended (subscription expired
+  // → n8n had unpublished it), we need to call n8n back to re-publish after
+  // the wallet is topped up and the business flips back to 'active'.
+  const wasSuspended = business.status === "suspended";
 
   // New billing window = one calendar month from today (same day next month).
   const nextBilling = new Date();
@@ -359,6 +363,61 @@ async function applySubscriptionPayment(
     entity_id: payment.id,
     diff: { plan: plan.id, plan_change: isPlanChange, balance_egp: wallet?.balance_egp ?? null, expires_on: periodEnd },
   });
+
+  // If the bot was suspended (subscription had expired → n8n unpublished it),
+  // tell n8n to re-publish it now that the wallet has been topped up. Fire-and-
+  // log; failure here doesn't roll back the renewal — ops can retry from the
+  // automation_logs row.
+  if (wasSuspended) {
+    const publishUrl =
+      process.env.N8N_PUBLISH_AFTER_RENEW_URL
+      ?? "https://bc1b1373.kube-ops.com/webhook/publish_bot_after_renew";
+    const secret = process.env.N8N_WEBHOOK_SECRET ?? "";
+    const publishPayload = {
+      event: "publish_bot_after_renew",
+      source: "arqflow-platform",
+      business_id: business.id,
+      order_id: business.order_id,
+      client_id: business.order_id,
+      plan_id: plan.id,
+      workflow_id: business.workflow_id ?? null,
+      webhook_path: business.webhook_path ?? null,
+      instance_name: business.instance_name ?? null,
+      whatsapp_number: business.whatsapp_number ?? null,
+      wallet: {
+        balance_egp: wallet?.balance_egp ?? null,
+        wallet_egp: wallet?.wallet_egp ?? null,
+        expires_on: periodEnd,
+      },
+      payment_id: payment.id,
+    };
+    let publishOk = false;
+    let publishError: string | null = null;
+    try {
+      const signature = crypto
+        .createHmac("sha256", secret)
+        .update(JSON.stringify(publ// test
+ad))
+        .digest("hex");
+      const res = await fetch(publishUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-ArqFlow-Signature": signature },
+        body: JSON.stringify(publishPayload),
+        signal: AbortSignal.timeout(15_000),
+      });
+      publishOk = res.ok;
+      if (!res.ok) publishError = `publish_bot_after_renew returned ${res.status}`;
+    } catch (e) {
+      publishError = e instanceof Error ? e.message : "publish_bot_after_renew unreachable";
+    }
+    await admin.from("automation_logs").insert({
+      business_id: business.id,
+      workflow: "bot_publish",
+      event: publishOk ? "published_after_renew" : "publish_after_renew_failed",
+      level: publishOk ? "info" : "error",
+      payload: { payment_id: payment.id, plan_id: plan.id, error: publishError } as never,
+    });
+  }
 
   return {
     ok: true, credentials: null,
