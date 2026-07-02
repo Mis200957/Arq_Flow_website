@@ -32,7 +32,11 @@ type Business = {
   description: string | null;
 };
 
-const STATUS_FILTERS = ["all", "active", "pending_approval", "provisioning", "suspended", "draft", "cancelled"];
+const STATUS_FILTERS = ["all", "active", "pending_approval", "provisioning", "qr_pending", "under_review", "provision_failed", "suspended", "draft", "cancelled"];
+
+/** Statuses that belong to the provisioning flow — final activation must run
+ *  the internal checks endpoint instead of a raw status change. */
+const PROVISIONING_STATUSES = ["provisioning", "qr_pending", "under_review", "provision_failed"];
 
 interface Props {
   businesses: Business[];
@@ -90,6 +94,38 @@ export default function ClientsClient({ businesses: initial, usageMap }: Props) 
       success(`Business ${status === "active" ? "activated" : "suspended"}`);
     } catch (e) {
       error("Action failed", (e as Error).message);
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  /**
+   * Final activation for businesses inside the provisioning flow. Runs the
+   * internal checks (workflow created, instance created, WhatsApp connected)
+   * server-side; if a check fails the admin may force-activate after confirm.
+   */
+  async function finalActivate(id: string, force = false) {
+    setLoading(id);
+    try {
+      const res = await fetch(`/api/admin/clients/${id}/activate${force ? "?force=1" : ""}`, {
+        method: "POST",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.status === 409 && json.checks) {
+        const failed = Object.entries(json.checks)
+          .filter(([, ok]) => !ok)
+          .map(([k]) => k.replace(/_/g, " "))
+          .join(", ");
+        if (window.confirm(`Checks failed: ${failed}.\nActivate anyway?`)) {
+          await finalActivate(id, true);
+        }
+        return;
+      }
+      if (!res.ok) throw new Error(json.error ?? "Failed");
+      setBusinesses((prev) => prev.map((b) => (b.id === id ? { ...b, status: "active" } : b)));
+      success("Bot activated — checks passed ✅");
+    } catch (e) {
+      error("Activation failed", (e as Error).message);
     } finally {
       setLoading(null);
     }
@@ -198,7 +234,19 @@ export default function ClientsClient({ businesses: initial, usageMap }: Props) 
                         <td className="text-muted text-sm">{formatDate(b.created_at, "en")}</td>
                         <td onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1">
-                            {b.status !== "active" && b.status !== "draft" && (
+                            {PROVISIONING_STATUSES.includes(b.status) && (
+                              <button
+                                onClick={() => finalActivate(b.id)}
+                                disabled={loading === b.id}
+                                className="btn-ghost !p-1.5 text-success hover:bg-success/10"
+                                title="Run checks & activate"
+                              >
+                                <ShieldCheck className="w-4 h-4" />
+                              </button>
+                            )}
+                            {!PROVISIONING_STATUSES.includes(b.status) &&
+                              b.status !== "active" &&
+                              b.status !== "draft" && (
                               <button
                                 onClick={() => changeStatus(b.id, "active")}
                                 disabled={loading === b.id}

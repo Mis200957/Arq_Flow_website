@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveCapabilities } from "@/lib/capabilities";
 import DashboardShell from "./DashboardShell";
 import SuspendedScreen from "./SuspendedScreen";
+import ProvisioningScreen from "./ProvisioningScreen";
 import { PAYMENT_ACCOUNTS, type PaymentChannel } from "@/lib/plans";
 
 export default async function DashboardLayout({
@@ -32,6 +33,19 @@ export default async function DashboardLayout({
     .single();
 
   if (!business) redirect("/onboarding");
+
+  // Provisioning flow: after payment approval the client doesn't land in the
+  // dashboard — they get the staged provisioning experience (creating bot →
+  // WhatsApp QR linking → internal review) until the admin's final activation
+  // flips the row to 'active'. Realtime + polling inside the screen advance
+  // it automatically.
+  if (
+    ["provisioning", "qr_pending", "under_review", "provision_failed"].includes(
+      business.status ?? ""
+    )
+  ) {
+    return <ProvisioningScreen business={business} />;
+  }
 
   // Suspended businesses can't access ANY part of the dashboard. We hard-block
   // here (server-side) and render a renewal screen instead. Once the admin

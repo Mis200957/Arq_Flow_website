@@ -1,12 +1,20 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { adminChatIds, sendMessage } from "@/lib/telegram";
 import type { Json } from "@/lib/database.types";
 
 /**
  * POST /api/n8n/callback
- * Called by the n8n Bot Factory after provisioning completes (or fails).
+ * Called by n8n (Bot Factory / instance-status relay) at each provisioning step.
  * Secured with HMAC: X-ArqFlow-Signature = hex(hmac_sha256(rawBody, N8N_WEBHOOK_SECRET))
+ *
+ * Provisioning state machine (businesses.status):
+ *   provisioning      → factory building workflow + Evolution instance
+ *   qr_pending        → provision_complete received; client sees QR-prep screen
+ *   under_review      → instance_status: connected; internal checks + admin final OK
+ *   active            → admin confirms via POST /api/admin/clients/:id/activate
+ *   provision_failed  → provision_failed received; admin investigates + retries
  *
  * Body:
  * {
@@ -16,7 +24,6 @@ import type { Json } from "@/lib/database.types";
  *   instance_name?: string,
  *   webhook_path?: string,
  *   system_prompt?: string,
- *   qr_sent?: boolean,
  *   status?: string,           // for instance_status: connected|disconnected|qr_pending
  *   connected_number?: string,
  *   error?: string
@@ -48,23 +55,29 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   const { data: business } = await admin
     .from("businesses")
-    .select("id, owner_id, order_id, business_name")
+    .select("id, owner_id, order_id, business_name, status")
     .eq("id", businessId)
     .single();
   if (!business) return NextResponse.json({ error: "Business not found" }, { status: 404 });
 
+  /** Fire-and-forget Telegram note to all admin chats. */
+  const telegramAdmins = async (text: string) => {
+    await Promise.allSettled(adminChatIds().map((id) => sendMessage(id, text)));
+  };
+
   switch (event) {
     case "provision_complete": {
+      // Bot workflow + Evolution instance exist. NOT active yet — the client
+      // must link WhatsApp (QR) and the admin must give the final OK.
       await admin
         .from("businesses")
         .update({
-          status: "active",
+          status: "qr_pending",
           workflow_id: (body.workflow_id as string) ?? null,
           instance_name: (body.instance_name as string) ?? null,
           webhook_path: (body.webhook_path as string) ?? null,
           system_prompt: (body.system_prompt as string) ?? null,
-          activated_at: new Date().toISOString(),
-          health_status: "healthy",
+          health_status: "provisioned",
           last_health_check: new Date().toISOString(),
         })
         .eq("id", businessId);
@@ -74,9 +87,8 @@ export async function POST(req: Request) {
           {
             business_id: businessId,
             instance_name: String(body.instance_name),
-            evolution_status: body.qr_sent ? "qr_pending" : "created",
+            evolution_status: "qr_pending",
             webhook_url: (body.webhook_path as string) ?? null,
-            qr_sent_at: body.qr_sent ? new Date().toISOString() : null,
           },
           { onConflict: "instance_name" }
         );
@@ -87,18 +99,24 @@ export async function POST(req: Request) {
           user_id: business.owner_id,
           business_id: businessId,
           type: "provision_complete",
-          title: "Your AI agent is live 🎉",
-          body: "Scan the QR code sent to your WhatsApp to connect your number.",
-          link: "/dashboard/whatsapp",
+          title: "بوتك جاهز للربط 📲",
+          body: "ادخل على لوحة التحكم لربط رقم الواتساب عن طريق QR code.",
+          link: "/dashboard",
         });
       }
+
+      await telegramAdmins(
+        `🏭 <b>تم إنشاء البوت</b>\n\n` +
+          `🏢 ${business.business_name}\n🆔 <code>${business.order_id}</code>\n` +
+          `⏳ في انتظار ربط العميل للواتساب (QR).`
+      );
       break;
     }
 
     case "provision_failed": {
       await admin
         .from("businesses")
-        .update({ status: "pending_approval", health_status: "provision_failed" })
+        .update({ status: "provision_failed", health_status: "provision_failed" })
         .eq("id", businessId);
       const { data: admins } = await admin.from("profiles").select("id").eq("role", "admin");
       if (admins?.length) {
@@ -113,6 +131,11 @@ export async function POST(req: Request) {
           }))
         );
       }
+      await telegramAdmins(
+        `🚨 <b>فشل إنشاء البوت</b>\n\n` +
+          `🏢 ${business.business_name}\n🆔 <code>${business.order_id}</code>\n` +
+          `❌ ${String(body.error ?? "Unknown error")}`
+      );
       break;
     }
 
@@ -128,6 +151,54 @@ export async function POST(req: Request) {
             health_status: status === "connected" ? "healthy" : "degraded",
           })
           .eq("instance_name", String(body.instance_name));
+      }
+
+      // First successful WhatsApp link during provisioning → move the business
+      // to under_review. The client sees the "checking your bot" screen; the
+      // admin runs the internal checks and gives the final confirmation.
+      if (
+        status === "connected" &&
+        ["provisioning", "qr_pending", "provision_failed"].includes(business.status ?? "")
+      ) {
+        await admin
+          .from("businesses")
+          .update({
+            status: "under_review",
+            health_status: "whatsapp_connected",
+            last_health_check: new Date().toISOString(),
+          })
+          .eq("id", businessId);
+
+        const { data: admins } = await admin.from("profiles").select("id").eq("role", "admin");
+        if (admins?.length) {
+          await admin.from("notifications").insert(
+            admins.map((a) => ({
+              user_id: a.id,
+              business_id: businessId,
+              type: "whatsapp_connected",
+              title: `WhatsApp connected: ${business.business_name}`,
+              body: "Run the final checks and confirm activation from the clients page.",
+              link: "/admin/clients",
+            }))
+          );
+        }
+        await telegramAdmins(
+          `✅ <b>تم ربط الواتساب</b>\n\n` +
+            `🏢 ${business.business_name}\n🆔 <code>${business.order_id}</code>\n` +
+            `📞 ${String(body.connected_number ?? "—")}\n\n` +
+            `🔎 راجع البوت واعمل التفعيل النهائي من لوحة الأدمن.`
+        );
+      }
+
+      // WhatsApp dropped on a live bot → flag health + tell the admin.
+      if (status === "disconnected" && business.status === "active") {
+        await admin
+          .from("businesses")
+          .update({ health_status: "whatsapp_disconnected", last_health_check: new Date().toISOString() })
+          .eq("id", businessId);
+        await telegramAdmins(
+          `⚠️ <b>انقطع اتصال الواتساب</b>\n\n🏢 ${business.business_name}\n🆔 <code>${business.order_id}</code>`
+        );
       }
       break;
     }

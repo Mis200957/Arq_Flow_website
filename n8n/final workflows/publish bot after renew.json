@@ -1,0 +1,197 @@
+{
+  "name": "🔁 publish bot after renew",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "publish_bot_after_renew",
+        "options": {}
+      },
+      "id": "cccc1111-renew-4444-8888-webhook00001",
+      "name": "RENEW_WEBHOOK",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Reject any request without a valid platform HMAC signature.\n * Requires n8n env: ARQFLOW_HMAC_SECRET (+ NODE_FUNCTION_ALLOW_BUILTIN=crypto). */\nconst crypto = require('crypto');\nconst secret = $env.ARQFLOW_HMAC_SECRET || '';\nif (!secret) throw new Error('ARQFLOW_HMAC_SECRET not set in n8n environment');\nconst item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\nconst provided = headers['x-arqflow-signature'] || headers['X-ArqFlow-Signature'] || '';\nconst expected = crypto.createHmac('sha256', secret).update(JSON.stringify(body)).digest('hex');\nconst a = Buffer.from(String(provided));\nconst b = Buffer.from(expected);\nif (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {\n  throw new Error('Invalid X-ArqFlow-Signature — request rejected');\n}\nreturn $input.all();"
+      },
+      "id": "cccc2222-renew-4444-8888-hmac00000001",
+      "name": "VALIDATE_HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "r1",
+              "leftValue": "={{ $json.body.was_suspended }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "r2",
+              "leftValue": "={{ $json.body.workflow_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cccc3333-renew-4444-8888-ifsuspend001",
+      "name": "WAS_SUSPENDED?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_BASE_URL }}/api/v1/workflows/{{ $json.body.workflow_id }}/activate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "={{ $env.N8N_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "cccc4444-renew-4444-8888-activate0001",
+      "name": "ACTIVATE_BOT_WORKFLOW",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        620,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.EVOLUTION_API_URL }}/instance/connect/{{ $json.body.instance_name }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.EVOLUTION_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "cccc5555-renew-4444-8888-evoconnect01",
+      "name": "WAKE_EVOLUTION_INSTANCE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        840,
+        -80
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "cccc6666-renew-4444-8888-noop00000001",
+      "name": "CONFIG_REFRESH_ONLY",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        620,
+        100
+      ]
+    }
+  ],
+  "connections": {
+    "RENEW_WEBHOOK": {
+      "main": [
+        [
+          {
+            "node": "VALIDATE_HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VALIDATE_HMAC": {
+      "main": [
+        [
+          {
+            "node": "WAS_SUSPENDED?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WAS_SUSPENDED?": {
+      "main": [
+        [
+          {
+            "node": "ACTIVATE_BOT_WORKFLOW",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CONFIG_REFRESH_ONLY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ACTIVATE_BOT_WORKFLOW": {
+      "main": [
+        [
+          {
+            "node": "WAKE_EVOLUTION_INSTANCE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": true
+}

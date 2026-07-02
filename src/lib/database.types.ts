@@ -3464,6 +3464,9 @@ export type Database = {
         | "pending_payment"
         | "pending_approval"
         | "provisioning"
+        | "qr_pending"
+        | "under_review"
+        | "provision_failed"
         | "active"
         | "suspended"
         | "cancelled"
@@ -3615,6 +3618,9 @@ export const Constants = {
         "pending_payment",
         "pending_approval",
         "provisioning",
+        "qr_pending",
+        "under_review",
+        "provision_failed",
         "active",
         "suspended",
         "cancelled",

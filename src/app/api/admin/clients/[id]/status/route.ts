@@ -25,7 +25,8 @@ export async function PATCH(
   const body = await req.json().catch(() => ({}));
   const { status } = body as { status?: string };
 
-  if (!status || !["active", "suspended", "provisioning"].includes(status)) {
+  const allowed = ["active", "suspended", "provisioning", "qr_pending", "under_review"] as const;
+  if (!status || !allowed.includes(status as (typeof allowed)[number])) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
@@ -33,7 +34,7 @@ export async function PATCH(
 
   const { error } = await db
     .from("businesses")
-    .update({ status: status as "active" | "suspended" | "provisioning" })
+    .update({ status: status as (typeof allowed)[number] })
     .eq("id", id);
 
   if (error) {

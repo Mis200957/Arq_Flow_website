@@ -1,0 +1,249 @@
+{
+  "name": "🛰️ AUTOMATION_ROUTER",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "5a7acddc-5fd5-429f-8020-bd31fafd889c",
+      "name": "CRON",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ⚙️ EDIT ONCE: map automation workflows -> imported sub-workflow IDs.\nconst cfg={\n  notify:'SET_SHARED_NOTIFY_DISPATCH_ID', usage_threshold:'SET_SHARED_NOTIFY_DISPATCH_ID',\n  regenerate_system_prompt:'SET_SHARED_GENERATE_PROMPT_ID',\n  kb_rebuild:'SET_SHARED_REBUILD_KNOWLEDGE_ID', ai_retrain:'SET_SHARED_REBUILD_KNOWLEDGE_ID',\n  kb_file_process:'SET_SHARED_PROCESS_DOCUMENT_ID', subscription_request:null, ai_restart_context:null, bot_config_sync:null\n};\nreturn {json:{cfg}};"
+      },
+      "id": "ad53c3c1-5c26-44b7-9c10-fa5d7f4710dc",
+      "name": "CONFIG",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://zjathejcdkpxjyvululp.supabase.co/rest/v1/automation_logs?select=id,business_id,workflow,event,payload&processed_at=is.null&order=created_at.asc&limit=25",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "906e309a-3acc-4664-81a6-2281102ee55d",
+      "name": "FETCH_PENDING",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg=$('CONFIG').first().json.cfg;\nconst rows=$('FETCH_PENDING').first().json;\nconst list=Array.isArray(rows)?rows:[];\nconst out=[];\nfor(const r of list){\n  const target=cfg[r.workflow];\n  // Always mark processed (even unmapped) to avoid re-polling; mapped ones dispatch.\n  const payload=Object.assign({business_id:r.business_id,_log_id:r.id,_workflow:r.workflow,target_wf_id:target||''},(r.payload&&typeof r.payload==='object')?r.payload:{});\n  out.push({json:payload});\n}\nreturn out;"
+      },
+      "id": "7751e05f-2166-47ab-a663-221da5e3d7bc",
+      "name": "ROUTE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "e5cd7996-5e0c-426f-b952-bad158724652",
+              "leftValue": "={{ !!$json.target_wf_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1c34bae6-4b5b-4184-8687-67305b91489b",
+      "name": "HAS_TARGET",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $json.target_wf_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "96f1ce49-1b13-43f7-866e-99345499afda",
+      "name": "EXECUTE_SUB",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        -100
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://zjathejcdkpxjyvululp.supabase.co/rest/v1/automation_logs?id=eq.'+$json._log_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({processed_at:new Date().toISOString()}) }}"
+      },
+      "id": "4301302f-401e-45da-ad42-516331ecc0e3",
+      "name": "MARK_PROCESSED",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        140
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "CRON": {
+      "main": [
+        [
+          {
+            "node": "CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONFIG": {
+      "main": [
+        [
+          {
+            "node": "FETCH_PENDING",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FETCH_PENDING": {
+      "main": [
+        [
+          {
+            "node": "ROUTE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ROUTE": {
+      "main": [
+        [
+          {
+            "node": "HAS_TARGET",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MARK_PROCESSED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HAS_TARGET": {
+      "main": [
+        [
+          {
+            "node": "EXECUTE_SUB",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

@@ -114,8 +114,9 @@ export default function DashboardShell({ profile, business, capabilities, unread
   const [notifications, setNotifications] = useState<Tables<"notifications">[]>([]);
   const [signingOut, setSigningOut] = useState(false);
 
-  const isProvisioning =
-    business.status === "provisioning" || business.status === "pending_approval";
+  // 'provisioning' and later stages are handled by ProvisioningScreen in the
+  // layout; this placeholder now only covers the pre-approval waiting state.
+  const isProvisioning = business.status === "pending_approval";
 
   // Dynamic, industry-aware navigation. Unknown/legacy business types
   // fall back to the full current navigation (100% backward compatible).

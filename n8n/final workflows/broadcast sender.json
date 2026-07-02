@@ -1,0 +1,522 @@
+{
+  "name": "📣 broadcast sender",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "eeee0001-bcst-4444-8888-schedule0001",
+      "name": "EVERY_MINUTE",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/broadcasts?status=eq.queued&select=*",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "eeee0002-bcst-4444-8888-fetchqueue01",
+      "name": "FETCH_QUEUED",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Keep only broadcasts that are due: immediate (no scheduled_at) or\n * scheduled time has passed. */\nconst rows = $input.first().json;\nconst list = Array.isArray(rows) ? rows : [];\nconst now = Date.now();\nreturn list\n  .filter(b => !b.scheduled_at || Date.parse(b.scheduled_at) <= now)\n  .map(b => ({ json: b }));"
+      },
+      "id": "eeee0003-bcst-4444-8888-filterdue001",
+      "name": "FILTER_DUE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "eeee0004-bcst-4444-8888-bcloop000001",
+      "name": "BROADCAST_LOOP",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/broadcasts?id=eq.{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\"status\":\"sending\"}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "eeee0005-bcst-4444-8888-marksending1",
+      "name": "MARK_SENDING",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/businesses?id=eq.{{ $('BROADCAST_LOOP').item.json.business_id }}&select=id,status,instance_name",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "eeee0006-bcst-4444-8888-getbiz000001",
+      "name": "GET_BUSINESS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/customers?business_id=eq.{{ $('BROADCAST_LOOP').item.json.business_id }}&select=phone,tags,name",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "eeee0007-bcst-4444-8888-getcust00001",
+      "name": "GET_CUSTOMERS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Build one outgoing message per matching customer. Skips gracefully when\n * the business isn't active or has no Evolution instance. */\nconst broadcast = $('BROADCAST_LOOP').first().json;\nconst bizRows = $('GET_BUSINESS').first().json;\nconst biz = Array.isArray(bizRows) ? bizRows[0] : bizRows;\nconst custRows = $input.first().json;\nconst customers = Array.isArray(custRows) ? custRows : [];\n\nif (!biz || biz.status !== 'active' || !biz.instance_name) {\n  return [{ json: { _skip: true, reason: !biz ? 'business not found' : (biz.status !== 'active' ? 'business not active' : 'no instance'), broadcast_id: broadcast.id } }];\n}\n\nconst tags = Array.isArray(broadcast.audience_tags) ? broadcast.audience_tags : [];\nconst targets = customers.filter(c => {\n  if (!c.phone) return false;\n  if (tags.length === 0) return true;\n  const ct = Array.isArray(c.tags) ? c.tags : [];\n  return tags.some(t => ct.includes(t));\n});\n\nif (targets.length === 0) {\n  return [{ json: { _skip: true, reason: 'no matching recipients', broadcast_id: broadcast.id } }];\n}\n\nreturn targets.map(c => ({ json: {\n  _skip: false,\n  broadcast_id: broadcast.id,\n  instance_name: biz.instance_name,\n  phone: String(c.phone).replace(/[^0-9]/g, ''),\n  text: broadcast.content,\n} }));"
+      },
+      "id": "eeee0008-bcst-4444-8888-prepmsg00001",
+      "name": "PREP_MESSAGES",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b1",
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "eeee0009-bcst-4444-8888-hasrcpt00001",
+      "name": "HAS_RECIPIENTS?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1620,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "eeee0010-bcst-4444-8888-sendloop0001",
+      "name": "SEND_LOOP",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1840,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $json.instance_name }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.EVOLUTION_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ number: $json.phone, text: $json.text }) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "id": "eeee0011-bcst-4444-8888-sendtext0001",
+      "name": "SEND_TEXT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2060,
+        100
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 4
+      },
+      "id": "eeee0012-bcst-4444-8888-wait40000001",
+      "name": "WAIT_4S",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2260,
+        100
+      ],
+      "webhookId": "eeee0012-bcst-wait-8888-wait40000001"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Count sent/failed and build the final PATCH for the broadcasts row. */\nconst broadcast = $('BROADCAST_LOOP').first().json;\nlet sent = 0, failed = 0, skipped = null;\ntry {\n  const results = $('SEND_TEXT').all();\n  for (const r of results) {\n    if (r.json && (r.json.error || r.json._error)) failed++; else sent++;\n  }\n} catch (e) { /* SEND_TEXT never ran (skip path) */ }\ntry {\n  const first = $('PREP_MESSAGES').first().json;\n  if (first && first._skip) skipped = first.reason || 'skipped';\n} catch (e) {}\nconst status = skipped ? 'failed' : (failed > 0 && sent === 0 ? 'failed' : 'sent');\nreturn [{ json: {\n  broadcast_id: broadcast.id,\n  patch: { status, sent_count: sent, failed_count: failed },\n} }];"
+      },
+      "id": "eeee0013-bcst-4444-8888-tally0000001",
+      "name": "TALLY",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2060,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/broadcasts?id=eq.{{ $json.broadcast_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.patch) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "eeee0014-bcst-4444-8888-markdone0001",
+      "name": "MARK_DONE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2260,
+        -120
+      ]
+    }
+  ],
+  "connections": {
+    "EVERY_MINUTE": {
+      "main": [
+        [
+          {
+            "node": "FETCH_QUEUED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FETCH_QUEUED": {
+      "main": [
+        [
+          {
+            "node": "FILTER_DUE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FILTER_DUE": {
+      "main": [
+        [
+          {
+            "node": "BROADCAST_LOOP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BROADCAST_LOOP": {
+      "main": [
+        [],
+        [
+          {
+            "node": "MARK_SENDING",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MARK_SENDING": {
+      "main": [
+        [
+          {
+            "node": "GET_BUSINESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_BUSINESS": {
+      "main": [
+        [
+          {
+            "node": "GET_CUSTOMERS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_CUSTOMERS": {
+      "main": [
+        [
+          {
+            "node": "PREP_MESSAGES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREP_MESSAGES": {
+      "main": [
+        [
+          {
+            "node": "HAS_RECIPIENTS?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HAS_RECIPIENTS?": {
+      "main": [
+        [
+          {
+            "node": "SEND_LOOP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "TALLY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND_LOOP": {
+      "main": [
+        [
+          {
+            "node": "TALLY",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SEND_TEXT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND_TEXT": {
+      "main": [
+        [
+          {
+            "node": "WAIT_4S",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WAIT_4S": {
+      "main": [
+        [
+          {
+            "node": "SEND_LOOP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TALLY": {
+      "main": [
+        [
+          {
+            "node": "MARK_DONE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MARK_DONE": {
+      "main": [
+        [
+          {
+            "node": "BROADCAST_LOOP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": true
+}

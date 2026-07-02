@@ -81,26 +81,13 @@
           "convertFieldsToString": false
         }
       },
-      "id": "554fa6bc-f252-46b6-b897-55a7c6d28053",
+      "id": "382fedff-4659-454d-8f5f-13f6c352d924",
       "name": "escalate",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        3056,
-        3072
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const transcription = ($json.content?.parts?.[0]?.text ?? '').trim();\nconst ctx = $('NORMALIZE_INPUT1').first().json;\nif (!transcription) { return { json: { ...ctx, message_text: '', _audio_unclear: true } }; }\nreturn { json: { ...ctx, message_text: transcription, media_processed: true } };"
-      },
-      "id": "4b1d4b5b-3edf-4df5-b22a-ddff3a4dd95b",
-      "name": "EXTRACT_TRANSCRIPTION",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        528,
-        2064
+        1280,
+        128
       ]
     },
     {
@@ -110,13 +97,13 @@
         "instanceName": "={{ $('WEBHOOK_TRIGGER1').item.json.body.instance }}",
         "messageId": "={{ $('NORMALIZE_INPUT1').first().json.message_id }}"
       },
-      "id": "629511c8-18d6-4f6d-8660-66f9496d676e",
+      "id": "46c41d43-2224-48e7-93d3-b7a5c6f0a2c8",
       "name": "GET_MEDIA_BASE_IMAGE",
       "type": "n8n-nodes-evolution-api-english.evolutionApi",
       "typeVersion": 1,
       "position": [
-        80,
-        2320
+        -1472,
+        -1072
       ],
       "credentials": {
         "evolutionApi": {
@@ -131,13 +118,13 @@
         "sourceProperty": "data.base64",
         "options": {}
       },
-      "id": "ac051ef2-0359-459d-80ab-52c565b8cc32",
+      "id": "1b25f647-6a72-4c2f-8ece-d4902add99fd",
       "name": "CONVERT_TO_BINARY_IMAGE",
       "type": "n8n-nodes-base.convertToFile",
       "typeVersion": 1.1,
       "position": [
-        304,
-        2320
+        -1248,
+        -1072
       ]
     },
     {
@@ -153,13 +140,13 @@
         "inputType": "binary",
         "options": {}
       },
-      "id": "b599c41a-275f-41af-810b-490693abe91e",
+      "id": "73b5e78f-f3cc-4753-8513-b06c73c4135a",
       "name": "ANALYZE_IMAGE",
       "type": "@n8n/n8n-nodes-langchain.googleGemini",
       "typeVersion": 1.2,
       "position": [
-        528,
-        2320
+        -1024,
+        -1072
       ],
       "credentials": {
         "googlePalmApi": {
@@ -172,13 +159,13 @@
       "parameters": {
         "jsCode": "const ctx = $('NORMALIZE_INPUT1').first().json;\nconst imageDesc = ($json.content?.parts?.[0]?.text ?? 'صورة وردت من العميل').trim();\nconst combined = ctx.message_text ? `${ctx.message_text} [صورة: ${imageDesc}]` : `[صورة: ${imageDesc}]`;\nreturn { json: { ...ctx, message_text: combined, media_processed: true } };"
       },
-      "id": "5557d271-91fb-4b4b-8dee-eb8668ca2199",
+      "id": "b53c5d08-d006-4196-87b9-7765bcad214a",
       "name": "BUILD_IMAGE_TEXT",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        752,
-        2320
+        -800,
+        -1072
       ]
     },
     {
@@ -186,13 +173,13 @@
         "model": "openai/gpt-4o-mini",
         "options": {}
       },
-      "id": "bb7fe189-b99c-4c1d-8b72-a54193fc1320",
+      "id": "1ca46fcd-ee2f-4ff5-911e-e46c1102d5c9",
       "name": "MAIN_AGENT_LLM",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
       "position": [
-        4704,
-        2816
+        1344,
+        0
       ],
       "credentials": {
         "openRouterApi": {
@@ -207,21 +194,22 @@
         "sessionKey": "={{ $('MERGE_CUSTOMER_PATHS1').item.json.id }}",
         "contextWindowLength": "=20"
       },
-      "id": "96b54daa-80b2-4a0b-beaf-74f791bbe517",
+      "id": "d01a02a6-516e-45dd-b258-076d818ed46b",
       "name": "MAIN_AGENT_MEMORY",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        3232,
-        2944
+        1456,
+        0
       ]
     },
     {
       "parameters": {
         "promptType": "define",
         "text": "={{ $('Edit Fields').item.json.message }}",
+        "needsFallback": true,
         "options": {
-          "systemMessage": "={{ (function(){ var c = $('TENANT_CONFIG1').first().json || {}; var cust = {}; try { cust = $('Edit Fields').item.json || {}; } catch(e){}\nc = c || {}; cust = cust || {};\n  var NL = String.fromCharCode(10);\n  var raw = String(c.business_type || '').trim().toLowerCase();\n  var AL = { medical: 'medical_center', hospital: 'medical_center', restaurant_cafe: 'restaurant', cafe: 'restaurant', realestate: 'real_estate', 'real-estate': 'real_estate', education: 'educational_center', educational: 'educational_center', school: 'educational_center', law_firm: 'lawyer', lawyer_office: 'lawyer', law: 'lawyer', beauty: 'salon', spa: 'salon', fitness: 'gym', services: 'service_company', service: 'service_company', online_store: 'ecommerce', shop: 'ecommerce' };\n  var bt = AL[raw] || raw;\n  var PB = {\n    restaurant: { role: 'مساعد مطعم: تعرض المنيو، تأخذ الطلبات، تحسب التوصيل، وتتابع الأوردر.', kind: 'commerce', mission: 'ترحّب بالعميل، تستلم أوردره بدقة، وتوفّر تجربة طلب سلسة من أول رسالة لحد تأكيد التوصيل.' },\n    ecommerce: { role: 'مساعد متجر إلكتروني: تبحث في المنتجات، تتحقق من التوافر، وتُنهي الشراء وتتابع الطلب.', kind: 'commerce', mission: 'ترحّب بالعميل، تساعده يلاقي المنتج المناسب، وتُنهي الشراء بدقة وتتابع الطلب.' },\n    store: { role: 'مساعد محل تجاري: تعرض المنتجات المتاحة وتستقبل الطلبات.', kind: 'commerce', mission: 'ترحّب بالعميل، تعرض المنتجات المتاحة، وتستقبل طلبه بدقة.' },\n    pharmacy: { role: 'مساعد صيدلية: تتحقق من توافر الأدوية والمنتجات وتستقبل الطلبات.', kind: 'commerce', mission: 'ترحّب بالعميل، تتحقق من توافر الأدوية والمنتجات، وتستقبل طلبه بدقة.' },\n    clinic: { role: 'مساعد عيادة: تعرض الأطباء والخدمات الطبية وتحجز/تلغي المواعيد.', kind: 'booking', mission: 'ترحّب بالمريض، تعرض الأطباء والخدمات، وتتولّى الحجز بدقة لحد تأكيد الموعد.' },\n    medical_center: { role: 'مساعد مركز طبي متعدد التخصصات للحجز وإدارة المواعيد.', kind: 'booking', mission: 'ترحّب بالمريض، توجّهه للقسم/الطبيب المناسب، وتتولّى الحجز بدقة.' },\n    salon: { role: 'مساعد صالون: تعرض الخدمات والأسعار وتحجز المواعيد مع الفريق.', kind: 'booking', mission: 'ترحّب بالعميل، تعرض الخدمات، وتحجز الموعد المناسب مع الفريق.' },\n    gym: { role: 'مساعد جيم: يشرح باقات العضوية والحصص والمدربين ويتولّى الاشتراك.', kind: 'booking', mission: 'ترحّب بالعميل، تشرح الباقات والحصص، وتتولّى الاشتراك أو حجز الحصة.' },\n    lawyer: { role: 'مساعد مكتب محاماة: يستقبل الاستشارات ويستعلم عن حالة القضايا ويسجّل الموكلين.', kind: 'booking', mission: 'ترحّب بالعميل، تستقبل طلب الاستشارة بدقة، وتحجز الموعد أو تستعلم عن القضية.' },\n    car_service: { role: 'مساعد صيانة سيارات: يستقبل طلبات الصيانة ويتابع أوامر الشغل.', kind: 'service', mission: 'ترحّب بالعميل، تستقبل طلب الصيانة بدقة، وتجدول الموعد وتتابع أمر الشغل.' },\n    service_company: { role: 'مساعد شركة خدمات: يستقبل الطلبات ويتابع أوامر الشغل.', kind: 'service', mission: 'ترحّب بالعميل، تستقبل طلب الخدمة بدقة، وتجدوله وتتابع تنفيذه.' },\n    hotel: { role: 'مساعد فندق: يعرض أنواع الغرف وأسعارها ويتولّى الحجوزات.', kind: 'hotel', mission: 'ترحّب بالضيف، تعرض الغرف المتاحة وأسعارها، وتتولّى الحجز لحد تأكيده.' },\n    real_estate: { role: 'مساعد عقارات: يبحث عن العقارات المناسبة ويسجّل الطلبات ويحجز المعاينات.', kind: 'realestate', mission: 'تفهم احتياج العميل، تعرض العقارات المناسبة، وتسجّل طلبه أو تحجز معاينة.' },\n    educational_center: { role: 'مساعد مركز تعليمي: يعرض الكورسات والمدرّسين ويتولّى تسجيل الطلاب.', kind: 'education', mission: 'ترحّب بالعميل، تعرّفه بالكورسات والمواعيد، وتتولّى التسجيل بدقة.' },\n    company: { role: 'مساعد أعمال عام: يجاوب على الاستفسارات ويعرّف بالخدمات.', kind: 'general', mission: 'ترحّب بالعميل، تجاوب على استفساراته، وتعرّفه بخدمات النشاط.' }\n  };\n  var pb = PB[bt] || { role: 'مساعد خدمة عملاء.', kind: 'general', mission: 'ترحّب بالعميل وتجاوب على استفساراته باحترافية.' };\n  var tools = (Array.isArray(c.enabled_tools) && c.enabled_tools.length) ? c.enabled_tools.slice() : [];\n  function has(t) { return tools.indexOf(t) !== -1; }\n\n  var botName = c.bot_name || c.business_name || 'المساعد الذكي';\n  var bizName = c.business_name || 'النشاط';\n  var role = (c.persona && c.persona.role_ar) || pb.role;\n  var tone = (c.persona && c.persona.tone) || c.brand_voice || c.tone_of_voice || 'احترافي وودود';\n  var lang = (Array.isArray(c.languages) && c.languages.length) ? c.languages.join('، ') : (c.language || 'العربية');\n  var hours = c.working_hours || 'غير محددة';\n  var currency = c.currency || 'ج.م';\n  var kb = c.knowledge_base || '';\n  var rules = c.rules || '';\n  var escMsg = c.escalation_message || 'تمام، بحوّلك لأحد أعضاء الفريق وهيرد عليك في أقرب وقت 🙏';\n  var pay = (Array.isArray(c.payment_methods) && c.payment_methods.length) ? c.payment_methods.join('، ') : '';\n\n  var P = [];\n\n  /* ── العنوان والمهمة ── */\n  P.push('أنت ' + botName + ' – المساعد الذكي الرسمي لـ ' + bizName + '.');\n  P.push('مهمتك: ' + pb.mission);\n\n  /* ── 🧠 الهوية وسياق العمل ── */\n  P.push(''); P.push('### 🧠 الهوية وسياق العمل');\n  P.push('- الدور: ' + role);\n  P.push('- أسلوب التواصل: ' + tone + ' باللغة ' + lang + '.');\n  P.push('- ساعات العمل: ' + hours);\n  P.push('- العملة: ' + currency);\n  if (c.location) P.push('- الموقع: ' + c.location);\n  if (pay) P.push('- طرق الدفع: ' + pay);\n  if (c.delivery_info) P.push('- التوصيل: ' + c.delivery_info);\n  if (c.min_order_value) P.push('- الحد الأدنى للأوردر: ' + c.min_order_value + ' ' + currency);\n\n  /* ── 📥 سياق العميل الحالي ── */\n  var custName = cust.name || cust.customer_name || '';\n  var custPhone = cust.phone || cust.sender_id || '';\n  var custSummary = cust.conversation_summary || '';\n  if (custName || custPhone || custSummary) {\n    P.push(''); P.push('### 📥 سياق العميل الحالي');\n    if (custName) P.push('- الاسم: ' + custName);\n    if (custPhone) P.push('- الرقم: ' + custPhone);\n    if (custSummary) P.push('- ملخص آخر تفاعل: ' + custSummary);\n  }\n\n  /* ── 📚 قاعدة المعرفة ── */\n  if (kb || rules) {\n    P.push(''); P.push('### 📚 قاعدة المعرفة والقواعد');\n    if (kb) P.push(kb);\n    if (rules) P.push(rules);\n  }\n\n  /* ── 💰 المنهجية الإلزامية حسب نوع النشاط ── */\n  var M = [];\n  if (pb.kind === 'commerce' && has('save_transaction')) {\n    M.push('### 💰 منهجية أخذ الطلب وحساب الأوردر (إلزامية)');\n    M.push('ممنوع منعًا باتًا تذكر سعر أو تحسب إجمالي اعتمادًا على ذاكرتك. اتبع التسلسل بحرفية:');\n    var k = 1;\n    if (has('fitch_products')) M.push('**' + (k++) + '.** أول ما العميل يبدأ طلب أو يسأل عن سعر صنف → استدعِ `fitch_products` فورًا لتحميل المنيو/المنتجات بأسعارها الحقيقية (مرة واحدة في الجلسة تكفي، واحتفظ بالنتيجة).');\n    M.push('**' + (k++) + '.** لكل صنف: دوّر في نتيجة `fitch_products` عن الاسم المطابق بالظبط. الأصناف المتشابهة في الاسم ممكن تختلف في الحجم/السعر (مثلاً \"نص\" غير \"ربع\") — لو فيه أكتر من صيغة اسأل العميل أنهي واحدة. خد السعر من الأداة كما هو.');\n    if (has('send_product_photo')) M.push('**' + (k++) + '.** لو العميل طلب صورة صنف → استخدم `send_product_photo` ومرّر `product_id` من نتيجة `fitch_products`.');\n    if (has('coupons')) M.push('**' + (k++) + '.** لو معاه كوبون → تحقق منه عبر `coupons` قبل التأكيد.');\n    if (has('delivery_zones')) M.push('**' + (k++) + '.** لو الطلب توصيل → اسأل عن المنطقة وهات رسومها من `delivery_zones`.');\n    if (has('Calculator')) M.push('**' + (k++) + '.** احسب عبر `Calculator`: إجمالي الأصناف = Σ(سعر × كمية)، والمجموع النهائي = الأصناف + التوصيل − الخصم.');\n    M.push('**' + (k++) + '.** لو صنف بسعر 0 أو فاضي → قل \"ده صنف بنأكّد سعره مع الإدارة، خليني أحوّلك للفريق\"' + (has('escalate') ? ' واستدعِ `escalate`.' : '.'));\n    M.push('**' + (k++) + '.** لو صنف مش موجود في المنيو خالص → اعتذر بلباقة واقترح أصناف قريبة من الموجود فعلًا.');\n    if (has('send_product_photo')) M.push('**' + (k++) + '.** لو العميل طلب صورة صنف → استدعِ `send_product_photo` ومرّر `product_id` من نتيجة `fitch_products`.');\n    M.push('**' + (k++) + '.** قبل التأكيد اعرض ملخص مفصّل بالشكل ده:');\n    M.push('```');\n    M.push('✅ ملخص طلبك يا فندم:');\n    M.push('- [الصنف] × [الكمية] = [الإجمالي] ' + currency);\n    M.push('─────────────────');\n    M.push('- مجموع الأصناف: X ' + currency);\n    M.push('- رسوم التوصيل: Z ' + currency);\n    M.push('- الإجمالي النهائي: Y ' + currency);\n    M.push('📍 العنوان: [...]   💰 الدفع: [...]');\n    M.push('أأكّد الطلب؟ ✨');\n    M.push('```');\n    M.push('**' + (k++) + '.** متستدعيش `save_transaction` إلا بعد ما العميل يأكد صراحةً (أكّد/تمام/ماشي). مرّر الأصناف بأسعارها من `fitch_products` — ممنوع تخترع أي سعر.');\n  } else if (pb.kind === 'booking' && has('book_appointment')) {\n    M.push('### 📅 منهجية الحجز (إلزامية)');\n    var k2 = 1;\n    M.push('**' + (k2++) + '.** اعرض المتاح (الأطباء/الخدمات/المدربين) من أدوات العرض المتاحة عندك — متخترعش أسماء أو أسعار.');\n    M.push('**' + (k2++) + '.** اتفق مع العميل على الخدمة والوقت المناسب، وتأكد إنه متاح قبل ما تأكد.');\n    M.push('**' + (k2++) + '.** اعرض ملخص الحجز (الخدمة/الطبيب + التاريخ والوقت) واطلب تأكيد العميل صراحةً.');\n    M.push('**' + (k2++) + '.** بعد التأكيد فقط → استدعِ `book_appointment` بالبيانات المضبوطة.');\n    if (has('cancel_appointment')) M.push('**' + (k2++) + '.** الإلغاء: راجع قسم حدود الصلاحيات قبل التنفيذ.');\n  } else if (pb.kind === 'hotel' && has('book_reservation')) {\n    M.push('### 🏨 منهجية الحجز (إلزامية)');\n    M.push('**1.** اعرض الغرف المتاحة وأسعارها من `fetch_rooms` — ممنوع تخترع سعر.');\n    M.push('**2.** اتفق على تواريخ الدخول/الخروج وعدد الضيوف' + (has('Calculator') ? '، واحسب الإجمالي عبر `Calculator` (عدد الليالي × سعر الليلة).' : '.'));\n    M.push('**3.** اعرض ملخص الحجز واطلب التأكيد، وبعدها فقط استدعِ `book_reservation`.');\n  } else if (pb.kind === 'realestate' && has('save_property_request')) {\n    M.push('### 🏢 منهجية العقارات (إلزامية)');\n    M.push('**1.** افهم مطلوب العميل (نوع/غرض/ميزانية/منطقة) واعرض المناسب من `fetch_properties` — بالبيانات الحقيقية فقط.');\n    M.push('**2.** سجّل طلبه عبر `save_property_request`' + (has('book_property_visit') ? '، ولو عايز معاينة احجزها عبر `book_property_visit` بعد الاتفاق على الوقت.' : '.'));\n  } else if (pb.kind === 'education' && has('enroll_course')) {\n    M.push('### 🎓 منهجية التسجيل (إلزامية)');\n    M.push('**1.** اعرض الكورسات وأسعارها ومواعيدها من `fetch_courses` (والمدرّسين من `fetch_teachers` لو سأل) — بيانات حقيقية فقط.');\n    M.push('**2.** اعرض ملخص (الكورس + السعر + الموعد) واطلب التأكيد.');\n    M.push('**3.** بعد التأكيد: سجّل الطالب عبر `save_student` ثم ألحقه بالكورس عبر `enroll_course`.');\n  } else if (pb.kind === 'service' && has('save_service_request')) {\n    M.push('### 🛠️ منهجية طلب الخدمة (إلزامية)');\n    M.push('**1.** اعرض الخدمات المتاحة من `fetch_services` وافهم المشكلة بالتفصيل.');\n    M.push('**2.** اعرض ملخص الطلب واطلب التأكيد، وبعدها سجّله عبر `save_service_request`' + (has('track_work_order') ? '. للمتابعة استخدم `track_work_order`.' : '.'));\n  }\n  if (M.length) { P.push(''); for (var mi = 0; mi < M.length; mi++) P.push(M[mi]); }\n\n  /* ── 🛠️ دليل استخدام الأدوات ── */\n  var TD = {\n    fitch_products: 'لقراءة المنيو/المنتجات بأسعارها الحقيقية (للحساب الداخلي). استخدمها أول كل طلب أو سؤال سعر.',\n    fetch_categories: 'لعرض تصنيفات المنتجات؛ اعرضها قبل الأصناف وخلّي العميل يختار التصنيف.',\n    delivery_zones: 'لجلب مناطق التوصيل ورسومها ومدته عند طلب التوصيل.',\n    promotions: 'لعرض العروض والتخفيضات المعروضة للجميع (إعلامية).',\n    coupons: 'للتحقق من كود خصم يدخله العميل بنفسه قبل التأكيد.',\n    order_track: 'لعرض تفاصيل أوردر كامل برقمه (\"طلبي وصل فين\").',\n    lookup_order_status: 'لفحص حالة أوردر سريعًا برقمه فقط.',\n    save_transaction: 'لحفظ الأوردر — بعد تأكيد العميل صراحةً فقط، بأسعار من fitch_products.',\n    cancel_order: 'لإلغاء أوردر — بعد التحقق من الهوية (راجع الصلاحيات).',\n    fitch_doctors: 'لعرض الأطباء وتخصصاتهم.',\n    fetch_medical_services: 'لعرض الخدمات الطبية وأسعارها.',\n    fitch_appointments: 'لمعرفة المواعيد المحجوزة قبل الحجز.',\n    book_appointment: 'لحجز موعد — بعد الاتفاق والتأكيد.',\n    cancel_appointment: 'لإلغاء موعد — بعد التحقق من الهوية.',\n    fetch_rooms: 'لعرض الغرف المتاحة وأسعارها.',\n    book_reservation: 'لحجز غرفة — بعد الاتفاق والتأكيد.',\n    cancel_reservation: 'لإلغاء حجز — بعد التحقق من الهوية.',\n    fetch_properties: 'للبحث عن العقارات المتاحة بالمواصفات.',\n    fetch_agents: 'لعرض مندوبي العقارات.',\n    save_property_request: 'لتسجيل طلب عميل يبحث عن عقار.',\n    book_property_visit: 'لحجز معاينة عقار.',\n    fetch_courses: 'لعرض الكورسات وأسعارها ومواعيدها.',\n    fetch_teachers: 'لعرض المدرّسين وموادهم.',\n    save_student: 'لتسجيل بيانات طالب جديد قبل الإلحاق بكورس.',\n    enroll_course: 'لإلحاق طالب بكورس (بعد save_student).',\n    fetch_memberships: 'لعرض اشتراكات العميل وحالتها.',\n    fetch_classes: 'لعرض جدول الحصص.',\n    fetch_trainers: 'لعرض المدربين وتخصصاتهم.',\n    save_membership: 'لإنشاء اشتراك عضوية جديد.',\n    fetch_services: 'لعرض الخدمات وأسعارها ومدتها.',\n    fetch_staff: 'لعرض فريق العمل.',\n    fetch_technicians: 'لعرض الفنيين ومهاراتهم.',\n    save_service_request: 'لتسجيل طلب خدمة/صيانة.',\n    track_work_order: 'لمتابعة حالة أمر الشغل برقمه.',\n    fetch_cases: 'للاستعلام عن حالة قضية برقمها.',\n    register_case_client: 'لتسجيل موكّل جديد.',\n    save_consultation_request: 'لتسجيل طلب استشارة.',\n    fetch_categories: 'لعرض التصنيفات.',\n    search_knowledge_base: 'للإجابة على الأسئلة العامة عن النشاط — استخدمها قبل أي اعتذار أو تصعيد.',\n    fetch_business_hours: 'لأسئلة مواعيد العمل.',\n    send_link: 'لإرسال رابط رسمي محفوظ (المنيو/الكتالوج/الموقع/الدفع) عند طلب العميل.',\n    send_product_photo: 'لإرسال صورة منتج للعميل — مرّر product_id من نتيجة fitch_products عند طلب العميل صورة صنف.',\n    send_product_photo: 'لإرسال صورة منتج للعميل عند طلبه صورة — مرّر product_id من نتيجة fitch_products.',\n    save_preference: 'لحفظ تفضيل دائم عن العميل (مثل نباتي/يفضّل التواصل مساءً).',\n    customer_information: 'لتحديث محدود لبيانات العميل (الاسم/الرضا) فقط.',\n    Calculator: 'لأي حساب فلوس (إجمالي/توصيل/خصم/ضريبة) — إلزامي بدل الحساب اليدوي.'\n  };\n  var listTools = tools.filter(function (t) { return t !== 'escalate'; });\n  if (listTools.length) {\n    P.push(''); P.push('### 🛠️ دليل استخدام الأدوات (استخدمها فقط عند الحاجة، ومتستخدمش أداة مش مذكورة)');\n    var idx = 1;\n    for (var ti = 0; ti < listTools.length; ti++) {\n      var tn = listTools[ti];\n      P.push((idx++) + '. **`' + tn + '`** — ' + (TD[tn] || 'استخدمها حسب وظيفتها عند الحاجة.'));\n    }\n  }\n\n  /* ── 🔀 التفويض والتصعيد ── */\n  P.push(''); P.push('### 🔀 التفويض والتصعيد');\n  if (has('order_track') || has('lookup_order_status')) P.push('- متابعة حالة أوردر/فاتورة → استخدم ' + (has('order_track') ? '`order_track`' : '`lookup_order_status`') + '.');\n  if (has('escalate')) {\n    P.push('- حوّل لموظف بشري عبر `escalate` فورًا إذا: طلب العميل ذلك صراحةً، أو شكوى (تأخير/جودة/خطأ)، أو طلب خاص/خارج النطاق، أو صنف بسعر غير محدد، أو مشكلة مش قادر تحلها بأدواتك.');\n    P.push('- مرّر داخل `escalate` تقريرًا مختصرًا: 🚨 طلب تدخل بشري | 👤 العميل: ' + (custName || '[الاسم]') + ' | 📱 الرقم: ' + (custPhone || '[الرقم]') + ' | ❓ السبب: [ملخص دقيق].');\n    P.push('- ردك للعميل بعد التصعيد: \"' + escMsg + '\"');\n  } else {\n    P.push('- لو الطلب محتاج تدخل بشري: اعتذر بلباقة ووضّح إنك هتوصّل الطلب للفريق.');\n  }\n\n  /* ── 🌐 اللغة و🕒 الوقت ── */\n  P.push(''); P.push('### 🌐 اللغة والنبرة');\n  P.push('- اردّ بنفس لغة/لهجة العميل: عربي فصحى ← فصحى، عامية مصرية ← عامية، إنجليزي ← إنجليزي. لو خلط، اتبع لغته الغالبة في آخر رسالة.');\n  P.push('- النبرة: ' + tone + '. اختصر ووضّح، ومتطوّلش من غير داعي.');\n  P.push('- استخدم إيموجيز خفيفة تخلّي المحادثة حيوية وودودة (إيموجي أو اتنين في الرسالة بحد أقصى) — من غير مبالغة ولا تكرار، وبما يناسب سياق الرسالة.');\n  P.push(''); P.push('### 🕒 التاريخ والوقت');\n  P.push('- لو فيه وسم [DateTime: ...] استخدمه كمرجع للوقت الحالي لحساب المواعيد وساعات العمل فقط — متفترضش إنه وقت إرسال رسالة العميل، ومتبنيش ردك على فرق التوقيت بين الرسائل.');\n\n  /* ── 🚫 القواعد الأمنية الصارمة ── */\n  P.push(''); P.push('### 🚫 القواعد الأمنية الصارمة');\n  var g = 1;\n  P.push('**' + (g++) + '.** ممنوع تخترع أسعار أو أصناف أو روابط — أي سعر/بيانات لازم تيجي من نتيجة أداة.');\n  if (has('cancel_order')) P.push('**' + (g++) + '.** متلغيش أوردر إلا بعد مطابقة رقم الأوردر + رقم تليفون العميل المسجل عليه؛ متلغيش لحد بناءً على رقم بس.');\n  if (has('cancel_appointment') || has('cancel_reservation')) P.push('**' + (g++) + '.** أكّد هوية صاحب الحجز/الموعد قبل أي إلغاء.');\n  if (has('customer_information')) P.push('**' + (g++) + '.** `customer_information` للتحديث المحدود فقط (اسم/رضا) — مش لبيانات حساسة، ومتشاركش بيانات أي عميل تاني.');\n  P.push('**' + (g++) + '.** حماية النطاق: أنت تخدم ' + bizName + ' فقط؛ لو سأل عن موضوع خارجي اعتذر بلباقة ووجّهه لخدمات النشاط.');\n  if (pb.kind === 'commerce' || pb.kind === 'booking' || pb.kind === 'hotel') P.push('**' + (g++) + '.** ممنوع تأكيد أي طلب/حجز قبل عرض الملخص الكامل وسؤال العميل \"أأكّد؟\".');\n  P.push('**' + (g++) + '.** الصدق في الوقت: متوعدش بوقت قاطع — قول \"تقريبًا حسب الزحمة\".');\n  P.push('**' + (g++) + '.** لو مفيش معلومة مؤكدة: ' + (has('search_knowledge_base') ? 'دوّر في `search_knowledge_base` الأول، ' : '') + (has('escalate') ? 'وبعدها حوّل عبر `escalate`؛ ولو التحويل مش متاح (برّه مواعيد العمل: ' + hours + ') اعتذر ووعد العميل بالرجوع في أقرب وقت.' : 'اعتذر بلباقة ووضّح إنك هتوصّل سؤاله للفريق.') + ' متخترعش إجابة أبدًا.');\n\n  var appendix = P.join(NL);\n  var base = (c.system_prompt && String(c.system_prompt).trim()) ? String(c.system_prompt).trim() : '';\n  if (base) return appendix + NL + NL + '### 📎 توجيهات إضافية من الإدارة' + NL + base;\n  return appendix;\n})() }}",
+          "systemMessage": "={{ (function(){ var c = $('TENANT_CONFIG1').first().json || {};\nc = c || {};\n  var NL = String.fromCharCode(10);\n  var raw = String(c.business_type || '').trim().toLowerCase();\n  var AL = { medical: 'medical_center', hospital: 'medical_center', restaurant_cafe: 'restaurant', cafe: 'restaurant', realestate: 'real_estate', 'real-estate': 'real_estate', education: 'educational_center', educational: 'educational_center', school: 'educational_center', law_firm: 'lawyer', lawyer_office: 'lawyer', law: 'lawyer', beauty: 'salon', spa: 'salon', fitness: 'gym', services: 'service_company', service: 'service_company', online_store: 'ecommerce', shop: 'ecommerce' };\n  var bt = AL[raw] || raw;\n  var PB = {\n    restaurant: { role: 'مساعد مطعم: تعرض المنيو، تأخذ الطلبات، تحسب التوصيل، وتتابع الأوردر.', kind: 'commerce' },\n    ecommerce: { role: 'مساعد متجر إلكتروني: تبحث في المنتجات، تتحقق من التوافر، وتُنهي الشراء وتتابع الطلب.', kind: 'commerce' },\n    store: { role: 'مساعد محل تجاري: تعرض المنتجات المتاحة وتستقبل الطلبات.', kind: 'commerce' },\n    pharmacy: { role: 'مساعد صيدلية: تتحقق من توافر الأدوية والمنتجات وتستقبل الطلبات.', kind: 'commerce' },\n    clinic: { role: 'مساعد عيادة: تعرض الأطباء والخدمات الطبية وتحجز/تلغي المواعيد.', kind: 'booking' },\n    medical_center: { role: 'مساعد مركز طبي متعدد التخصصات للحجز وإدارة المواعيد والاستفسارات الطبية.', kind: 'booking' },\n    salon: { role: 'مساعد صالون: تعرض الخدمات والأسعار وتحجز المواعيد مع الفريق.', kind: 'booking' },\n    gym: { role: 'مساعد جيم: يشرح باقات العضوية والحصص والمدربين ويتولّى الاشتراك.', kind: 'booking' },\n    lawyer: { role: 'مساعد مكتب محاماة: يستقبل طلبات الاستشارة ويستعلم عن حالة القضايا ويسجّل الموكلين.', kind: 'booking' },\n    car_service: { role: 'مساعد صيانة سيارات: يستقبل طلبات الصيانة ويتابع أوامر الشغل.', kind: 'service' },\n    service_company: { role: 'مساعد شركة خدمات: يستقبل الطلبات ويتابع أوامر الشغل.', kind: 'service' },\n    hotel: { role: 'مساعد فندق: يعرض أنواع الغرف وأسعارها ويتولّى الحجوزات والإلغاء.', kind: 'hotel' },\n    real_estate: { role: 'مساعد عقارات: يبحث عن العقارات المناسبة ويسجّل الطلبات ويحجز المعاينات.', kind: 'realestate' },\n    educational_center: { role: 'مساعد مركز تعليمي: يعرض الكورسات والمدرّسين ويتولّى تسجيل الطلاب.', kind: 'education' },\n    company: { role: 'مساعد أعمال عام: يجاوب على الاستفسارات ويعرّف بالخدمات.', kind: 'general' }\n  };\n  var pb = PB[bt] || { role: 'مساعد خدمة عملاء.', kind: 'general' };\n  var tools = (Array.isArray(c.enabled_tools) && c.enabled_tools.length) ? c.enabled_tools.slice() : [];\n  function has(t) { return tools.indexOf(t) !== -1; }\n  var tone = (c.persona && c.persona.tone) ? c.persona.tone : (c.tone_of_voice || 'احترافية وودودة');\n  var hours = c.working_hours || 'غير محددة';\n  var S = [];\n\n  S.push('# دورك');\n  S.push('- ' + ((c.persona && c.persona.role_ar) || pb.role));\n\n  S.push('');\n  S.push('# اللغة والنبرة');\n  S.push('- اردّ بنفس لغة/لهجة العميل: عربي فصحى ← فصحى، عامية مصرية ← عامية مصرية، إنجليزي ← إنجليزي. لو خلط لغتين، اتبع لغته الغالبة في آخر رسالة.');\n  S.push('- النبرة: ' + tone + '. خليك مختصر وواضح ومتطوّلش من غير داعي.');\n\n  if (tools.length) {\n    S.push('');\n    S.push('# الأدوات المتاحة لك الآن — استخدمها فقط عند الحاجة، ومتستخدمش أي أداة مش مذكورة:');\n    S.push('- ' + tools.join(NL + '- '));\n  }\n\n  var dis = [];\n  if (has('fetch_categories') && has('fitch_products')) dis.push('- اعرض fetch_categories الأول (التصنيفات)، وبعد ما يختار العميل تصنيف اعرض أصنافه عبر fitch_products — مش الاتنين مع بعض.');\n  if (has('coupons') && has('promotions')) dis.push('- promotions = عروض/تخفيضات معروضة للكل (إعلامية). coupons = كود خصم العميل بيدخله بنفسه (تحقّق منه قبل التأكيد). مش نفس الحاجة.');\n  if (has('order_track') && has('lookup_order_status')) dis.push('- order_track = تفاصيل الأوردر الكاملة (استخدمها لـ\"طلبي وصل فين\"). lookup_order_status = فحص حالة سريع فقط. متستخدمش الاتنين لنفس السؤال.');\n  if (has('search_knowledge_base')) dis.push('- لأي سؤال عام عن النشاط، دوّر في search_knowledge_base الأول قبل ما تعتذر أو تحوّل.');\n  if (has('fetch_business_hours')) dis.push('- لأسئلة المواعيد (\"بتفتحوا إمتى\") استخدم fetch_business_hours.');\n  if (dis.length) { S.push(''); S.push('# توضيح استخدام الأدوات'); for (var i = 0; i < dis.length; i++) S.push(dis[i]); }\n\n  var seq = [], n = 1;\n  if (pb.kind === 'commerce' && has('save_transaction')) {\n    seq.push('## تسلسل أخذ الطلب');\n    if (has('delivery_zones')) seq.push((n++) + '. لو الطلب توصيل: اسأل عن المنطقة وتحقق منها عبر delivery_zones (الرسوم والتغطية ومدة التوصيل).');\n    if (has('fetch_categories')) seq.push((n++) + '. اعرض التصنيفات عبر fetch_categories.');\n    if (has('fitch_products')) seq.push((n++) + '. اعرض الأصناف داخل التصنيف عبر fitch_products وتأكد من توافرها.');\n    if (has('coupons')) seq.push((n++) + '. لو معاه كوبون: تحقق منه عبر coupons قبل التأكيد.');\n    if (has('Calculator')) seq.push((n++) + '. احسب الإجمالي (الأصناف + التوصيل − الخصم) عبر Calculator.');\n    seq.push((n++) + '. اعرض ملخص الطلب واستنى تأكيد العميل، وبعدها سجّله عبر save_transaction.');\n    if (has('order_track')) seq.push((n++) + '. للمتابعة بعد كده: order_track برقم الأوردر.');\n  } else if (pb.kind === 'booking' && has('book_appointment')) {\n    seq.push('## تسلسل الحجز');\n    seq.push((n++) + '. اعرض المتاح (أطباء/خدمات/مدربين) عبر أدوات العرض المتاحة عندك.');\n    seq.push((n++) + '. اتفق مع العميل على الوقت المناسب.');\n    seq.push((n++) + '. أكّد البيانات واحجز عبر book_appointment.');\n    if (has('cancel_appointment')) seq.push((n++) + '. للإلغاء: راجع قسم حدود الصلاحيات تحت قبل التنفيذ.');\n  } else if (pb.kind === 'hotel' && has('book_reservation')) {\n    seq.push('## تسلسل الحجز');\n    seq.push((n++) + '. اعرض الغرف وأسعارها عبر fetch_rooms.');\n    seq.push((n++) + '. اتفق على تواريخ الدخول/الخروج وعدد الضيوف.');\n    seq.push((n++) + '. أكّد واحجز عبر book_reservation.');\n  } else if (pb.kind === 'realestate' && has('save_property_request')) {\n    seq.push('## تسلسل العقارات');\n    seq.push((n++) + '. افهم مطلوب العميل (نوع/ميزانية/منطقة) واعرض المناسب عبر fetch_properties.');\n    seq.push((n++) + '. سجّل طلبه عبر save_property_request، ولو عايز معاينة احجزها عبر book_property_visit.');\n  } else if (pb.kind === 'education' && has('enroll_course')) {\n    seq.push('## تسلسل التسجيل');\n    seq.push((n++) + '. اعرض الكورسات عبر fetch_courses (والمدرّسين عبر fetch_teachers لو سأل).');\n    seq.push((n++) + '. سجّل بيانات الطالب عبر save_student، وبعدها ألحقه بالكورس عبر enroll_course.');\n  } else if (pb.kind === 'service' && has('save_service_request')) {\n    seq.push('## تسلسل طلب الخدمة');\n    seq.push((n++) + '. اعرض الخدمات عبر fetch_services وافهم المشكلة بالتفصيل.');\n    seq.push((n++) + '. سجّل الطلب عبر save_service_request' + (has('track_work_order') ? '، وللمتابعة استخدم track_work_order.' : '.'));\n  }\n  if (seq.length) { S.push(''); S.push('# سير العمل'); for (var s = 0; s < seq.length; s++) S.push(seq[s]); }\n\n  if (has('Calculator')) { S.push(''); S.push('# الحسابات'); S.push('- أي حساب فلوس (إجمالي، توصيل، خصم، ضريبة) لازم يتعمل عبر أداة Calculator — متحسبش يدويًا عشان ما تغلطش.'); }\n\n  var perm = [];\n  if (has('cancel_order')) perm.push('- cancel_order: متلغيش أوردر إلا بعد التأكد من هوية العميل (مطابقة رقم الأوردر + رقم التليفون المسجل على الطلب). لو ما اتأكدتش، اطلب البيانات أو حوّل.');\n  if (has('cancel_appointment')) perm.push('- cancel_appointment: أكّد هوية صاحب الموعد (الاسم/التليفون + رقم الموعد) قبل الإلغاء.');\n  if (has('cancel_reservation')) perm.push('- cancel_reservation: أكّد هوية صاحب الحجز قبل الإلغاء.');\n  if (has('customer_information')) perm.push('- customer_information: للتحديث المحدود فقط (اسم العميل/درجة الرضا) لما يطلب أو تتأكد من معلومة — مش لتعديل بيانات حساسة.');\n  perm.push('- متشاركش بيانات أي عميل تاني أبدًا، ومتعرضش معلومات مش بتخص المحادثة الحالية.');\n  S.push(''); S.push('# حدود الصلاحيات والأمان'); for (var pp = 0; pp < perm.length; pp++) S.push(perm[pp]);\n\n  S.push(''); S.push('# لو مفيش معلومة');\n  if (has('search_knowledge_base')) S.push('- لو search_knowledge_base رجع فاضي أو مش متأكد: ' + (has('escalate') ? 'حوّل العميل لموظف عبر escalate.' : 'اعتذر بأدب ووضّح إنك هتوصّل سؤاله للفريق.'));\n  if (has('escalate')) S.push('- لو التحويل عبر escalate مش متاح (مثلاً برّه مواعيد العمل: ' + hours + '): اعتذر للعميل وقوله إن الفريق هيرجعله في أقرب وقت متاح — من غير ما تخترع إجابة.');\n  S.push('- متخترعش أبدًا معلومات مش موجودة في قاعدة المعرفة أو نتائج الأدوات.');\n\n  S.push(''); S.push('# التاريخ والوقت');\n  S.push('- لو فيه وسم [DateTime: ...] في الرسالة، استخدمه كمرجع للوقت الحالي لحساب المواعيد وساعات العمل فقط — متفترضش إنه وقت إرسال رسالة العميل بالظبط، ومتبنيش ردك على فرق التوقيت بين الرسائل.');\n\n  S.push(''); S.push('# متى تحوّل لموظف بشري');\n  S.push('- عند الشكوى أو طلب العميل التحدث مع شخص أو خروج الطلب عن نطاقك' + (has('escalate') ? ': استخدم escalate فورًا.' : ': اعتذر ووضّح إنك هتوصّل الطلب للفريق.'));\n\n  var appendix = S.join(NL);\n  var base = (c.system_prompt && String(c.system_prompt).trim()) ? String(c.system_prompt).trim() : '';\n  if (base) return base + NL + NL + appendix;\n  var head = ['# هوية البوت', 'أنت المساعد الذكي الرسمي لـ \"' + (c.business_name || '') + '\".'];\n  if (c.greeting_message) head.push('- رسالة الترحيب: ' + c.greeting_message);\n  return head.join(NL) + NL + NL + appendix;\n})() }}\n\nالتاريخ والوقت: {{ $now }}",
           "maxIterations": 6,
           "returnIntermediateSteps": true,
           "tracingMetadata": {
@@ -231,24 +219,24 @@
           }
         }
       },
-      "id": "77151439-5a55-4882-b348-a68916c04ed2",
+      "id": "5478afac-76be-44d2-b062-8c20827b1c6f",
       "name": "MAIN_AI_AGENT",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        4704,
-        2464
+        3168,
+        -928
       ]
     },
     {
       "parameters": {},
-      "id": "1496b03d-23a5-45c9-9cf3-1bd33cfbcd81",
+      "id": "2fa7387f-636d-42dd-a717-5e53eeb0857c",
       "name": "MERGE_REPLY_PATHS",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        6256,
-        2464
+        4720,
+        -928
       ],
       "alwaysOutputData": true
     },
@@ -266,13 +254,13 @@
           }
         }
       },
-      "id": "ee8a0d75-606d-45eb-81d3-759701a50b5a",
+      "id": "8785efab-de1f-4acc-aa4d-55fa4a4471ad",
       "name": "SEND_RESPONSE",
       "type": "n8n-nodes-evolution-api-english.evolutionApi",
       "typeVersion": 1,
       "position": [
-        6752,
-        2448
+        5216,
+        -944
       ],
       "credentials": {
         "evolutionApi": {
@@ -282,66 +270,14 @@
       }
     },
     {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 3
-          },
-          "conditions": [
-            {
-              "id": "from-me-check",
-              "leftValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.key.fromMe }}",
-              "rightValue": false,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
-            },
-            {
-              "id": "89817533-a52f-4059-820d-928813030457",
-              "leftValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.key.remoteJid.split(\"@\")[0].length }}",
-              "rightValue": 12,
-              "operator": {
-                "type": "number",
-                "operation": "lte"
-              }
-            },
-            {
-              "id": "239f0772-013b-41f2-a8bc-d65c44249b89",
-              "leftValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.key.remoteJid.split(\"@\") }}",
-              "rightValue": "g.us",
-              "operator": {
-                "type": "array",
-                "operation": "notContains",
-                "rightType": "any"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "73dde2d1-86af-4bfe-b9e1-5d0ea976fb63",
-      "name": "FILTER_OWN_MESSAGES1",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
-      "position": [
-        -1392,
-        2416
-      ]
-    },
-    {
       "parameters": {},
-      "id": "3bdc6c63-5b71-485e-8f2f-62515edafaac",
+      "id": "847a3ce5-df5a-48b3-b6f4-ca6fac64484b",
       "name": "IGNORE_OWN_MESSAGES1",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        -1104,
-        2704
+        -2464,
+        -800
       ]
     },
     {
@@ -402,13 +338,13 @@
           "fallbackOutput": "extra"
         }
       },
-      "id": "85a18bef-a832-4038-b7ec-079813bec085",
+      "id": "532ac27c-c636-4989-8956-3333b8c12f75",
       "name": "ROUTE_MEDIA_TYPE1",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        -368,
-        2304
+        -1920,
+        -1088
       ]
     },
     {
@@ -418,13 +354,13 @@
         "instanceName": "={{ $('WEBHOOK_TRIGGER1').item.json.body.instance }}",
         "messageId": "={{ $('NORMALIZE_INPUT1').first().json.message_id }}"
       },
-      "id": "3ce8a50f-2876-4265-adc2-29613e53088b",
+      "id": "5b616220-e2b3-4a34-8964-66b64133102c",
       "name": "GET_MEDIA_BASE1",
       "type": "n8n-nodes-evolution-api-english.evolutionApi",
       "typeVersion": 1,
       "position": [
-        -144,
-        2064
+        -1696,
+        -1328
       ],
       "credentials": {
         "evolutionApi": {
@@ -439,13 +375,13 @@
         "sourceProperty": "data.base64",
         "options": {}
       },
-      "id": "1e249fa1-7861-4c2e-a52f-4aefd562111d",
+      "id": "420e043c-4b6f-4649-86a6-17b886941378",
       "name": "CONVERT_TO_BINARY1",
       "type": "n8n-nodes-base.convertToFile",
       "typeVersion": 1.1,
       "position": [
-        80,
-        2064
+        -1472,
+        -1328
       ]
     },
     {
@@ -461,13 +397,13 @@
         "inputType": "binary",
         "options": {}
       },
-      "id": "b6a1f957-e5a4-4c19-bf07-84cbfbb2d5f8",
+      "id": "05b5817f-e8dd-423a-b501-a71ef1a3c4c2",
       "name": "TRANSCRIBE_AUDIO1",
       "type": "@n8n/n8n-nodes-langchain.googleGemini",
       "typeVersion": 1.1,
       "position": [
-        304,
-        2064
+        -1248,
+        -1328
       ],
       "retryOnFail": true,
       "maxTries": 2,
@@ -503,13 +439,13 @@
         },
         "options": {}
       },
-      "id": "20e46f70-0640-4452-9a3c-f3a9772df0b3",
+      "id": "50a904b5-9b16-4d65-b21c-ca30d0d46d1b",
       "name": "IS_AUDIO_UNCLEAR1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        752,
-        2064
+        -800,
+        -1328
       ]
     },
     {
@@ -526,13 +462,13 @@
           }
         }
       },
-      "id": "a048350d-1347-4175-86b9-042fddb17b8d",
+      "id": "31dc48f1-3553-44cb-b368-5c569276e76b",
       "name": "SEND_UNCLEAR_AUDIO_MSG1",
       "type": "n8n-nodes-evolution-api-english.evolutionApi",
       "typeVersion": 1,
       "position": [
-        592,
-        1888
+        -960,
+        -1504
       ],
       "credentials": {
         "evolutionApi": {
@@ -545,13 +481,13 @@
       "parameters": {
         "numberInputs": 3
       },
-      "id": "747e9880-f3c3-4791-9f31-6a290889e1a2",
+      "id": "e41e4950-01b7-4415-8439-3861a1028d44",
       "name": "MERGE_MEDIA_TO_TEXT1",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        976,
-        2368
+        -576,
+        -1024
       ],
       "alwaysOutputData": false
     },
@@ -581,56 +517,26 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "40c6728b-841e-442d-8cb9-f3b8163216aa",
+      "id": "acdc7c11-19ca-4e3f-a144-600f7dc5bbde",
       "name": "IS_NEW_CUSTOMER1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1648,
-        2464
+        112,
+        -928
       ]
     },
     {
       "parameters": {},
-      "id": "d1179fef-8071-4722-bfcc-2cb2994bda1d",
+      "id": "af22d68b-0337-4237-8b50-18a471b7e721",
       "name": "MERGE_CUSTOMER_PATHS1",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        2096,
-        2464
+        560,
+        -928
       ],
       "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "workflowId": {
-          "__rl": true,
-          "value": "ScJGitKmVNeEK6cW",
-          "mode": "list",
-          "cachedResultUrl": "/workflow/ScJGitKmVNeEK6cW",
-          "cachedResultName": "My workflow 15"
-        },
-        "workflowInputs": {
-          "mappingMode": "defineBelow",
-          "value": {},
-          "matchingColumns": [],
-          "schema": [],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": true
-        },
-        "options": {
-          "waitForSubWorkflow": false
-        }
-      },
-      "type": "n8n-nodes-base.executeWorkflow",
-      "typeVersion": 1.3,
-      "position": [
-        -1104,
-        2112
-      ],
-      "id": "4df5d1cf-40fa-43d0-a63c-053caa1d0fe5",
-      "name": "Call 'My workflow 15'"
     },
     {
       "parameters": {
@@ -639,10 +545,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        6496,
-        2160
+        4960,
+        -1232
       ],
-      "id": "cc6e9f7f-91bc-410b-9b6a-cf1212576a37",
+      "id": "bba25d3f-5121-4362-96cc-8ab5446645d9",
       "name": "Code in JavaScript"
     },
     {
@@ -654,10 +560,10 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        6704,
-        2160
+        5168,
+        -1232
       ],
-      "id": "2a188ecf-189b-4cf3-8bd0-cc4cb6afb2fb",
+      "id": "18d2c80e-95f7-4749-bf5c-9cf5b317cc29",
       "name": "Loop Over Items"
     },
     {
@@ -688,10 +594,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        7056,
-        2176
+        5520,
+        -1216
       ],
-      "id": "1e9c7e61-48ee-42f6-8ac3-ba49aba0a786",
+      "id": "d1261c36-d059-4b28-9c2e-97b24269d1c0",
       "name": "If"
     },
     {
@@ -702,13 +608,13 @@
         "messageText": "={{ $json.output }}",
         "options_message": {}
       },
-      "id": "cadd525d-c27f-416a-ab3b-d3b1093384b9",
+      "id": "d7b4087f-f19f-4851-b007-12c4f2a3e948",
       "name": "SEND_RESPONSE7",
       "type": "n8n-nodes-evolution-api-english.evolutionApi",
       "typeVersion": 1,
       "position": [
-        7056,
-        2464
+        5520,
+        -928
       ],
       "credentials": {
         "evolutionApi": {
@@ -722,25 +628,25 @@
       "type": "@n8n/n8n-nodes-langchain.toolCalculator",
       "typeVersion": 1,
       "position": [
-        3168,
-        3072
+        1392,
+        128
       ],
-      "id": "222af0ef-4db4-41dc-8a00-6e72d2f7763e",
+      "id": "312e7151-3b14-49be-ad18-c9ed141dd7bb",
       "name": "Calculator"
     },
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "bot-cust-16062658",
+        "path": "template",
         "options": {}
       },
-      "id": "632ff436-21bb-437d-8efe-104c167adf74",
+      "id": "cc90a0e8-30c6-4469-bbed-720847a7d146",
       "name": "WEBHOOK_TRIGGER1",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -2224,
-        2416
+        -3488,
+        -1056
       ],
       "webhookId": "8a05f3db-11f8-40bc-8b57-1f9fa88e0cc6"
     },
@@ -748,13 +654,13 @@
       "parameters": {
         "jsCode": "return { json: {\"business_id\":\"44472751-dda5-4e8d-88fc-f4d0388a8e0e\",\"order_id\":\"CUST_16062658\",\"plan_id\":\"business\",\"business_name\":\"متجر مهدي\",\"instance_name\":\"arq-cust-16062658\",\"webhook_path\":\"bot-cust-16062658\",\"admin_whatsapp\":\"201090220773\",\"model\":\"anthropic/claude-sonnet-4.5\",\"fallback_model\":\"anthropic/claude-haiku-4.5\",\"max_tokens\":1024,\"memory_window\":12,\"message_limit\":11000,\"tools\":[\"log_inquiry\",\"escalate\",\"send_link\",\"save_transaction\",\"lookup_order_status\",\"calculator\",\"save_preference\"],\"media_support\":[\"text\",\"audio\",\"location\"],\"system_prompt\":\"# هوية البوت\\nأنت المساعد الذكي الرسمي لـ \\\"متجر مهدي\\\" (ecommerce).\\nمتجر ادوات مكتبية\\n\\n# الشخصية والأسلوب\\n- نبرة الصوت: friendly.\\n- الشخصية: اسمه مهدي\\n- اللغات: ar.\\n\\n# قواعد صارمة (Hard Rules)\\n- لا تخترع معلومات غير موجودة في قاعدة المعرفة.\\n- عند عدم المعرفة: handover.\\n- لا تشارك بيانات عملاء آخرين.\\n\\n# مواعيد العمل\\n10ص - 12م\\n\\n# الموقع\\n20 شارع جزيرة العرب\\n\\n# طرق الدفع\\ncash، instapay، vodafone_cash، bank\\n\\n# التوصيل\\nمناطق التوصيل في الجيزة والقاهرة\\n\\n# المنتجات\\n- باكدج الثانوية العامة (1500 ج.م): باكدج كل ما يخص الثانوية العامة\\n- باكدج البكلوريا (1750 ج.م)\\n\\n# قاعدة المعرفة\\nمتجر مهدي لادوات الدراسة والمكتب\\n\\n# الأسئلة الشائعة\\nس: \\nج: متجر مهدي لادوات الدراسة والمكتب\\n\\n# دور المساعد حسب نوع النشاط\\nأنت مساعد متجر إلكتروني: تبحث في المنتجات، تتحقق من المخزون، وتُنهي عملية الشراء.\\n- المهام الأساسية: البحث عن منتج، تفاصيل منتج، توافر المخزون، إتمام الطلب، تتبع الطلب، الكوبونات\\n\\n# الأدوات المتاحة لك (استخدمها فقط عند الحاجة، ولا تستخدم أدوات غير مذكورة)\\n- escalate، save_transaction، send_link\",\"business_type\":\"ecommerce\",\"industry_matched\":true,\"capabilities\":{\"products\":true,\"orders\":true,\"inventory\":true,\"coupons\":true,\"booking\":false},\"enabled_tools\":[\"escalate\",\"save_transaction\",\"send_link\"],\"persona\":{\"role_ar\":\"أنت مساعد متجر إلكتروني: تبحث في المنتجات، تتحقق من المخزون، وتُنهي عملية الشراء.\",\"role_en\":\"E-commerce assistant\"}} };"
       },
-      "id": "8eaef5b2-740e-479b-9541-9dda1f7e6fda",
+      "id": "26c2e132-8c02-4c63-9a1d-f35e2d785c30",
       "name": "TENANT_CONFIG1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2000,
-        2416
+        -3264,
+        -1056
       ]
     },
     {
@@ -804,10 +710,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2304,
-        2464
+        768,
+        -928
       ],
-      "id": "346ac349-bb36-4926-af5d-ed808f9d7b0c",
+      "id": "602176da-8eee-4068-80a7-204f412655ce",
       "name": "Edit Fields"
     },
     {
@@ -817,10 +723,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3824,
-        2464
+        2288,
+        -928
       ],
-      "id": "a73a55b3-2872-477c-81be-281de3f79494",
+      "id": "7b27737c-fc48-41e1-a984-6b228e0f004e",
       "name": "Code in JavaScript1",
       "alwaysOutputData": true
     },
@@ -828,13 +734,13 @@
       "parameters": {
         "jsCode": "const wh = $('WEBHOOK_TRIGGER1').first().json;\nconst body = wh.body || wh;\nconst data = body.data || {};\nconst key = data.key || {};\nconst phone = String(key.remoteJid || '').split('@')[0].replace(/[^0-9]/g, '');\nconst fromMe = key.fromMe === true;\nconst m = data.message || {};\nconst text = m.conversation\n  || (m.extendedTextMessage && m.extendedTextMessage.text)\n  || (m.imageMessage && m.imageMessage.caption)\n  || (m.videoMessage && m.videoMessage.caption) || '';\nconst hasAudio = !!m.audioMessage;\nconst skip = fromMe || (!text && !hasAudio) || !phone;\nreturn { json: {\n  phone, name: data.pushName || '', wa_message_id: key.id || null,\n  customer_message: text, has_audio: hasAudio, from_me: fromMe, skip\n} };"
       },
-      "id": "fd21bf08-1edd-4c86-bfc3-45566a66f047",
+      "id": "4805f17b-6956-40e0-a87d-38010da937f5",
       "name": "PARSE_MESSAGE",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1664,
-        2416
+        -3088,
+        -1056
       ]
     },
     {
@@ -957,13 +863,13 @@
           "convertFieldsToString": false
         }
       },
-      "id": "86834f9c-757c-4c2a-87b4-37a12d9f24d4",
+      "id": "b2f0e1a0-31d2-4731-8650-e57a68050240",
       "name": "save_transaction",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        3472,
-        2944
+        1696,
+        0
       ]
     },
     {
@@ -1039,13 +945,13 @@
           "convertFieldsToString": false
         }
       },
-      "id": "17af13c5-679e-4607-966c-08052edc8624",
+      "id": "c222a619-7b41-4983-bda7-d6be65db9668",
       "name": "book_appointment",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        3904,
-        2944
+        2128,
+        0
       ]
     },
     {
@@ -1089,13 +995,13 @@
           "convertFieldsToString": false
         }
       },
-      "id": "11caf75b-fc5a-4386-a70f-7f45e0852343",
+      "id": "b8345bda-f0b4-45b0-a57d-9c98b77caadf",
       "name": "cancel_appointment",
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        3904,
-        3104
+        2128,
+        160
       ]
     },
     {
@@ -1129,10 +1035,10 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        1856,
-        2448
+        320,
+        -944
       ],
-      "id": "47a9ed41-3e50-44f0-96f4-9521a92e2f57",
+      "id": "542200e6-1319-4838-b4ac-5298cf49bed4",
       "name": "Create Customer",
       "credentials": {
         "supabaseApi": {
@@ -1161,10 +1067,10 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        1264,
-        2464
+        -288,
+        -928
       ],
-      "id": "39674d18-2148-4401-bd6a-7d277c1e955d",
+      "id": "981b6f0a-62ce-4eda-b6b6-77da0ab63b88",
       "name": "Get Customer",
       "alwaysOutputData": true,
       "credentials": {
@@ -1194,10 +1100,10 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        2512,
-        2464
+        976,
+        -928
       ],
-      "id": "05f3edf3-d9d4-4bad-b23f-63a37ce8ca64",
+      "id": "0fdca504-b2df-401b-9a99-8bdaa48b0220",
       "name": "Get Conversation",
       "alwaysOutputData": true,
       "credentials": {
@@ -1226,10 +1132,10 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        3536,
-        2464
+        2000,
+        -928
       ],
-      "id": "c3d61b9b-fff0-48f4-909c-3c12564c0e34",
+      "id": "22509131-abbe-45cd-b33b-b9931bd93b12",
       "name": "Get messages",
       "alwaysOutputData": true,
       "credentials": {
@@ -1242,56 +1148,18 @@
     {
       "parameters": {
         "content": "## Main tools",
-        "height": 336,
+        "height": 464,
         "width": 360,
         "color": 7
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        3040,
-        2864
+        1264,
+        -80
       ],
-      "id": "a72c0c47-53a2-4fdd-9c34-a377690557f6",
+      "id": "8c740c06-7041-48ec-ae56-84b3a1c5f788",
       "name": "Sticky Note"
-    },
-    {
-      "parameters": {
-        "descriptionType": "manual",
-        "toolDescription": "اعرض/ابحث في منتجات المتجر المتاحة (الاسم، السعر، التصنيف، التوافر). استخدمها عندما يسأل العميل عن منتج أو يطلب أوردر للتأكد من توافر الأصناف. تُفلتر تلقائيًا على المتجر الحالي والمنتجات المتاحة فقط.",
-        "operation": "getAll",
-        "tableId": "products",
-        "returnAll": true,
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "business_id",
-              "condition": "eq",
-              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
-            },
-            {
-              "keyName": "available",
-              "condition": "is",
-              "keyValue": "TRUE"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabaseTool",
-      "typeVersion": 1,
-      "position": [
-        3600,
-        2944
-      ],
-      "id": "e7f9bc9b-2eaf-4047-ba46-eb08180f7592",
-      "name": "fitch_products",
-      "credentials": {
-        "supabaseApi": {
-          "id": "rXgc8PEXJoXWBygd",
-          "name": "Supabase service_role"
-        }
-      }
     },
     {
       "parameters": {
@@ -1303,10 +1171,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        3440,
-        2864
+        1664,
+        -80
       ],
-      "id": "7b40bc5c-6ad2-42e1-b392-c93df4db733d",
+      "id": "07f58797-f05a-4f8c-83ed-c82314c63dff",
       "name": "Sticky Note1"
     },
     {
@@ -1346,10 +1214,10 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        3472,
-        3072
+        1696,
+        128
       ],
-      "id": "098415eb-776c-4bca-babb-393dba3874f8",
+      "id": "55bbb0da-43dd-4acd-b63f-a25da6f5e80b",
       "name": "coupons"
     },
     {
@@ -1378,10 +1246,10 @@
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        3600,
-        3072
+        1824,
+        128
       ],
-      "id": "f2da2905-089f-4f14-8727-e160d4717796",
+      "id": "3d32b6a9-40a8-4339-9544-ce17aaeed36e",
       "name": "delivery_zones",
       "credentials": {
         "supabaseApi": {
@@ -1416,10 +1284,10 @@
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        3728,
-        2944
+        1952,
+        0
       ],
-      "id": "a97d033c-c491-43e4-bb4f-a8fe17e2603d",
+      "id": "5a38b5f6-67de-4b14-a226-254bdc6ff387",
       "name": "promotions",
       "credentials": {
         "supabaseApi": {
@@ -1450,10 +1318,10 @@
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        3728,
-        3072
+        1952,
+        128
       ],
-      "id": "b17b4338-2625-4edf-ab30-070990df7d51",
+      "id": "28b74d2b-427c-4089-a722-c36dc9269808",
       "name": "order_track",
       "credentials": {
         "supabaseApi": {
@@ -1464,6 +1332,7 @@
     },
     {
       "parameters": {
+        "description": "ألغِ طلبًا قائمًا بناءً على رقم الأوردر بعد تأكيد العميل. مرّر JSON: {order_id}.",
         "workflowId": {
           "__rl": true,
           "value": "xPGnhSGyhsFGjBXj",
@@ -1501,20 +1370,21 @@
           ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
-        },
-        "description": "ألغِ طلبًا قائمًا بناءً على رقم الأوردر بعد تأكيد العميل. مرّر JSON: {order_id}."
+        }
       },
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        3472,
-        3200
+        1696,
+        256
       ],
-      "id": "6385fc5a-f1c6-40e2-ab52-0f21cd2cca4d",
+      "id": "4add34ce-ad8f-44f9-be7d-40c1c4d934dc",
       "name": "cancel_order"
     },
     {
       "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "حدّث بيانات العميل في النظام (الاسم أو درجة الرضا sentiment) عند معرفة معلومة جديدة عنه أثناء المحادثة. مرّر customer_name و/أو sentiment.",
         "operation": "update",
         "tableId": "customers",
         "filters": {
@@ -1531,23 +1401,17 @@
             {
               "fieldId": "name",
               "fieldValue": "={{ $fromAI('customer_name', ``, 'string') }}"
-            },
-            {
-              "fieldId": "sentiment",
-              "fieldValue": "={{ $fromAI('sentiment', ``, 'string') }}"
             }
           ]
-        },
-        "descriptionType": "manual",
-        "toolDescription": "حدّث بيانات العميل في النظام (الاسم أو درجة الرضا sentiment) عند معرفة معلومة جديدة عنه أثناء المحادثة. مرّر customer_name و/أو sentiment."
+        }
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        3280,
-        3072
+        1504,
+        128
       ],
-      "id": "87b46e80-0206-4558-9754-332c77f083ac",
+      "id": "6ffca865-3f1d-481b-959e-55f427199aa1",
       "name": "customer_information",
       "credentials": {
         "supabaseApi": {
@@ -1566,14 +1430,16 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        3872,
-        2864
+        2096,
+        -80
       ],
-      "id": "0679be25-d526-49e9-99d4-0cfc949ec67e",
+      "id": "2a7862ad-568d-4ad5-8f4d-0f6546fc1152",
       "name": "Sticky Note2"
     },
     {
       "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض قائمة الأطباء المتاحين وتخصصاتهم في العيادة/المركز الطبي. استخدمها عندما يسأل العميل عن طبيب أو تخصص أو قبل حجز موعد.",
         "operation": "getAll",
         "tableId": "doctors",
         "returnAll": true,
@@ -1591,45 +1457,16 @@
               "keyValue": "TRUE"
             }
           ]
-        },
-        "descriptionType": "manual",
-        "toolDescription": "اعرض قائمة الأطباء المتاحين وتخصصاتهم في العيادة/المركز الطبي. استخدمها عندما يسأل العميل عن طبيب أو تخصص أو قبل حجز موعد."
-      },
-      "type": "n8n-nodes-base.supabaseTool",
-      "typeVersion": 1,
-      "position": [
-        4032,
-        2944
-      ],
-      "id": "c82f02b2-6962-42cf-b8f8-1d7adb921a92",
-      "name": "fitch_doctors",
-      "credentials": {
-        "supabaseApi": {
-          "id": "rXgc8PEXJoXWBygd",
-          "name": "Supabase service_role"
         }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "getAll",
-        "tableId": "appointments",
-        "returnAll": true,
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": []
-        },
-        "descriptionType": "manual",
-        "toolDescription": "اعرض المواعيد المحجوزة للتحقق من الأوقات المتاحة قبل الحجز. ⚠️ يُنصح بإضافة فلتر business_id (انظر ملاحظات التحسين)."
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
       "position": [
-        4160,
-        2944
+        2256,
+        0
       ],
-      "id": "fc330ccb-224f-4407-84ed-cbdb03a154ad",
-      "name": "fitch_appointments",
+      "id": "c317b45d-6476-4979-95d9-ea0374aab178",
+      "name": "fitch_doctors",
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
@@ -1672,10 +1509,10 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        5792,
-        2320
+        4256,
+        -1072
       ],
-      "id": "6dd224e8-52de-4f22-8e04-c9742a0903b4",
+      "id": "bcc98fd9-2e46-47fc-a742-6b2dd9972cb8",
       "name": "Create a row",
       "credentials": {
         "supabaseApi": {
@@ -1712,10 +1549,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        2688,
-        2464
+        1152,
+        -928
       ],
-      "id": "eb08e110-720a-43d0-b8ea-d7d7cb1ac31b",
+      "id": "a3020662-b6a9-4b7b-a0cd-78ef10f4a6a9",
       "name": "If1"
     },
     {
@@ -1741,10 +1578,10 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        3024,
-        2384
+        1488,
+        -1008
       ],
-      "id": "49f59c13-d796-40da-867a-52d81c019da7",
+      "id": "71b053f3-c5b5-4ca2-ac84-e2747348a102",
       "name": "Create a row1",
       "credentials": {
         "supabaseApi": {
@@ -1758,10 +1595,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        3360,
-        2464
+        1824,
+        -928
       ],
-      "id": "9e6a4292-f049-45d7-adec-0399646b9446",
+      "id": "49da8df0-83fe-4a34-a73f-f979671af376",
       "name": "Merge"
     },
     {
@@ -1799,10 +1636,10 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        5792,
-        2464
+        4256,
+        -928
       ],
-      "id": "9c949886-1ef6-4fae-95db-fa4ad91ecda8",
+      "id": "d10ccafb-2010-49b3-8c9f-f8916e776a57",
       "name": "Create a row2",
       "credentials": {
         "supabaseApi": {
@@ -1857,10 +1694,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        7072,
-        1984
+        5536,
+        -1408
       ],
-      "id": "175eabdd-9947-443b-856f-701ab68418d9",
+      "id": "f9d9f8af-7a6a-481a-a03b-de8e923e0c64",
       "name": "Call '🔧 SHARED_CALCULATE_COST_v2'"
     },
     {
@@ -1888,18 +1725,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "ef71c2c0-5c54-47d7-ba79-75b0f929577f",
+      "id": "ec99c04b-dc64-41d6-8ebb-9d3b1728ca14",
       "name": "send_link",
+      "position": [
+        2560,
+        -80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        3080,
-        3360
-      ]
+      }
     },
     {
       "parameters": {
@@ -1922,24 +1759,23 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "640d7621-014f-489a-9597-369d8541e8b7",
+      "id": "c0ac87b7-f442-44a1-8a63-7c3ddc215c23",
       "name": "lookup_order_status",
+      "position": [
+        2560,
+        80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        3080,
-        3510
-      ]
+      }
     },
     {
       "parameters": {
         "descriptionType": "manual",
         "toolDescription": "احفظ تفضيلًا أو ملاحظة دائمة عن العميل (مثل: نباتي، يفضل التواصل مساءً، حساسية معينة) لاستخدامها لاحقًا. مرّر JSON: {type, value}.",
-        "operation": "create",
         "tableId": "customer_preferences",
         "fieldsUi": {
           "fieldValues": [
@@ -1972,18 +1808,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "6a3de7fb-2aed-4944-af3e-6de287ec568e",
+      "id": "e3f624ac-684f-4216-8cb3-bb676fea7c84",
       "name": "save_preference",
+      "position": [
+        2560,
+        224
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        3080,
-        3660
-      ]
+      }
     },
     {
       "parameters": {
@@ -2010,18 +1846,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "af250e5f-7b40-42a4-8100-03da37053f32",
+      "id": "0f292c86-a3f7-42ea-b47b-e4e2211706fa",
       "name": "search_knowledge_base",
+      "position": [
+        2560,
+        368
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        3080,
-        3810
-      ]
+      }
     },
     {
       "parameters": {
@@ -2043,18 +1879,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "d886bb1d-a4a7-44f4-b187-b7aa2cf91922",
+      "id": "0059d8e6-deab-4273-96b2-ad0a50e096d3",
       "name": "fetch_business_hours",
+      "position": [
+        2768,
+        -80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        3280,
-        3360
-      ]
+      }
     },
     {
       "parameters": {
@@ -2081,18 +1917,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "76c3130b-4ddb-419b-9b86-9587cb4025ff",
+      "id": "6735800e-86f4-46a1-be6f-729ae5317842",
       "name": "fetch_categories",
+      "position": [
+        2768,
+        80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        3280,
-        3510
-      ]
+      }
     },
     {
       "parameters": {
@@ -2119,18 +1955,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "741446d8-4492-47d9-89b2-542069222a49",
+      "id": "5923c5d8-d1d8-48b7-8e04-49626009f37c",
       "name": "fetch_services",
+      "position": [
+        2768,
+        224
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        3280,
-        3660
-      ]
+      }
     },
     {
       "parameters": {
@@ -2157,18 +1993,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "d69704aa-554f-4cdb-a4a3-d79d6bbc9f7d",
+      "id": "aec73808-2286-4ca1-985b-ffd1c9108107",
       "name": "fetch_staff",
+      "position": [
+        2768,
+        368
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        3280,
-        3810
-      ]
+      }
     },
     {
       "parameters": {
@@ -2195,18 +2031,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "09ac254f-373b-437e-b95a-4f5d2b0f2064",
+      "id": "2b47daa6-8b17-4977-b03a-b211e5a23567",
       "name": "fetch_medical_services",
+      "position": [
+        2960,
+        -80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        3480,
-        3360
-      ]
+      }
     },
     {
       "parameters": {
@@ -2233,24 +2069,23 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "12852873-7505-4b34-b193-a1bb58df486c",
+      "id": "c4f9da5a-e63d-4bbc-88e4-f711d2eb7cfd",
       "name": "fetch_rooms",
+      "position": [
+        3312,
+        -80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        3820,
-        3360
-      ]
+      }
     },
     {
       "parameters": {
         "descriptionType": "manual",
         "toolDescription": "أنشئ حجز غرفة فندقية بعد الاتفاق على الغرفة وتواريخ الدخول/الخروج وعدد الضيوف. مرّر JSON: {room_id, check_in:'YYYY-MM-DD', check_out:'YYYY-MM-DD', guests_count, total_egp?, notes?}.",
-        "operation": "create",
         "tableId": "reservations",
         "fieldsUi": {
           "fieldValues": [
@@ -2299,18 +2134,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "af3d0fc6-d8b2-4190-9883-8c38a8025d17",
+      "id": "37187595-4f58-4a2f-b96d-8c21ebe4b7df",
       "name": "book_reservation",
+      "position": [
+        3312,
+        80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        3820,
-        3510
-      ]
+      }
     },
     {
       "parameters": {
@@ -2343,18 +2178,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "04858ae8-d884-4689-b294-7c763839acf9",
+      "id": "f327d931-38be-44e3-b7b5-37533301538c",
       "name": "cancel_reservation",
+      "position": [
+        3312,
+        224
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        3820,
-        3660
-      ]
+      }
     },
     {
       "parameters": {
@@ -2381,18 +2216,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "fd3b00e0-7ca4-445b-ac66-b5a7675dda41",
+      "id": "2ce1646d-0830-4765-be2f-efa7d1a78167",
       "name": "fetch_properties",
+      "position": [
+        3648,
+        -80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        4160,
-        3360
-      ]
+      }
     },
     {
       "parameters": {
@@ -2419,24 +2254,23 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "49533f68-7bbf-475f-8df0-951d3494e7a7",
+      "id": "d0965418-681f-4d59-b006-26fa7370de4a",
       "name": "fetch_agents",
+      "position": [
+        3648,
+        80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        4160,
-        3510
-      ]
+      }
     },
     {
       "parameters": {
         "descriptionType": "manual",
         "toolDescription": "سجّل طلب عميل يبحث عن عقار بمواصفات وميزانية محددة لمتابعته من فريق المبيعات. مرّر JSON: {name, phone, request_type, budget_egp?, preferred_location?, details?}.",
-        "operation": "create",
         "tableId": "property_requests",
         "fieldsUi": {
           "fieldValues": [
@@ -2481,24 +2315,23 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "b03cfeb2-1379-4b28-85f6-e5970addb5a5",
+      "id": "b5e0e409-cc33-4682-8f4f-0513056831d1",
       "name": "save_property_request",
+      "position": [
+        3648,
+        224
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        4160,
-        3660
-      ]
+      }
     },
     {
       "parameters": {
         "descriptionType": "manual",
         "toolDescription": "احجز موعد معاينة لعقار محدد بعد الاتفاق على الوقت. مرّر JSON: {property_id, scheduled_at:'ISO', notes?}.",
-        "operation": "create",
         "tableId": "property_visits",
         "fieldsUi": {
           "fieldValues": [
@@ -2531,18 +2364,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "615e99bb-2f0b-4f7f-9eba-2180d34660d0",
+      "id": "def7885c-2b43-490d-92c9-6ea46745d816",
       "name": "book_property_visit",
+      "position": [
+        3648,
+        368
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        4160,
-        3810
-      ]
+      }
     },
     {
       "parameters": {
@@ -2569,18 +2402,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "12ce1236-48d9-422f-9801-a69305e2d45d",
+      "id": "4d950595-71ed-413a-9da5-2ae3bc96cc25",
       "name": "fetch_courses",
+      "position": [
+        3984,
+        -80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        4500,
-        3360
-      ]
+      }
     },
     {
       "parameters": {
@@ -2607,24 +2440,23 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "c02710a9-5682-4d38-aa03-c0d36ac07670",
+      "id": "bf57d909-0a4c-49e6-8934-07336ee6a58b",
       "name": "fetch_teachers",
+      "position": [
+        3984,
+        80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        4500,
-        3510
-      ]
+      }
     },
     {
       "parameters": {
         "descriptionType": "manual",
         "toolDescription": "سجّل بيانات طالب جديد قبل إلحاقه بكورس (خطوة أولى قبل enroll_course). مرّر JSON: {name, phone?, email?, parent_name?, parent_phone?, notes?}. يرجع id الطالب لاستخدامه في التسجيل.",
-        "operation": "create",
         "tableId": "students",
         "fieldsUi": {
           "fieldValues": [
@@ -2665,24 +2497,23 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "74044c58-91c1-4c7e-97dc-e0f5e949318d",
+      "id": "86dbea71-a275-4c4a-965c-cd8ef5ee6c51",
       "name": "save_student",
+      "position": [
+        3984,
+        224
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        4500,
-        3660
-      ]
+      }
     },
     {
       "parameters": {
         "descriptionType": "manual",
         "toolDescription": "ألحق طالبًا بكورس بعد إنشاء سجل الطالب عبر save_student. مرّر JSON: {student_id, course_id, notes?}.",
-        "operation": "create",
         "tableId": "enrollments",
         "fieldsUi": {
           "fieldValues": [
@@ -2711,18 +2542,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "fff22ce0-5fa4-4244-b2bf-6984198c492a",
+      "id": "b20b983c-fe76-411d-9c83-879baca57292",
       "name": "enroll_course",
+      "position": [
+        3984,
+        368
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        4500,
-        3810
-      ]
+      }
     },
     {
       "parameters": {
@@ -2749,18 +2580,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "e25fbd47-e4e2-4d7d-8e6f-a30fa84b7eee",
+      "id": "725a156f-ad53-42ee-9541-5b1cb44e94fe",
       "name": "fetch_classes",
+      "position": [
+        4320,
+        -80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        4840,
-        3360
-      ]
+      }
     },
     {
       "parameters": {
@@ -2787,18 +2618,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "e56d203d-d1c1-4c92-90b2-e54260ba24cf",
+      "id": "b1af006b-72f4-44c4-a1ef-5b163c41094c",
       "name": "fetch_trainers",
+      "position": [
+        4320,
+        80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        4840,
-        3510
-      ]
+      }
     },
     {
       "parameters": {
@@ -2825,24 +2656,23 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "7fbacaa8-1149-47f7-a82d-51536c6dd02d",
+      "id": "45922323-289f-427d-9f20-9e9cc1bdf7c7",
       "name": "fetch_memberships",
+      "position": [
+        4320,
+        224
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        4840,
-        3660
-      ]
+      }
     },
     {
       "parameters": {
         "descriptionType": "manual",
         "toolDescription": "أنشئ اشتراك عضوية جديد للعميل بعد اختيار الباقة. مرّر JSON: {member_name, phone?, plan_name, price_egp?, starts_on:'YYYY-MM-DD', ends_on:'YYYY-MM-DD', notes?}.",
-        "operation": "create",
         "tableId": "memberships",
         "fieldsUi": {
           "fieldValues": [
@@ -2891,18 +2721,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "716f9f19-fe1a-4817-a6b1-d30807ffd17e",
+      "id": "884c86ed-0866-4ec0-bf69-1f755227204d",
       "name": "save_membership",
+      "position": [
+        4320,
+        368
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        4840,
-        3810
-      ]
+      }
     },
     {
       "parameters": {
@@ -2929,24 +2759,23 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "729cce1b-034d-4459-93b6-0496501129f1",
+      "id": "c891cb5d-ba29-4b1a-a552-63428ef53e5b",
       "name": "fetch_technicians",
+      "position": [
+        4672,
+        -80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        5180,
-        3360
-      ]
+      }
     },
     {
       "parameters": {
         "descriptionType": "manual",
         "toolDescription": "سجّل طلب خدمة/صيانة جديد من العميل لجدولته وتوزيعه على فني. مرّر JSON: {service_id?, name, phone, details, preferred_at?:'ISO'}.",
-        "operation": "create",
         "tableId": "service_requests",
         "fieldsUi": {
           "fieldValues": [
@@ -2991,18 +2820,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "f9c4a2c3-6432-4501-89de-8fa0dbd17291",
+      "id": "c73998d4-d941-410f-888a-ef1a9d23c320",
       "name": "save_service_request",
+      "position": [
+        4672,
+        80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        5180,
-        3510
-      ]
+      }
     },
     {
       "parameters": {
@@ -3025,18 +2854,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "c71fbea1-5da8-4084-b819-cf4b8c22d3e8",
+      "id": "1ca34c4f-26b8-46c8-842c-884770fd7e85",
       "name": "track_work_order",
+      "position": [
+        4672,
+        224
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        5180,
-        3660
-      ]
+      }
     },
     {
       "parameters": {
@@ -3059,24 +2888,23 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "494a1c98-8385-4d39-8592-ed1ac1963e9d",
+      "id": "d9cbbdba-5ff0-4361-8a9e-65808168d0e3",
       "name": "fetch_cases",
+      "position": [
+        5008,
+        -80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        5520,
-        3360
-      ]
+      }
     },
     {
       "parameters": {
         "descriptionType": "manual",
         "toolDescription": "سجّل بيانات موكّل جديد لمكتب المحاماة لفتح ملف ومتابعته. مرّر JSON: {name, phone, email?, national_id?, notes?}.",
-        "operation": "create",
         "tableId": "case_clients",
         "fieldsUi": {
           "fieldValues": [
@@ -3113,24 +2941,23 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "ad083af9-9bec-41ce-adb6-6e2582ef2be8",
+      "id": "ec16e1ea-977b-4aee-8a28-9e5d3261c405",
       "name": "register_case_client",
+      "position": [
+        5008,
+        80
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        5520,
-        3510
-      ]
+      }
     },
     {
       "parameters": {
         "descriptionType": "manual",
         "toolDescription": "سجّل طلب استشارة من العميل (موضوع + تفاصيل + الوقت المفضل) لجدولتها مع المختص. مرّر JSON: {name, phone, subject, details?, preferred_at?:'ISO'}.",
-        "operation": "create",
         "tableId": "consultation_requests",
         "fieldsUi": {
           "fieldValues": [
@@ -3175,18 +3002,18 @@
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "id": "ba31106e-9228-40da-b8d3-d04b5885a30e",
+      "id": "7ef7d6f5-4d76-4da2-8931-20e3310a376c",
       "name": "save_consultation_request",
+      "position": [
+        5008,
+        224
+      ],
       "credentials": {
         "supabaseApi": {
           "id": "rXgc8PEXJoXWBygd",
           "name": "Supabase service_role"
         }
-      },
-      "position": [
-        5520,
-        3660
-      ]
+      }
     },
     {
       "parameters": {
@@ -3198,10 +3025,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        3040,
-        3280
+        2528,
+        -160
       ],
-      "id": "41e70eb5-8350-4e3e-bbc9-d01d854ef16c",
+      "id": "21790c25-c119-41ba-9e41-d9af8ab400fd",
       "name": "NoteGroup_f38948c3"
     },
     {
@@ -3214,10 +3041,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        3780,
-        3280
+        3264,
+        -160
       ],
-      "id": "c5e23ab8-86bd-4829-aa7e-33b0b265cd43",
+      "id": "b2068fd6-7b52-4a7e-8cc8-9724dbe448b8",
       "name": "NoteGroup_d2b1959f"
     },
     {
@@ -3230,10 +3057,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        4120,
-        3280
+        3600,
+        -160
       ],
-      "id": "0e64c893-b7d6-4658-ba74-8b6d4a250fad",
+      "id": "b7190075-42fa-41a9-bb15-94864c87ae25",
       "name": "NoteGroup_019ca05b"
     },
     {
@@ -3246,10 +3073,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        4460,
-        3280
+        3952,
+        -160
       ],
-      "id": "b0d8623e-a52f-4d3c-9394-b311e1d43ddb",
+      "id": "77aa8202-3f54-41f7-8755-1cef4bd871a7",
       "name": "NoteGroup_bee08243"
     },
     {
@@ -3262,10 +3089,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        4800,
-        3280
+        4288,
+        -160
       ],
-      "id": "886be053-5c0e-4d94-9218-49af66a6dffa",
+      "id": "ad930c2e-015f-4f95-938c-50bcc2a26bce",
       "name": "NoteGroup_1129a22a"
     },
     {
@@ -3278,10 +3105,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        5140,
-        3280
+        4624,
+        -160
       ],
-      "id": "997110ab-7517-4e28-8862-09c559588a1d",
+      "id": "4d098b3f-2bd4-4ece-86fe-a18865fbf8cc",
       "name": "NoteGroup_8fb877c3"
     },
     {
@@ -3294,51 +3121,32 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        5480,
-        3280
+        4960,
+        -160
       ],
-      "id": "a5f37476-77d2-4ed1-8ca1-f1ac044c3726",
+      "id": "34a82df5-a6d4-4828-b493-4570e9ef31ad",
       "name": "NoteGroup_8266ac79"
     },
     {
       "parameters": {
-        "description": "استخدم هذه الأداة عندما يطلب العميل صورة لمنتج. أدخل Product ID الخاص بالمنتج، وستقوم الأداة بإرسال الصورة المرتبطة به مباشرةً إلى العميل.",
         "workflowId": {
           "__rl": true,
-          "value": "uRMH4w9v32PBWchJ",
+          "value": "ScJGitKmVNeEK6cW",
           "mode": "list",
-          "cachedResultUrl": "/workflow/uRMH4w9v32PBWchJ",
-          "cachedResultName": "SEND_PRODUCT_PHOTO"
+          "cachedResultUrl": "/workflow/ScJGitKmVNeEK6cW",
+          "cachedResultName": "My workflow 15"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "product_id": "={{ $fromAI('product_id', ``, 'string') }}",
-            "business_id": "={{ $('TENANT_CONFIG1').item.json.business_id }}",
-            "instance name": "={{ $('TENANT_CONFIG1').item.json.instance_name }}",
-            "phone": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.key.remoteJid }}"
+            "phone": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.key.remoteJid }}",
+            "instance": "={{ $('WEBHOOK_TRIGGER1').item.json.body.instance }}"
           },
           "matchingColumns": [],
           "schema": [
             {
-              "id": "business_id",
-              "displayName": "business_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "product_id",
-              "displayName": "product_id",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "instance name",
-              "displayName": "instance name",
+              "id": "phone",
+              "displayName": "phone",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -3346,8 +3154,241 @@
               "removed": false
             },
             {
-              "id": "phone",
-              "displayName": "phone",
+              "id": "instance",
+              "displayName": "instance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -2304,
+        -1392
+      ],
+      "id": "57e56660-4df2-4e0c-a9c4-89abda526ac1",
+      "name": "Call 'My workflow 15'"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "اعرض المواعيد المحجوزة للتحقق من الأوقات المتاحة قبل الحجز. ⚠️ يُنصح بإضافة فلتر business_id (انظر ملاحظات التحسين).",
+        "operation": "getAll",
+        "tableId": "appointments",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "business_id",
+              "condition": "eq",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            },
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "scheduled"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2384,
+        0
+      ],
+      "id": "dcdf9f6f-c7d4-4a40-8b54-21965936faa8",
+      "name": "fitch_appointments",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const transcription = ($json.content?.parts?.[0]?.text ?? '').trim();\nif (!transcription) { return { json: { message_text: '', _audio_unclear: true } }; }\nreturn { json: { message_text: transcription, media_processed: true } };"
+      },
+      "id": "44b2e7ac-ae95-4bd8-8ce5-ca6cc84418f3",
+      "name": "EXTRACT_TRANSCRIPTION",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1008,
+        -1344
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "from-me-check",
+              "leftValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.key.fromMe }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "89817533-a52f-4059-820d-928813030457",
+              "leftValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.key.remoteJid.split(\"@\")[0].length }}",
+              "rightValue": 12,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            },
+            {
+              "id": "239f0772-013b-41f2-a8bc-d65c44249b89",
+              "leftValue": "={{ $('WEBHOOK_TRIGGER1').item.json.body.data.key.remoteJid.split(\"@\") }}",
+              "rightValue": "g.us",
+              "operator": {
+                "type": "array",
+                "operation": "notContains",
+                "rightType": "any"
+              }
+            },
+            {
+              "id": "5682b5c8-f200-46d6-b749-c947fb7bac5b",
+              "leftValue": "={{ $('Get a row1').item.json.status }}",
+              "rightValue": "escalated",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "89633e9e-9bc1-4cd8-9401-973851860e43",
+              "leftValue": "={{ $('Get a row1').item.json.status }}",
+              "rightValue": "closed",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7811023d-83d0-4334-ba29-ea05f0574c24",
+      "name": "FILTER_OWN_MESSAGES1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -2288,
+        -1056
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "customers",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "phone",
+              "keyValue": "=+{{ $json.phone }}"
+            },
+            {
+              "keyName": "business_id",
+              "keyValue": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -2880,
+        -1056
+      ],
+      "id": "d478423e-2d9c-4034-845c-fe9964d5055f",
+      "name": "Get a row",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "conversations",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "customer_id",
+              "keyValue": "={{ $json.id }}"
+            },
+            {
+              "keyName": "business_id",
+              "keyValue": "={{ $json.business_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -2672,
+        -1056
+      ],
+      "id": "25a3c739-01e9-41b8-bb68-5ddfceedd85d",
+      "name": "Get a row1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "description": "اعرض/ابحث في منتجات المتجر المتاحة (الاسم، السعر، التصنيف، التوافر). استخدمها عندما يسأل العميل عن منتج أو يطلب أوردر للتأكد من توافر الأصناف. تُفلتر تلقائيًا على المتجر الحالي والمنتجات المتاحة فقط.",
+        "workflowId": {
+          "__rl": true,
+          "value": "QlGMbCY6gVrtzb3M",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/QlGMbCY6gVrtzb3M",
+          "cachedResultName": "GET AVAILABLE PRODUCTS"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "business id": "={{ $('TENANT_CONFIG1').item.json.business_id }}"
+          },
+          "matchingColumns": [
+            "business id"
+          ],
+          "schema": [
+            {
+              "id": "business id",
+              "displayName": "business id",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -3362,11 +3403,126 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        3600,
-        3200
+        1824,
+        0
       ],
-      "id": "a818bac3-2513-4778-ae87-d8474175616b",
-      "name": "send_product_photo"
+      "id": "4e038380-de3e-4d4a-9b8f-77ab45f00815",
+      "name": "fitch_products"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1392,
+        256
+      ],
+      "id": "12e8ea0a-58ed-4199-9103-221099b20883",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "XI2UZmfY3FRbe5Us",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# SYSTEM PROMPT — نورهان | مسرح الطفل المبدع\n\nأنتِ \"نورهان\" — موظفة خدمة عملاء ومبيعات في مسرح الطفل المبدع 🎭 بالقاهرة.\n\n---\n\n## 🎭 الشخصية\n\n- لهجة مصرية طبيعية كأنك بترد على واتساب\n- ودودة وخفيفة وبتحبي تساعدي\n- الرد قصير ومباشر\n- سؤال واحد بس في كل رسالة\n- ممنوع الفصحى الرسمية\n- استخدمي: حضرتك / تمام / حابة / تحب / أقول لحضرتك\n- Emojis خفيفة: 🌹 ❤️ 😊 🎭\n\n---\n\n## ⚠️ القاعدة الأهم — النص الحرفي\n\n**أي حاجة موجودة في الـ knowledge base، ابعتيها بالنص الحرفي كما هي بدون تعديل أو تلخيص أو إضافة.**\n\nده ينطبق على:\n- رسالة الترحيب\n- تفاصيل أي ورشة\n- الأسعار\n- المواعيد\n- الفروع والعناوين\n- استمارة التسجيل\n- طرق الدفع\n\n---\n\n## 📌 خريطة الردود الحرفية\n\n### لو العميل بعت تحية (السلام عليكم / مساء الخير / أهلاً / هاي / أي تحية):\n\nابعتي النص ده بالظبط:\n\n```\nأهلاً بك معنا في مسرح الطفل المبدع🎭🌹 يسعدنا متابعتك علي صفحاتنا علي السوشيال ميديا  لتفوز بالخصم احتفالا بإتمامنا 10 سنوات \n-يمكن التواصل مباشرة علي رقم 01099292610\n \nالحجز فى الورش الحالية\n1- التمثيل المسرحي 🎭\n2- التمثيل السينمائي 🎬\n3- التقديم والإذاعة 🎙️\n4- المسرح الفرنسي 🇨🇵\n \nحضرتك مهتم تعرف تفاصيل عن أي ورشة منهم⁉️\n```\n\n---\n\n### لو العميل سأل عن التمثيل المسرحي (بأي صيغة):\n\nابعتي النص ده بالظبط:\n\n```\nالتمثيل المسرحي 2 مستوي من 5 ل 18 عام\n- المستوي احترافي: لمن لديهم مواهب تمثيل او غناء او استعراض ويريدون تنميتها\n- المستوي المتقدم: لمن لديه موهبه وشارك بالفعل فى أفلام أو مسلسلات ويريد تطوير أدواته\n \nما المستوي الذي ترد تفاصيل أكثر عنه ؟!\n```\n\n---\n\n### لو العميل اختار الاحترافي أو المستوى الثاني:\n\nابعتي النص ده بالظبط:\n\n```\n♦️2- المستوي الثاني الأحترافي لورشة التمثيل المسرحي\n🔥 7 مميزات لهذة الورشة مع مسرح الطفل المبدع\n1 - التدريب لزيادة الثقة فى النفس والقدرة على الوقوف أمام الجمهور وتقوية شخصية الطفل\n2- التدريب علي التمثيل وأداء الشخصيات المختلفة واكتشاف المواهب وتنميتها\n3 - تدريبات الحفظ\n4 - الاشتراك فى مسرحية وتقديمها على مسرح كبير فى وسط البلد\n5 - التدريب شهرين يوم واحد فى الأسبوع  او يومين حسب الفترة والمرة 3 ساعات\n6 - تصوير الحفلة فوتو وفيديو وترفع على الصفحات بعد الحفلة بيومين\n7- فرصة الإشتراك فى الفرقة الأساسية\n🎟 الاشتراك شامل(تدريب شهرين والحفلة والتصوير) 3500 جنية بدل 4500 جنية مع إمكانية الدفع علي جزئين لفترة محدودة\n🎟 اشترك الآن لضمان مكانك\nاستمتع معنا فى مسرح الطفل المبدع 🥰\n```\n\nثم اسألي: `تحب نبدأ التسجيل؟ 😊`\n\n---\n\n### لو العميل اختار المتقدم أو المستوى الثالث:\n\nابعتي النص ده بالظبط:\n\n```\n♦️ 3- المستوي الثالث المتقدم للتمثيل المسرحي مع مسرح الطفل المبدع\n🔥 7 مميزات للورشة المتقدمة\n1 - التدريب علي أدوات الممثل الشامل تمثيل والغناء و الإستعراض\n2- التدريب علي حرفية الأداء و الشخصيات المختلفة\n3 - تدريبات لزيادة القدرة علي التركيز الحفظ السريع\n4 - الاشتراك فى عرض مسرحي وتقديمه على مسرح كبير فى وسط البلد\n5 - التدريب 3 شهور  10-12سيشن يوم واحد فى الأسبوع كل مرة 3 ساعات قد تزيد قبل الحفلة\n6 - تصوير الحفلة فوتو وترفع على الصفحات بعد الحفلة بيومين والفيديو يتم اخد مشاهد لكل ممثل علي حدا لكي توضع فى الشوريل أما العرض الكامل فغير متاح تداوله الا بإذن من المخرج والمؤلف بعد انتهاء المهرجانات المشارك فيها\n🔥 الميزة السابعة\n7- فرصة الإشتراك فى المهرجانات الأحترافية والدولية\n🎟 الاشتراك شامل (التدريب 3 شهور والحفلة والتصوير ) 6000 جنية\nخصم 10% إذا أكدت حجزك بالدفع اليوم\n🎟 اشترك الآن لضمان مكانك\nاستمتع معنا فى مسرح الطفل المبدع 🥰\n```\n\nثم اسألي: `تحب نبدأ التسجيل؟ 😊`\n\n---\n\n### لو العميل سأل عن التمثيل السينمائي أو ورشة سكوت:\n\nابعتي النص ده بالظبط:\n\n```\n💥 تفاصيل ورشة سكوت ح نصور التمثيل التلفزيوني والسينمائي 😍\nبندرب علي\n📽️ حرفية التمثيل أمام الكاميرا\n📽️ عدد محدود لاتقان التدريب\n📽️ التدريب داخل لوكيشن للتدريب عملى\n📽️ تدريب على مشاهد من أفلام متنوعة\n🔥 فى نهاية الورشة🔥\n📽️ يصور كل مشترك مشهد واحد لتقديمه لمكاتب الكاستنج\n📽️ اختيار بعض المشاركين فى الافلام والحلقات التي ينتجها مسرح الطفل المبدع حسب متطلبات الأدوار\n📽️ مدة الورشة 6 محاضرات تختلف مواعيدها حسب كل فرع\n🎟 الإشتراك شامل التدريب والتصوير 4500 جنية بدلا من 6000 جنية مع إمكانية الدفع على جزئين لفترة محدودة\n🎟 اشترك الآن لضمان مكانك\nاستمتع معنا فى مسرح الطفل المبدع 🥰\n```\n\nثم اسألي: `تحب نبدأ التسجيل؟ 😊`\n\n---\n\n### لو العميل سأل عن الإذاعة أو البودكاست أو نجوم FM:\n\nابعتي النص ده بالظبط:\n\n```\n🧨 ورشة نجوووم FM مع إذاعة الطفل المبدع\n🧨 للتقديم الإذاعي والبودكاست\n👈🏻 التدريب يحتوي علي\n🎙️ مهارات التقديم والإلقاء السليم\n🎙️تدريب طبقات الصوت وازاى تكون مميز فى التقديم\n🎙️مهارات التقديم الصوتي فقط للاذاعة\n🎙️التعامل مع الميكرفون و الهاتف للتسجيل والتصوير\n🎙️تدريب على التصوير التقديم الكاميرا\n🎙️تدريبات التقارير والنشرات الإخبارية\nفى نهاية الكورس\n🧨 يسجل كل مشترك حلقة لبرنامج إذاعي بودكاست داخل أستوديو\n♦️ مواعيد التدريب\n6 محاضرات يومين فى الأسبوع  لمدة 3 أسابيع\n🎟️ الإشتراك شامل التدريب والتصوير 2200 جنية بدلا من 2800 جنية مع إمكانية الدفع علي جزئين لفترة محدودة\n🎟️اشترك الآن لضمان مكان لاولادك\nاستمتع معنا فى مسرح الطفل المبدع 🥰\n```\n\nثم اسألي: `تحب نبدأ التسجيل؟ 😊`\n\n---\n\n### لو العميل سأل عن المسرح الفرنسي (التفاصيل):\n\nابعتي النص ده بالظبط:\n\n```\n🇫🇷🎪 ورشة المسرح الفرنسي مع مسرح الطفل المبدع\n🇫🇷  Théâtre Français pour les élèves de l'écoles française 🎪\nفرصة تحسن اللغة عند طفلك وتنميتها مع مسرح الطفل المبدع الفرنسي\n•بيدرب على المحادثة والقراءة\n🇫🇷 Conversation et Lecture\nبشكل صحيح مع مدربين تمثيل خرجين مدارس فرنسية 🗣️\n•تعلم مهارات التمثيل والإلقاء🎭\n•تدريبات الثقة بالنفس أثناء التحدث بالفرنسي\n🎪الاشتراك فى عرض مسرحي بالفرنسي\n• التدريب لمدة 6 أسابيع\n- يومين فى الأسبوع\n- كل مرة ساعتين\n🇫🇷 المواعيد من 2 يوليو فى كل الفروع\n🎟 الاشتراك شامل(تدريب شهرين والحفلة والتصوير) 4500 جنية مع إمكانية الدفع علي جزئين لفترة محدودة\n🎟 اشترك الآن لضمان مكانك\nاستمتع معنا فى مسرح الطفل المبدع 🥰\n```\n\nثم اسألي: `تحب نبدأ التسجيل؟ 😊`\n\n---\n\n### لو العميل سأل عن مواعيد المسرح الفرنسي:\n\nابعتي النص ده بالظبط:\n\n```\n♦️مواعيد المسرح الفرنسي\n\n- الشيخ زايد\nالسبت والاثنين من 10 ل 12ظهرا\n\n- مصر الجديدة\nالأحد والثلاثاء من 10 ل 12ظهرا\n\n- مدينتي\nالأربعاء والخميس من 10 ل 12 ظهرا\n```\n\n---\n\n### لو العميل سأل عن المواعيد التفصيلية لفرع زايد:\n\nابعتي النص ده بالظبط:\n\n```\n♦️مواعيد زايد\n👈 المسرح الفرنسي\nالسبت والاثنين من 10 ل 12 م\n👈 الإذاعة والبودكاست\nالسبت والاثنين من 12 ل 3 م\n👈 السينما\nالسبت والاثنين من 3 ل 6 م\n👈 المسرح\nالسبت فقط من 6 ل 9 م\n```\n\n---\n\n### لو العميل سأل عن المواعيد التفصيلية لفرع مصر الجديدة:\n\nابعتي النص ده بالظبط:\n\n```\n♦️مواعيد مصر الجديدة\n👈 المسرح الفرنسي\nالاحد والثلاثاء من 10 ل 12 م\n👈 الإذاعة و البودكاست\nالأحد والثلاثاء من 12 ل 3 م\n👈 السينما\nالأحد والثلاثاء من 3 ل 6 م\n👈 المسرح\nالأحد فقط من 7 ل 10 م\n```\n\n---\n\n### لو العميل سأل عن المواعيد التفصيلية لفرع المعادي:\n\nابعتي النص ده بالظبط:\n\n```\n♦️مواعيد المعادي\n👈 المسرح العربي صباحي\nالاحد من 10 ل 1 م\n👈 الإذاعة والبودكاست\nالأحد من 1 ل 4 م\n👈 السينما\nالأحد من 4 ل 7 م\n👈 المسرح العربي مسائي\nالأحد من 7 ل 10 م\n```\n\n---\n\n### لو العميل سأل عن المواعيد التفصيلية لفرع مدينتي:\n\nابعتي النص ده بالظبط:\n\n```\n♦️مواعيد مدينتي\n👈 المسرح الفرنسي\nالأربعاء والخميس من 10 ل 12 م\n👈 مسرح أكبر من 12 سنة\nالأحد من 1 ل 4 م\n👈 المسرح أصغر من 12 سنة\nالأحد من 4 ل 7 م\n👈 السينما\nالجمعة من 7 ل 10 م\n```\n\n---\n\n### لو العميل سأل عن الفروع:\n\nابعتي النص ده بالظبط:\n\n```\n♦️ فروع ومواعيد صيف 2026\n- زايد السبت\n- م. الجديدة الاحد\n- المعادي الأحد\n- التجمع الثلاثاء\n- مدينتي الاربعاء\n\nيمكنك الاتصال بنا مباشرة على 01099292610\n\nايه أقرب فرع لحضرتك؟\n```\n\n---\n\n### لو العميل اختار فرع — ابعتي عنوانه بالنص الحرفي:\n\n**زايد:**\n```\n♦️ زايد مسرح الطفل المبدع\nداخل بيانو بيانو كمبوند الكرمة 1 المدخل بجوار شركة الغاز مباشرة\nhttps://goo.gl/maps/PbkfRe2gokFvxKUHA\n```\n\n**مصر الجديدة:**\n```\n♦️ مصر الجديدة مسرح الطفل المبدع\nداخل فبريانو أمام مدرسة نوتردام - ميدان الإسماعيلية - مصر الجديدة\nhttps://maps.app.goo.gl/8ikYyvvvz1Wm7bGP7\n```\n\n**المعادي:**\n```\n♦️المعادي مسرح الطفل المبدع\nداخل شغف 88 ش 9 أمام محطة مترو المعادي\nhttps://maps.app.goo.gl/8Ai53YzKm23zUazn9\n```\n\n**التجمع:**\n```\n♦️التجمع الخامس مسرح الطفل المبدع\nعمارة 84 الدور الأرضي بعد مسجد فاطمة الشربتلي بجوار معهد الكمال أمام عصير القبيصي\nhttps://maps.google.com/?q=30.000584,31.445589\n```\n\n**مدينتي:**\n```\n♦️ مدينتي مسرح الطفل المبدع\nالميعاد الاربعاء من 10ل 1 ظ  / و  5 ل 8 مساءا\nالعنوان داخل مكان ورك سبيس بلوك 3 جانب - كرافت زون\nhttps://maps.app.goo.gl/3LitaPDsSku2RHAP8\n```\n\n---\n\n### لو العميل مهتم بالتسجيل — ابعتي الاستمارة بالنص الحرفي:\n\n```\n💚 التسجيل فى مسرح الطفل المبدع\n💚 من فضلك خد كوبي وضيف البيانات وابعتهالنا تاني\nاسم المحافظة :\nاسم الورشة :\nاسم المتدرب :\nعمر المتدرب :\nاقرب فرع :\nعرفتنا منين:\nلغة الكورس :\nالسنة الدراسية أو العمل :\nاسم المدرسة أو الجامعة :\nاللغة الأولي :\nاسم وأرقام للمتابعة :\nالهدف من حضور الورشة:\nملاحظات خاصة بالطفل :\nوسيلة الدفع المناسبة :\n```\n\n---\n\n### لو العميل سأل عن الدفع — ابعتي النص ده بالظبط:\n\n```\n🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸\nفي 5 وسائل لدفع الإشتراك\n1-  التقسيط على ٦ شهور أو أكثر عن طريق اللينك\nhttps://www.easykash.net/%D9%85%D8%B3%D8%B1%D8%AD%20%D8%A7%D9%84%D8%B7%D9%81%D9%84%20%D8%A7%D9%84%D9%85%D8%A8%D8%AF%D8%B9/pay\n2- فودافون كاش علي رقم 01099292610\n3-فوري الاشتراك علي رقم 01099292610\n4- البنك العربي الأفريقي الدولي أي فرع علي حساب الأكاديمية الدولية رقم\n1103233610010201\n5- انستاباي حساب بنكي على رقم 01061732599\n🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸\n```\n\n---\n\n### لو العميل قال \"دفعت\" أو بعت إيصال:\n\nابعتي:\n\n```\nتم استلام تأكيد حجزك ✅ وهيتم إضافة ولي الأمر على جروب الورشة وإرسال الإيصال 😊 إن شاء الله تستمتعوا معانا ❤️\n```\n\n---\n\n## 🧠 قواعد الذاكرة ومتابعة المحادثة\n\n- راجعي آخر رسالة من الـ assistant قبل الرد\n- لو السعر اتقال بالفعل → ممنوع تسألي عنه تاني\n- بعد إرسال السعر → انتقلي فورًا لـ `تحب نبدأ التسجيل؟ 😊`\n- لو العميل قال (تمام / ماشي / اوك / حلو) → كملي من آخر نقطة وقفتي عندها\n\n---\n\n## 🚫 ممنوعات حرجة\n\n- ممنوع تلخصي أو تعدلي أي نص موجود في الـ knowledge base\n- ممنوع Markdown في الرسائل للعميل\n- ممنوع سؤالين في رسالة واحدة\n- ممنوع ترحيب متكرر\n- ممنوع إرسال معلومات مش مطلوبة\n- ممنوع إرسال كل الأسعار مرة واحدة\n- ممنوع الفصحى الرسمية++++",
+        "height": 624,
+        "width": 864
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -976,
+        288
+      ],
+      "id": "11ba55aa-b378-4dea-b4af-12a95003c897",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "connupd-1",
+              "leftValue": "={{ ($json.body.event || '').toString().toLowerCase().replace('_', '.') }}",
+              "rightValue": "connection.update",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bbbb1111-conn-4444-8888-isconnupd001",
+      "name": "IS_CONNECTION_UPDATE1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1400,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Relay Evolution CONNECTION_UPDATE events to the ArqFlow platform so the\n * dashboard always knows the real WhatsApp link state. __BUSINESS_ID__ is\n * injected by the Factory at provisioning time. Requires n8n env:\n * ARQFLOW_HMAC_SECRET + ARQFLOW_CALLBACK_URL. */\nconst crypto = require('crypto');\nconst b = $json.body || {};\nconst d = b.data || {};\nconst stateMap = { open: 'connected', connecting: 'qr_pending', close: 'disconnected', refused: 'disconnected' };\nconst state = String(d.state || d.status || '').toLowerCase();\nconst payload = {\n  event: 'instance_status',\n  business_id: '__BUSINESS_ID__',\n  instance_name: b.instance || d.instance || '',\n  status: stateMap[state] || 'disconnected',\n  connected_number: String(d.wuid || b.sender || '').split('@')[0] || null,\n};\nconst body = JSON.stringify(payload);\nconst signature = crypto.createHmac('sha256', $env.ARQFLOW_HMAC_SECRET || '').update(body).digest('hex');\nconst url = $env.ARQFLOW_CALLBACK_URL || '';\nif (!url) throw new Error('ARQFLOW_CALLBACK_URL not set in n8n environment');\nreturn [{ json: { url, body, signature } }];"
+      },
+      "id": "bbbb2222-conn-4444-8888-buildstatus1",
+      "name": "BUILD_STATUS_CALLBACK1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-ArqFlow-Signature",
+              "value": "={{ $json.signature }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "bbbb3333-conn-4444-8888-sendstatus01",
+      "name": "SEND_STATUS_CALLBACK1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1000,
+        -420
+      ],
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {
@@ -3508,17 +3664,6 @@
         ]
       ]
     },
-    "EXTRACT_TRANSCRIPTION": {
-      "main": [
-        [
-          {
-            "node": "IS_AUDIO_UNCLEAR1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "GET_MEDIA_BASE_IMAGE": {
       "main": [
         [
@@ -3617,29 +3762,6 @@
         [
           {
             "node": "Loop Over Items",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "FILTER_OWN_MESSAGES1": {
-      "main": [
-        [
-          {
-            "node": "Call 'My workflow 15'",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "ROUTE_MEDIA_TYPE1",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "IGNORE_OWN_MESSAGES1",
             "type": "main",
             "index": 0
           }
@@ -3842,7 +3964,7 @@
       "main": [
         [
           {
-            "node": "TENANT_CONFIG1",
+            "node": "IS_CONNECTION_UPDATE1",
             "type": "main",
             "index": 0
           }
@@ -3886,7 +4008,7 @@
       "main": [
         [
           {
-            "node": "FILTER_OWN_MESSAGES1",
+            "node": "Get a row",
             "type": "main",
             "index": 0
           }
@@ -3943,17 +4065,6 @@
           {
             "node": "Code in JavaScript1",
             "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "fitch_products": {
-      "ai_tool": [
-        [
-          {
-            "node": "MAIN_AI_AGENT",
-            "type": "ai_tool",
             "index": 0
           }
         ]
@@ -4037,17 +4148,6 @@
       ]
     },
     "fitch_doctors": {
-      "ai_tool": [
-        [
-          {
-            "node": "MAIN_AI_AGENT",
-            "type": "ai_tool",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "fitch_appointments": {
       "ai_tool": [
         [
           {
@@ -4461,7 +4561,7 @@
         ]
       ]
     },
-    "send_product_photo": {
+    "fitch_appointments": {
       "ai_tool": [
         [
           {
@@ -4471,14 +4571,121 @@
           }
         ]
       ]
+    },
+    "EXTRACT_TRANSCRIPTION": {
+      "main": [
+        [
+          {
+            "node": "IS_AUDIO_UNCLEAR1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Get a row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row1": {
+      "main": [
+        [
+          {
+            "node": "FILTER_OWN_MESSAGES1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FILTER_OWN_MESSAGES1": {
+      "main": [
+        [
+          {
+            "node": "Call 'My workflow 15'",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ROUTE_MEDIA_TYPE1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IGNORE_OWN_MESSAGES1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fitch_products": {
+      "ai_tool": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "MAIN_AI_AGENT",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "IS_CONNECTION_UPDATE1": {
+      "main": [
+        [
+          {
+            "node": "BUILD_STATUS_CALLBACK1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "TENANT_CONFIG1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_STATUS_CALLBACK1": {
+      "main": [
+        [
+          {
+            "node": "SEND_STATUS_CALLBACK1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "92e43447-db4f-4103-b7f7-d9099bb9c0cd",
+  "versionId": "13d06898-3d79-477d-8134-230f28f0a1c9",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "c6ff05776992964543c85834eed789ae8d538e2826bed09559b1709e0337b4da"

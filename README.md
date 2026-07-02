@@ -257,28 +257,37 @@ WHERE id = 'PASTE_UUID_HERE';
 ```
 Customer fills form  →  POST /api/onboarding
                              ↓ creates business + payment in Supabase
-                             ↓ notifies all admins
+                             ↓ notifies all admins (dashboard + Telegram)
 
-Admin reviews  →  POST /api/admin/payments/:id/approve
-                       ↓ approves payment
-                       ↓ creates Supabase auth user + credentials
-                       ↓ creates subscription + invoice
-                       ↓ HMAC-signed POST to n8n Bot Factory v6
+Admin approves  →  POST /api/admin/payments/:id/approve (or Telegram button)
+                       ↓ approves payment, creates auth user + credentials
+                       ↓ creates subscription + invoice + wallet top-up
+                       ↓ business.status = 'provisioning'
+                       ↓ HMAC-signed POST to n8n Factory 🏭
 
-n8n Bot Factory  →  ValidateSignature
-                  →  SelectTemplate (starter/business/enterprise)
-                  →  BuildSystemPrompt
-                  →  InjectionEngine (replaces __PLACEHOLDERS__)
-                  →  FetchTemplateJSON (n8n API)
-                  →  ApplyReplacements
-                  →  CreateWorkflow + ActivateWorkflow
-                  →  CreateEvolutionInstance
-                  →  ConfigureEvolutionWebhook
-                  →  UpdateSupabaseStatus
-                  →  CallbackSuccess → POST /api/n8n/callback
+n8n Factory 🏭  →  VALIDATE_HMAC
+                →  inject & prune bot template (industry + tier)
+                →  create + register workflow (n8n API)
+                →  create Evolution instance (MESSAGES_UPSERT + CONNECTION_UPDATE)
+                →  update businesses row
+                →  HMAC callback → POST /api/n8n/callback (provision_complete)
+                   (failures → provision_failed; watchdog covers silent deaths)
 
-Platform callback  →  Sets business.status = 'active'
-                   →  Creates instances record
-                   →  Sends notification to client
+Client provisioning screen (src/app/dashboard/ProvisioningScreen.tsx)
+   'provisioning'  →  "جاري إنشاء البوت..."
+   'qr_pending'    →  WhatsApp prep steps → "أنا جاهز" → fresh QR
+                       (POST /api/dashboard/provisioning/qr → Evolution)
+   'under_review'  →  "تم الربط ✅ / جاري فحص البوت..."
+   'active'        →  dashboard
+
+WhatsApp scan  →  Evolution CONNECTION_UPDATE → bot workflow relay
+              →  POST /api/n8n/callback (instance_status: connected)
+              →  business.status = 'under_review' + Telegram alert to admins
+
+Admin final OK  →  POST /api/admin/clients/:id/activate (runs checks)
+               →  business.status = 'active' → client lands in dashboard
 ```
+
+Full details: `docs/PROVISIONING_FLOW.md`. n8n deployment: `n8n/final workflows/IMPORT_GUIDE.md`.
+
 by Mohamed Ibrahem
