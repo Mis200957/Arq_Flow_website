@@ -160,6 +160,10 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
   // 6) trigger n8n Bot Factory
   const factoryUrl = process.env.N8N_FACTORY_WEBHOOK_URL;
   const secret = process.env.N8N_WEBHOOK_SECRET ?? "";
+  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`;
+  // Recipient of the "bot ready" WhatsApp message: prefer the dedicated
+  // whatsapp_number the client entered, fall back to contact_phone.
+  const notifyNumber = business.whatsapp_number || business.contact_phone || null;
   const payload = {
     event: "provision_bot",
     source: "arqflow-platform",
@@ -202,6 +206,22 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
       order_instructions: business.order_instructions,
       languages: business.languages,
       knowledge_base: business.knowledge_base_raw,
+    },
+    // Credentials to hand to the customer once the bot is ready. Sent to n8n
+    // only — the workflow uses them to compose the "bot ready" WhatsApp
+    // message at the end of provisioning (after Respond to Webhook). We
+    // don't store the plaintext password anywhere; this is the only hop.
+    credentials: credentialsIssued
+      ? { client_id: business.order_id, email, password, dashboard_url: dashboardUrl }
+      : null,
+    // Everything the workflow needs to send the "bot ready" WhatsApp itself,
+    // without calling back into the platform.
+    notify: {
+      channel: "whatsapp",
+      to: notifyNumber,
+      contact_name: business.owner_name ?? business.business_name,
+      dashboard_url: dashboardUrl,
+      language: (business.languages && business.languages[0]) || "ar",
     },
     content: { faqs: kb ?? [], products: products ?? [], services: services ?? [] },
     supabase: {
