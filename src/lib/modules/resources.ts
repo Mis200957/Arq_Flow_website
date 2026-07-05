@@ -496,15 +496,6 @@ export const RESOURCES: Record<string, ResourceDescriptor> = {
       { key: "available", label: L("متاح", "Available"), type: "boolean", list: true, filter: true },
     ],
   },
-  delivery: {
-    table: "delivery_zones", titleField: "name", orderBy: { column: "name", ascending: true },
-    fields: [
-      { key: "name", label: L("المنطقة", "Zone"), type: "text", required: true, list: true, search: true },
-      { key: "fee_egp", label: L("رسوم التوصيل (ج.م)", "Fee (EGP)"), type: "money", list: true },
-      { key: "eta_text", label: L("مدة التوصيل", "ETA"), type: "text", list: true },
-      fActive,
-    ],
-  },
   promotions: {
     table: "promotions", titleField: "title", orderBy: { column: "created_at", ascending: false },
     fields: [

@@ -23,7 +23,7 @@ export const INDUSTRY_TEMPLATES: Record<string, IndustryTemplate> = {
     type: "restaurant",
     label: { ar: "مطعم", en: "Restaurant" },
     icon: "UtensilsCrossed",
-    modules: ["orders", "products", "delivery-areas", "delivery", "promotions"],
+    modules: ["orders", "products", "delivery-areas", "promotions"],
     labelOverrides: { products: { ar: "المنيو", en: "Menu" } },
     quickActions: ["products", "orders", "knowledge-base", "conversations"],
     defaults: { tone_of_voice: "egyptian", fallback_behavior: "handover", primary_goal: "sales" },

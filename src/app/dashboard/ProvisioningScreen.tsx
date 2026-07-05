@@ -31,11 +31,13 @@ const POLL_MS = 5_000;
  *                                              user taps "أنا جاهز" (QR codes
  *                                              expire in ~40s)
  *   3. qr_show                               — live QR with countdown + refresh
- *   4. reviewing  (status=under_review)      — WhatsApp linked ✅, internal
- *                                              checks; waits for the admin's
- *                                              final confirmation
- *   5. dashboard  (status=active)            — page refresh drops the client
- *                                              into the real dashboard
+ *   4. dashboard  (status=active)            — QR scan flips the row to active;
+ *                                              page refresh drops the client
+ *                                              straight into the real dashboard
+ *
+ * The legacy `reviewing` stage (status=under_review) is kept as a safety net
+ * for legacy rows or the manual admin activate path; new provisionings jump
+ * straight from qr_show → dashboard.
  *
  * State advances via Supabase realtime on the businesses row + a polling
  * fallback against /api/dashboard/provisioning/status.
