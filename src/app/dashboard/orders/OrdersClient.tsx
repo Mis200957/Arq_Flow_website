@@ -91,7 +91,7 @@ export default function OrdersClient({ businessId, initialOrders }: Props) {
               className={cn(
                 "text-xs px-3 py-1.5 rounded-full font-semibold border transition-all",
                 filterStatus === s
-                  ? "bg-[rgba(107,160,172,0.2)] text-accent border-[var(--accent)]"
+                  ? "bg-[rgba(153,207,220,0.2)] text-accent border-[var(--accent)]"
                   : "text-muted border-[var(--border)] hover:border-[var(--border-strong)]"
               )}
             >

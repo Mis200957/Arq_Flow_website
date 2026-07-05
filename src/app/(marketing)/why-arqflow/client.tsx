@@ -96,8 +96,8 @@ export default function WhyArqflowClient() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {t.items.map((it, i) => (
             <Reveal key={it.h} delay={i * 0.07}>
-              <div className="card card-hover p-7 h-full">
-                <span className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-teal to-brand-sky text-white flex items-center justify-center mb-5 shadow-[0_8px_24px_rgba(42,96,114,0.35)]">
+              <div className="card card-hover p-6 sm:p-7 h-full">
+                <span className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-teal to-brand-sky text-white flex items-center justify-center mb-5 shadow-[0_8px_24px_rgba(21,79,97,0.35)]">
                   <it.icon className="w-6 h-6" aria-hidden />
                 </span>
                 <h2 className="font-extrabold text-lg">{it.h}</h2>

@@ -103,7 +103,7 @@ function VoiceMock() {
     <div className="glass-strong p-6 space-y-3">
       <div className="max-w-[85%] self-start bg-[rgba(238,237,210,0.1)] border border-app rounded-2xl rounded-ss-md px-4 py-3">
         <div className="flex items-center gap-3">
-          <span className="w-8 h-8 rounded-full bg-[rgba(107,160,172,0.2)] text-accent flex items-center justify-center shrink-0">
+          <span className="w-8 h-8 rounded-full bg-[rgba(153,207,220,0.2)] text-accent flex items-center justify-center shrink-0">
             <Mic className="w-4 h-4" aria-hidden />
           </span>
           <div className="flex items-center gap-0.5" aria-hidden>
@@ -182,7 +182,7 @@ function DeepDives() {
   const visuals = [ChatLinesMock, OrderMock, VoiceMock];
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-24">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-16 sm:space-y-24">
       {t.sections.map((s, i) => {
         const Visual = visuals[i];
         return (
@@ -191,7 +191,7 @@ function DeepDives() {
               <span className="badge badge-accent mb-4">
                 <s.icon className="w-3.5 h-3.5" aria-hidden /> {s.badge}
               </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold leading-tight">{s.h}</h2>
+              <h2 className="text-[1.75rem] leading-9 sm:text-4xl sm:leading-[1.2] font-extrabold">{s.h}</h2>
               <p className="text-muted mt-4 leading-relaxed">{s.p}</p>
               <ul className="mt-6 space-y-3">
                 {s.points.map((pt) => (
@@ -258,10 +258,10 @@ function Comparison() {
   };
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
       <Reveal className="max-w-3xl mx-auto text-center">
         <span className="badge badge-accent mb-4">{t.badge}</span>
-        <h2 className="text-3xl sm:text-4xl font-extrabold">{t.title}</h2>
+        <h2 className="text-[1.75rem] leading-9 sm:text-4xl sm:leading-[1.2] font-extrabold">{t.title}</h2>
         <p className="text-muted mt-4 leading-relaxed">{t.sub}</p>
       </Reveal>
       <Reveal delay={0.1} className="mt-12">
@@ -285,7 +285,7 @@ function Comparison() {
                       key={i}
                       className={cn(
                         "text-center",
-                        i === 0 && "bg-[rgba(107,160,172,0.07)] font-semibold text-accent"
+                        i === 0 && "bg-[rgba(153,207,220,0.07)] font-semibold text-accent"
                       )}
                     >
                       {cell(v)}

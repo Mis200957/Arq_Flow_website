@@ -110,7 +110,7 @@ export default function FaqClient() {
         {t.groups.map((g, gi) => (
           <Reveal key={g.title} delay={gi * 0.05}>
             <h2 className="font-extrabold text-xl flex items-center gap-2.5 mb-5">
-              <span className="w-9 h-9 rounded-xl bg-[rgba(107,160,172,0.14)] text-accent flex items-center justify-center">
+              <span className="w-9 h-9 icon-chip">
                 <g.icon className="w-4.5 h-4.5" aria-hidden />
               </span>
               {g.title}

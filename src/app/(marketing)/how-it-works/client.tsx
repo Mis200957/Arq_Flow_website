@@ -83,7 +83,7 @@ function Timeline() {
   });
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
       <SectionHeading badge={t.badge} title={t.title} />
       <div className="relative mt-14 max-w-3xl mx-auto">
         <div
@@ -95,7 +95,7 @@ function Timeline() {
             <li key={s.h}>
               <Reveal delay={i * 0.08}>
                 <div className="flex gap-5">
-                  <span className="hidden sm:flex w-12 h-12 rounded-xl bg-gradient-to-br from-brand-teal to-brand-sky text-white items-center justify-center shrink-0 relative z-10 shadow-[0_8px_24px_rgba(42,96,114,0.4)]">
+                  <span className="hidden sm:flex w-12 h-12 rounded-xl bg-gradient-to-br from-brand-teal to-brand-sky text-white items-center justify-center shrink-0 relative z-10 shadow-[0_8px_24px_rgba(21,79,97,0.4)]">
                     <s.icon className="w-5 h-5" aria-hidden />
                   </span>
                   <div className="card card-hover p-6 flex-1">
@@ -175,7 +175,7 @@ function BehindTheScenes() {
   });
 
   return (
-    <section className="relative py-20 overflow-hidden">
+    <section className="relative py-16 sm:py-24 overflow-hidden">
       <div className="glow-orb w-96 h-96 bg-brand-teal -top-20 -end-32" aria-hidden />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} subtitle={t.sub} />
@@ -183,7 +183,7 @@ function BehindTheScenes() {
           {t.items.map((it, i) => (
             <Reveal key={it.h} delay={i * 0.08}>
               <div className="card card-hover p-6 h-full">
-                <span className="w-11 h-11 rounded-xl bg-[rgba(107,160,172,0.14)] text-accent flex items-center justify-center mb-4">
+                <span className="w-11 h-11 icon-chip mb-4">
                   <it.icon className="w-5 h-5" aria-hidden />
                 </span>
                 <h3 className="font-bold text-lg">{it.h}</h3>

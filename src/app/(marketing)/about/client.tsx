@@ -47,7 +47,7 @@ function Story() {
       <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         <Reveal>
           <span className="badge badge-accent mb-4">{t.badge}</span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold leading-tight">{t.title}</h2>
+          <h2 className="text-[1.75rem] leading-9 sm:text-4xl sm:leading-[1.2] font-extrabold">{t.title}</h2>
           <div className="space-y-4 mt-5 text-muted leading-relaxed">
             <p>{t.p1}</p>
             <p>{t.p2}</p>
@@ -55,7 +55,7 @@ function Story() {
           </div>
         </Reveal>
         <Reveal delay={0.15}>
-          <div className="glass-strong relative overflow-hidden p-10 text-center">
+          <div className="glass-strong relative overflow-hidden p-7 sm:p-10 text-center">
             <div className="glow-orb w-56 h-56 bg-brand-teal -top-16 -end-16" aria-hidden />
             <div className="relative">
               <span className="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-teal to-brand-sky text-white flex items-center justify-center mx-auto mb-5">
@@ -98,15 +98,15 @@ function Values() {
   });
 
   return (
-    <section className="relative py-20 overflow-hidden">
+    <section className="relative py-16 sm:py-24 overflow-hidden">
       <div className="glow-orb w-96 h-96 bg-brand-sky -bottom-32 -start-32" aria-hidden />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} />
         <div className="grid sm:grid-cols-2 gap-5 mt-12 max-w-4xl mx-auto">
           {t.items.map((it, i) => (
             <Reveal key={it.h} delay={i * 0.08}>
-              <div className="card card-hover p-7 h-full">
-                <span className="w-11 h-11 rounded-xl bg-[rgba(107,160,172,0.14)] text-accent flex items-center justify-center mb-4">
+              <div className="card card-hover p-6 sm:p-7 h-full">
+                <span className="w-11 h-11 icon-chip mb-4">
                   <it.icon className="w-5 h-5" aria-hidden />
                 </span>
                 <h3 className="font-bold text-lg">{it.h}</h3>
@@ -147,14 +147,14 @@ function Framework() {
   });
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
       <SectionHeading badge={t.badge} title={t.title} subtitle={t.sub} />
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-12">
         {t.steps.map((s, i) => (
           <Reveal key={s.h} delay={i * 0.1}>
             <div className="card card-hover p-6 h-full relative">
               <div className="flex items-center justify-between mb-4">
-                <span className="w-11 h-11 rounded-xl bg-[rgba(107,160,172,0.14)] text-accent flex items-center justify-center">
+                <span className="w-11 h-11 icon-chip">
                   <s.icon className="w-5 h-5" aria-hidden />
                 </span>
                 <span className="text-4xl font-extrabold gradient-text opacity-60">{i + 1}</span>

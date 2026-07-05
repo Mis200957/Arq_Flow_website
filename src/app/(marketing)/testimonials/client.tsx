@@ -136,9 +136,9 @@ export default function TestimonialsClient() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {t.items.map((it, i) => (
             <Reveal key={it.biz} delay={i * 0.07}>
-              <figure className="card card-hover p-7 h-full flex flex-col">
+              <figure className="card card-hover p-6 sm:p-7 h-full flex flex-col">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="w-11 h-11 rounded-xl bg-[rgba(107,160,172,0.14)] text-accent flex items-center justify-center shrink-0">
+                  <span className="w-11 h-11 icon-chip shrink-0">
                     <it.icon className="w-5 h-5" aria-hidden />
                   </span>
                   <div className="min-w-0">

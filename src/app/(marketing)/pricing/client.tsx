@@ -33,12 +33,12 @@ function FeesExplainer() {
   });
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
       <SectionHeading badge={t.badge} title={t.title} />
       <div className="grid sm:grid-cols-2 gap-5 mt-10 max-w-4xl mx-auto">
         <Reveal>
-          <div className="card card-hover p-7 h-full">
-            <span className="w-11 h-11 rounded-xl bg-[rgba(107,160,172,0.14)] text-accent flex items-center justify-center mb-4">
+          <div className="card card-hover p-6 sm:p-7 h-full">
+            <span className="w-11 h-11 icon-chip mb-4">
               <Hammer className="w-5 h-5" aria-hidden />
             </span>
             <h3 className="font-bold text-lg">{t.setupH}</h3>
@@ -46,8 +46,8 @@ function FeesExplainer() {
           </div>
         </Reveal>
         <Reveal delay={0.1}>
-          <div className="card card-hover p-7 h-full">
-            <span className="w-11 h-11 rounded-xl bg-[rgba(107,160,172,0.14)] text-accent flex items-center justify-center mb-4">
+          <div className="card card-hover p-6 sm:p-7 h-full">
+            <span className="w-11 h-11 icon-chip mb-4">
               <RefreshCcw className="w-5 h-5" aria-hidden />
             </span>
             <h3 className="font-bold text-lg">{t.monthlyH}</h3>
@@ -75,7 +75,7 @@ function PaymentMethods() {
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
       <Reveal>
-        <div className="glass p-8 text-center">
+        <div className="glass p-6 sm:p-8 text-center">
           <h2 className="font-extrabold text-xl flex items-center justify-center gap-2">
             <Wallet className="w-5 h-5 text-accent" aria-hidden /> {t.title}
           </h2>
@@ -145,7 +145,7 @@ function PricingFaq() {
   });
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-14 sm:py-20">
       <SectionHeading badge={t.badge} title={t.title} />
       <Reveal className="max-w-3xl mx-auto mt-10">
         <Accordion items={t.items} idPrefix="pricing-faq" />

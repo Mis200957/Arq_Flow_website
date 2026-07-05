@@ -76,7 +76,7 @@ export default function ContactClient() {
                 href={`https://wa.me/${SUPPORT_WHATSAPP}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="card card-hover p-7 block"
+                className="card card-hover p-6 sm:p-7 block"
               >
                 <span className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-teal to-brand-sky text-white flex items-center justify-center mb-4">
                   <MessageCircle className="w-6 h-6" aria-hidden />
@@ -90,8 +90,8 @@ export default function ContactClient() {
               </a>
             </Reveal>
             <Reveal delay={0.1}>
-              <a href="mailto:hello@arqflow.app" className="card card-hover p-7 block">
-                <span className="w-12 h-12 rounded-xl bg-[rgba(107,160,172,0.14)] text-accent flex items-center justify-center mb-4">
+              <a href="mailto:hello@arqflow.app" className="card card-hover p-6 sm:p-7 block">
+                <span className="w-12 h-12 icon-chip mb-4">
                   <Mail className="w-6 h-6" aria-hidden />
                 </span>
                 <h2 className="font-extrabold text-lg">{t.mailTitle}</h2>

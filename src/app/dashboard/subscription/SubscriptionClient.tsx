@@ -326,7 +326,7 @@ export default function SubscriptionClient({
         ) : (
           <div className="space-y-5">
             {/* amount */}
-            <div className="rounded-xl bg-[rgba(107,160,172,0.08)] border border-[var(--accent)]/30 p-4">
+            <div className="rounded-xl bg-[rgba(153,207,220,0.08)] border border-[var(--accent)]/30 p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted">{t.amountDue}</p>
@@ -348,7 +348,7 @@ export default function SubscriptionClient({
               <div className="grid grid-cols-3 gap-2">
                 {(Object.keys(accounts) as Channel[]).map((ch) => (
                   <button key={ch} onClick={() => setMethod(ch)}
-                    className={cn("rounded-xl border p-3 text-center text-sm transition", method === ch ? "border-[var(--accent)] bg-[rgba(107,160,172,0.1)]" : "border-[var(--border)]")}>
+                    className={cn("rounded-xl border p-3 text-center text-sm transition", method === ch ? "border-[var(--accent)] bg-[rgba(153,207,220,0.1)]" : "border-[var(--border)]")}>
                     <p className="font-semibold">{ACCOUNT_LABELS[ch]}</p>
                   </button>
                 ))}

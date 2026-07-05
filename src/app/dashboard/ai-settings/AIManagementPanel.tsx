@@ -153,7 +153,7 @@ export default function AIManagementPanel({ businessId, systemPrompt, initialFil
           {OPS.map(({ action, Icon }) => (
             <button key={action} onClick={() => runJob(action)} disabled={busy === action}
               className="flex items-start gap-3 p-4 rounded-xl border border-[var(--border)] hover:border-[var(--border-strong)] text-start transition-all disabled:opacity-60">
-              <div className="w-9 h-9 rounded-lg bg-[rgba(107,160,172,0.12)] text-accent flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-[rgba(153,207,220,0.12)] text-accent flex items-center justify-center shrink-0">
                 {busy === action ? <Loader2 className="w-4 h-4 animate-spin" /> : <Icon className="w-4 h-4" />}
               </div>
               <div className="min-w-0">

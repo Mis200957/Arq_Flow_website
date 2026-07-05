@@ -72,7 +72,7 @@ export default function CustomersClient({ businessId, initialCustomers }: Props)
           {tagFilter && (
             <button
               onClick={() => setTagFilter(null)}
-              className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-full bg-[rgba(107,160,172,0.15)] text-accent border border-[var(--accent)]"
+              className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-full bg-[rgba(153,207,220,0.15)] text-accent border border-[var(--accent)]"
             >
               <X className="w-3 h-3" /> {tagFilter}
             </button>
@@ -91,7 +91,7 @@ export default function CustomersClient({ businessId, initialCustomers }: Props)
               className={cn(
                 "text-xs px-2.5 py-1 rounded-full border transition-all",
                 tagFilter === tag
-                  ? "bg-[rgba(107,160,172,0.2)] text-accent border-[var(--accent)]"
+                  ? "bg-[rgba(153,207,220,0.2)] text-accent border-[var(--accent)]"
                   : "text-muted border-[var(--border)] hover:border-[var(--border-strong)]"
               )}
             >

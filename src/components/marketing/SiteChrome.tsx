@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, MessageCircle, Globe } from "lucide-react";
 import { useLang, useT } from "@/lib/i18n";
@@ -19,24 +19,47 @@ const NAV = [
   { href: "/contact", label: { ar: "تواصل معنا", en: "Contact" } },
 ];
 
+function BrandMark() {
+  return (
+    <>
+      <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-teal to-brand-sky flex items-center justify-center text-white shrink-0">
+        <MessageCircle className="w-5 h-5" aria-hidden />
+      </span>
+      <span className="gradient-text font-display">ArqFlow</span>
+    </>
+  );
+}
+
 export function SiteHeader() {
   const { lang, setLang, pick } = useLang();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const t = useT({
-    ar: { login: "تسجيل الدخول", demo: "احجز ديمو", start: "ابدأ الآن" },
-    en: { login: "Login", demo: "Book a Demo", start: "Get Started" },
+    ar: { login: "تسجيل الدخول", demo: "احجز ديمو", start: "ابدأ الآن", menu: "القائمة", close: "إغلاق" },
+    en: { login: "Login", demo: "Book a Demo", start: "Get Started", menu: "Menu", close: "Close" },
   });
+
+  // close the drawer whenever navigation happens
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  // lock page scroll while the drawer is open
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
 
   return (
     <header className="sticky top-0 z-40">
       <div className="glass-strong !rounded-none border-x-0 border-t-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2 font-extrabold text-lg">
-            <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-teal to-brand-sky flex items-center justify-center text-white">
-              <MessageCircle className="w-5 h-5" />
-            </span>
-            <span className="gradient-text">ArqFlow</span>
+        <div className="max-w-7xl mx-auto safe-x px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          <Link href="/" className="flex items-center gap-2 font-extrabold text-lg" aria-label="ArqFlow">
+            <BrandMark />
           </Link>
 
           <nav className="hidden lg:flex items-center gap-1">
@@ -47,7 +70,7 @@ export function SiteHeader() {
                 className={cn(
                   "px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                   pathname === item.href
-                    ? "text-app bg-[rgba(238,237,210,0.08)]"
+                    ? "text-app bg-[rgba(229,228,201,0.08)]"
                     : "text-muted hover:text-app"
                 )}
               >
@@ -62,53 +85,79 @@ export function SiteHeader() {
               className="btn-ghost !px-3 text-sm"
               aria-label="Switch language"
             >
-              <Globe className="w-4 h-4" />
+              <Globe className="w-4 h-4" aria-hidden />
               {lang === "ar" ? "EN" : "عربي"}
             </button>
             <Link href="/login" className="btn-ghost text-sm">{t.login}</Link>
             <Link href="/pricing" className="btn-primary !py-2.5 text-sm">{t.start}</Link>
           </div>
 
-          <button className="lg:hidden btn-ghost !p-2" onClick={() => setOpen(!open)} aria-label="Menu">
-            {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          <button
+            className="lg:!hidden btn-ghost !p-2.5 -me-1.5"
+            onClick={() => setOpen(!open)}
+            aria-label={open ? t.close : t.menu}
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+          >
+            {open ? <X className="w-6 h-6" aria-hidden /> : <Menu className="w-6 h-6" aria-hidden />}
           </button>
         </div>
       </div>
 
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="lg:hidden glass-strong !rounded-none border-x-0 px-4 py-4 flex flex-col gap-1"
-          >
-            {NAV.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className="px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:text-app"
-              >
-                {pick(item.label)}
+          <>
+            <motion.button
+              type="button"
+              aria-label={t.close}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setOpen(false)}
+              className="lg:hidden fixed inset-0 top-16 z-40 bg-[rgba(4,9,17,0.6)] backdrop-blur-sm cursor-default"
+            />
+            <motion.nav
+              id="mobile-nav"
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="lg:hidden fixed inset-x-0 top-16 z-50 glass-strong !rounded-none !rounded-b-2xl border-x-0 border-t-0 px-4 pt-3 pb-5 safe-x safe-b flex flex-col gap-1 max-h-[calc(100dvh-4rem)] overflow-y-auto"
+            >
+              {NAV.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    "flex items-center min-h-12 px-4 rounded-xl text-base font-medium transition-colors",
+                    pathname === item.href
+                      ? "text-app bg-[rgba(229,228,201,0.08)] border border-app"
+                      : "text-muted hover:text-app active:bg-[rgba(229,228,201,0.06)]"
+                  )}
+                >
+                  {pick(item.label)}
+                </Link>
+              ))}
+              <div className="section-divider my-3" />
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => setLang(lang === "ar" ? "en" : "ar")}
+                  className="btn-outline !py-3 flex-1 text-sm"
+                >
+                  <Globe className="w-4 h-4" aria-hidden />
+                  {lang === "ar" ? "English" : "عربي"}
+                </button>
+                <Link href="/login" onClick={() => setOpen(false)} className="btn-outline !py-3 flex-1 text-sm">
+                  {t.login}
+                </Link>
+              </div>
+              <Link href="/pricing" onClick={() => setOpen(false)} className="btn-primary !py-3.5 mt-2.5">
+                {t.start}
               </Link>
-            ))}
-            <div className="section-divider my-2" />
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-                className="btn-outline !py-2 flex-1 text-sm"
-              >
-                {lang === "ar" ? "English" : "عربي"}
-              </button>
-              <Link href="/login" onClick={() => setOpen(false)} className="btn-outline !py-2 flex-1 text-sm">
-                {t.login}
-              </Link>
-            </div>
-            <Link href="/pricing" onClick={() => setOpen(false)} className="btn-primary mt-2">
-              {t.start}
-            </Link>
-          </motion.div>
+            </motion.nav>
+          </>
         )}
       </AnimatePresence>
     </header>
@@ -165,32 +214,32 @@ export function SiteFooter() {
   ];
 
   return (
-    <footer className="mt-24 border-t border-app">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 grid grid-cols-2 md:grid-cols-5 gap-10">
+    <footer className="mt-20 sm:mt-24 border-t border-app">
+      <div className="max-w-7xl mx-auto safe-x px-4 sm:px-6 py-12 sm:py-14 grid grid-cols-2 md:grid-cols-5 gap-x-6 gap-y-10">
         <div className="col-span-2">
-          <Link href="/" className="flex items-center gap-2 font-extrabold text-lg">
-            <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-teal to-brand-sky flex items-center justify-center text-white">
-              <MessageCircle className="w-5 h-5" />
-            </span>
-            <span className="gradient-text">ArqFlow</span>
+          <Link href="/" className="flex items-center gap-2 font-extrabold text-lg" aria-label="ArqFlow">
+            <BrandMark />
           </Link>
           <p className="text-muted text-sm mt-4 max-w-xs leading-relaxed">{t.tagline}</p>
           <a
             href={`https://wa.me/${SUPPORT_WHATSAPP}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-outline !py-2 text-sm mt-5 inline-flex"
+            className="btn-outline !py-2.5 text-sm mt-5 inline-flex"
           >
-            <MessageCircle className="w-4 h-4" /> {t.whatsapp}
+            <MessageCircle className="w-4 h-4" aria-hidden /> {t.whatsapp}
           </a>
         </div>
         {cols.map((col) => (
           <div key={col.title}>
-            <p className="font-bold text-sm mb-4">{col.title}</p>
-            <ul className="space-y-2.5">
+            <p className="label-caps text-muted mb-4">{col.title}</p>
+            <ul className="space-y-1">
               {col.links.map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="text-muted hover:text-app text-sm transition-colors">
+                  <Link
+                    href={l.href}
+                    className="inline-flex items-center min-h-9 text-muted hover:text-app text-sm transition-colors"
+                  >
                     {pick(l.label)}
                   </Link>
                 </li>
@@ -200,7 +249,7 @@ export function SiteFooter() {
         ))}
       </div>
       <div className="border-t border-app">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 text-xs text-muted flex flex-wrap items-center justify-between gap-2">
+        <div className="max-w-7xl mx-auto safe-x px-4 sm:px-6 py-5 safe-b text-xs text-muted flex flex-wrap items-center justify-between gap-2">
           <span>© {new Date().getFullYear()} ArqFlow. {t.rights}.</span>
           <span>Built with purpose. Designed to convert.</span>
         </div>

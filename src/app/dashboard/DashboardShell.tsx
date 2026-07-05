@@ -69,7 +69,7 @@ function ProvisioningPlaceholder({ business, lang }: { business: Business; lang:
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "var(--bg)" }}>
       <div className="glass-strong max-w-lg w-full p-8 text-center">
-        <div className="w-20 h-20 rounded-2xl bg-[rgba(107,160,172,0.12)] flex items-center justify-center mx-auto mb-6">
+        <div className="w-20 h-20 rounded-2xl bg-[rgba(153,207,220,0.12)] flex items-center justify-center mx-auto mb-6">
           <Loader2 className="w-10 h-10 text-accent animate-spin" />
         </div>
         <h1 className="text-2xl font-bold mb-2">{t.title}</h1>
@@ -83,7 +83,7 @@ function ProvisioningPlaceholder({ business, lang }: { business: Business; lang:
                   i < activeStep
                     ? "bg-[rgba(74,222,128,0.15)] text-[var(--success)]"
                     : i === activeStep
-                    ? "bg-[rgba(107,160,172,0.2)] text-accent animate-pulse"
+                    ? "bg-[rgba(153,207,220,0.2)] text-accent animate-pulse"
                     : "bg-[rgba(238,237,210,0.06)] text-muted"
                 )}
               >
@@ -276,7 +276,7 @@ export default function DashboardShell({ profile, business, capabilities, unread
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
                   active
-                    ? "bg-[rgba(107,160,172,0.18)] text-accent"
+                    ? "bg-[rgba(153,207,220,0.18)] text-accent"
                     : "text-muted hover:bg-[rgba(238,237,210,0.06)] hover:text-app"
                 )}
               >
@@ -295,7 +295,7 @@ export default function DashboardShell({ profile, business, capabilities, unread
         {/* Bottom user */}
         <div className="p-3 border-t border-[var(--border)]">
           <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-8 h-8 rounded-full bg-[rgba(107,160,172,0.2)] flex items-center justify-center text-accent font-bold text-sm shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[rgba(153,207,220,0.2)] flex items-center justify-center text-accent font-bold text-sm shrink-0">
               {(profile.full_name ?? profile.email ?? "?")[0]?.toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
@@ -379,7 +379,7 @@ export default function DashboardShell({ profile, business, capabilities, unread
                             key={n.id}
                             className={cn(
                               "p-4 border-b border-[var(--border)] last:border-0 hover:bg-[rgba(238,237,210,0.04)] cursor-pointer",
-                              !n.read && "bg-[rgba(107,160,172,0.06)]"
+                              !n.read && "bg-[rgba(153,207,220,0.06)]"
                             )}
                             onClick={() => {
                               if (n.link) router.push(n.link);

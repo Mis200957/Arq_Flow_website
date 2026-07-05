@@ -153,7 +153,7 @@ export default function ConversationsClient({ businessId, initialConversations }
               className={cn(
                 "text-xs px-3 py-1.5 rounded-full font-semibold border transition-all",
                 filter === f
-                  ? "bg-[rgba(107,160,172,0.2)] text-accent border-[var(--accent)]"
+                  ? "bg-[rgba(153,207,220,0.2)] text-accent border-[var(--accent)]"
                   : "text-muted border-[var(--border)] hover:border-[var(--border-strong)]"
               )}
             >
@@ -173,7 +173,7 @@ export default function ConversationsClient({ businessId, initialConversations }
                 className={cn(
                   "w-full text-start p-3 rounded-xl transition-all hover:bg-[rgba(238,237,210,0.06)] border",
                   selected?.id === c.id
-                    ? "bg-[rgba(107,160,172,0.12)] border-[var(--accent)]"
+                    ? "bg-[rgba(153,207,220,0.12)] border-[var(--accent)]"
                     : "border-[var(--border)]"
                 )}
               >
@@ -240,7 +240,7 @@ export default function ConversationsClient({ businessId, initialConversations }
                         "max-w-[70%] px-4 py-2.5 rounded-2xl text-sm",
                         m.direction === "inbound"
                           ? "bg-[#25d366] text-white rounded-br-sm"
-                          : "bg-[rgba(42,96,114,0.4)] text-app rounded-bl-sm"
+                          : "bg-[rgba(21,79,97,0.4)] text-app rounded-bl-sm"
                       )}
                     >
                       {m.media_type !== "text" && (

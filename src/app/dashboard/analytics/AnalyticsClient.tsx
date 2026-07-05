@@ -116,7 +116,7 @@ export default function AnalyticsClient({ messages, orders, escalations }: Props
             className={cn(
               "text-xs px-3 py-1.5 rounded-full font-semibold border transition-all",
               range === r
-                ? "bg-[rgba(107,160,172,0.2)] text-accent border-[var(--accent)]"
+                ? "bg-[rgba(153,207,220,0.2)] text-accent border-[var(--accent)]"
                 : "text-muted border-[var(--border)] hover:border-[var(--border-strong)]"
             )}
           >
@@ -169,7 +169,7 @@ export default function AnalyticsClient({ messages, orders, escalations }: Props
               <XAxis dataKey="date" tick={{ fill: "var(--fg-muted)", fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fill: "var(--fg-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatEGP(v, lang)} />
-              <Area type="monotone" dataKey="cost" stroke="var(--accent)" fill="rgba(107,160,172,0.15)" strokeWidth={2} />
+              <Area type="monotone" dataKey="cost" stroke="var(--accent)" fill="rgba(153,207,220,0.15)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </div>

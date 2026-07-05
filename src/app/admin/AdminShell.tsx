@@ -102,7 +102,7 @@ export default function AdminShell({ profile, unreadCount, children }: Props) {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
                     active
-                      ? "bg-[rgba(107,160,172,0.18)] text-accent"
+                      ? "bg-[rgba(153,207,220,0.18)] text-accent"
                       : "text-muted hover:bg-[rgba(238,237,210,0.06)] hover:text-app"
                   )}
                 >

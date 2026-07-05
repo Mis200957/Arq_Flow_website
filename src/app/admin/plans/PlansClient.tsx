@@ -198,7 +198,7 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
             <input type="number" className="input-base" value={form.margin_egp ?? ""} onChange={(e) => setForm((f) => ({ ...f, margin_egp: Number(e.target.value) }))} />
           </Field>
 
-          <div className="sm:col-span-2 rounded-xl bg-[rgba(107,160,172,0.08)] border border-[var(--accent)]/30 p-3 flex items-center justify-between text-sm">
+          <div className="sm:col-span-2 rounded-xl bg-[rgba(153,207,220,0.08)] border border-[var(--accent)]/30 p-3 flex items-center justify-between text-sm">
             <span className="text-muted">Token budget (consumed by the bot) = Price − Margin</span>
             <span className="font-bold text-accent">{formatEGP(budgetPreview, "en")}</span>
           </div>

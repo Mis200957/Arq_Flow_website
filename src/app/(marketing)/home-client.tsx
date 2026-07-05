@@ -147,7 +147,7 @@ function ChatMock() {
                   "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
                   m.from === "customer"
                     ? "self-start bg-[rgba(238,237,210,0.1)] border border-app rounded-ss-md"
-                    : "self-end bg-gradient-to-br from-brand-teal to-brand-sky text-white rounded-se-md shadow-[0_8px_24px_rgba(42,96,114,0.35)]"
+                    : "self-end bg-gradient-to-br from-brand-teal to-brand-sky text-white rounded-se-md shadow-[0_8px_24px_rgba(21,79,97,0.35)]"
                 )}
               >
                 {m.text}
@@ -171,13 +171,13 @@ function ChatMock() {
         </div>
       </div>
 
-      {/* floating accent chips */}
-      <div className="absolute -top-5 -start-4 sm:-start-8 animate-float" aria-hidden>
+      {/* floating accent chips — kept inside the viewport on small screens */}
+      <div className="absolute -top-4 start-2 sm:-start-8 animate-float" aria-hidden>
         <span className="badge badge-success shadow-lg">
           <CheckCircle2 className="w-3.5 h-3.5" /> 24/7
         </span>
       </div>
-      <div className="absolute -bottom-4 -end-3 sm:-end-6 animate-float [animation-delay:1.5s]" aria-hidden>
+      <div className="absolute -bottom-3.5 end-2 sm:-end-6 animate-float [animation-delay:1.5s]" aria-hidden>
         <span className="badge badge-accent shadow-lg">
           <Mic className="w-3.5 h-3.5" /> Voice ✓
         </span>
@@ -216,7 +216,7 @@ function Hero() {
       <div className="glow-orb w-[28rem] h-[28rem] bg-brand-teal -top-40 -start-32" aria-hidden />
       <div className="glow-orb w-[26rem] h-[26rem] bg-brand-sky top-32 -end-32" aria-hidden />
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-20 grid lg:grid-cols-2 gap-14 items-center">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-12 sm:pt-24 pb-16 sm:pb-20 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
         <div>
           <motion.div
             initial={{ opacity: 0, y: 24 }}
@@ -226,7 +226,7 @@ function Hero() {
             <span className="badge badge-accent mb-6">
               <Zap className="w-3.5 h-3.5" aria-hidden /> {t.badge}
             </span>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.15]">
+            <h1 className="text-[2rem] leading-10 sm:text-5xl lg:text-6xl sm:leading-[1.15] font-extrabold">
               <span className="gradient-text">{t.h1a}</span>
               <br />
               <span>{t.h1b}</span>
@@ -238,7 +238,7 @@ function Hero() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
-            className="flex flex-wrap items-center gap-3 mt-9"
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-8 sm:mt-9 max-w-md sm:max-w-none"
           >
             <Link href="/pricing" className="btn-primary text-base !px-7 !py-3.5">
               {t.cta1}
@@ -337,13 +337,13 @@ function Features() {
   });
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
       <SectionHeading badge={t.badge} title={t.title} subtitle={t.sub} />
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
         {t.items.map((f, i) => (
           <Reveal key={f.h} delay={i * 0.07}>
             <div className="card card-hover p-6 h-full">
-              <span className="w-11 h-11 rounded-xl bg-[rgba(107,160,172,0.14)] text-accent flex items-center justify-center mb-4">
+              <span className="w-11 h-11 icon-chip mb-4">
                 <f.icon className="w-5 h-5" aria-hidden />
               </span>
               <h3 className="font-bold text-lg">{f.h}</h3>
@@ -387,7 +387,7 @@ function HowItWorks() {
   });
 
   return (
-    <section className="relative py-20 overflow-hidden">
+    <section className="relative py-16 sm:py-24 overflow-hidden">
       <div className="glow-orb w-96 h-96 bg-brand-teal top-10 -end-40" aria-hidden />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} subtitle={t.sub} />
@@ -450,13 +450,13 @@ function Industries() {
   });
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
       <SectionHeading badge={t.badge} title={t.title} />
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3 mt-12">
         {t.items.map((it, i) => (
           <Reveal key={it.l} delay={i * 0.05}>
             <div className="card card-hover p-4 text-center h-full flex flex-col items-center gap-2.5">
-              <span className="w-10 h-10 rounded-xl bg-[rgba(107,160,172,0.14)] text-accent flex items-center justify-center">
+              <span className="w-10 h-10 icon-chip">
                 <it.icon className="w-5 h-5" aria-hidden />
               </span>
               <p className="text-xs font-semibold leading-snug">{it.l}</p>
@@ -487,7 +487,7 @@ function PricingPreview() {
   });
 
   return (
-    <section className="relative py-20 overflow-hidden">
+    <section className="relative py-16 sm:py-24 overflow-hidden">
       <div className="glow-orb w-96 h-96 bg-brand-sky -bottom-32 -start-32" aria-hidden />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} subtitle={t.sub} />
@@ -571,7 +571,7 @@ function Testimonials() {
   const item = t.items[index];
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
       <SectionHeading badge={t.badge} title={t.title} />
       <Reveal className="mt-12">
         <div
@@ -663,7 +663,7 @@ function HomeFaq() {
   });
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
       <SectionHeading badge={t.badge} title={t.title} />
       <Reveal className="max-w-3xl mx-auto mt-12">
         <Accordion items={t.items} idPrefix="home-faq" />

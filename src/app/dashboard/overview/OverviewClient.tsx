@@ -193,7 +193,7 @@ export default function OverviewClient({
                 {chartData.map((entry, i) => (
                   <Cell
                     key={i}
-                    fill={entry.count === maxMessages ? "var(--accent)" : "rgba(107,160,172,0.3)"}
+                    fill={entry.count === maxMessages ? "var(--accent)" : "rgba(153,207,220,0.3)"}
                   />
                 ))}
               </Bar>
@@ -214,7 +214,7 @@ export default function OverviewClient({
                   href={mod.href}
                   className="flex items-center gap-3 p-3 rounded-xl hover:bg-[rgba(238,237,210,0.06)] transition-colors group"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-[rgba(107,160,172,0.12)] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-[rgba(153,207,220,0.12)] flex items-center justify-center">
                     <Icon className="w-4 h-4 text-accent" />
                   </div>
                   <span className="text-sm font-medium flex-1">{label}</span>

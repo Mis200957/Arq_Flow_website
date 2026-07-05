@@ -98,7 +98,7 @@ export default function ServicesClient({ businessId, initialServices }: Props) {
           {services.map((s) => (
             <div key={s.id} className={cn("card p-5 card-hover", !s.active && "opacity-60")}>
               <div className="flex items-start justify-between gap-2 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-[rgba(107,160,172,0.12)] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[rgba(153,207,220,0.12)] flex items-center justify-center">
                   <Wrench className="w-5 h-5 text-accent" />
                 </div>
                 <button
