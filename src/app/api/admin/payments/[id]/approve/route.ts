@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { approvePayment } from "@/lib/payments";
 
+// approvePayment waits for the Bot Factory workflow to finish (up to 25s) before
+// messaging the client, so give the function room beyond the platform default.
+export const maxDuration = 30;
+
 /**
  * POST /api/admin/payments/:id/approve
  * Admin-only. Approves a payment, generates client credentials,

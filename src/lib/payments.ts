@@ -2,6 +2,11 @@ import "server-only";
 import crypto from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generatePassword } from "@/lib/utils";
+import {
+  sendWhatsAppText,
+  botReadyMessage,
+  normalizeMsisdn,
+} from "@/lib/evolution";
 import type { TablesUpdate } from "@/lib/database.types";
 
 /**
@@ -20,6 +25,8 @@ export type ApproveResult =
       dashboard_url: string;
       factory_triggered: boolean;
       factory_error: string | null;
+      client_notified?: boolean;
+      client_notify_error?: string | null;
     }
   | { ok: false; status: number; error: string };
 
@@ -220,7 +227,10 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
         method: "POST",
         headers: { "Content-Type": "application/json", "X-ArqFlow-Signature": signature },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(15_000),
+        // Workflow responds via its "Respond to Webhook" node when it FINISHES
+        // (~11s observed). Wait long enough to catch completion so the client
+        // "bot ready" WhatsApp only fires on real success.
+        signal: AbortSignal.timeout(25_000),
       });
       factoryTriggered = res.ok;
       if (!res.ok) factoryError = `Factory webhook returned ${res.status}`;
@@ -257,12 +267,47 @@ export async function approvePayment(paymentId: string, actorId: string): Promis
     });
   }
 
+  // 8) BOT READY → message the client on WhatsApp (Evolution API, agency instance).
+  //    Fires only when the Bot Factory workflow finished successfully (i.e. the
+  //    n8n "Respond to Webhook" returned OK) AND we just issued fresh credentials.
+  //    The plaintext password only exists here in memory, so this is the one
+  //    place we can include it — we never persist or forward it.
+  let clientNotified = false;
+  let clientNotifyError: string | null = null;
+  if (credentialsIssued && factoryTriggered) {
+    const msisdn = normalizeMsisdn(business.contact_phone ?? business.whatsapp_number);
+    if (!msisdn) {
+      clientNotifyError = "No client phone number on file";
+    } else {
+      const wa = await sendWhatsAppText(
+        msisdn,
+        botReadyMessage({
+          clientId: business.order_id,
+          email,
+          password,
+          loginUrl: `${process.env.NEXT_PUBLIC_APP_URL}/login`,
+        })
+      );
+      clientNotified = wa.ok;
+      if (!wa.ok) clientNotifyError = wa.error ?? "send failed";
+    }
+    await admin.from("automation_logs").insert({
+      business_id: business.id,
+      workflow: "onboarding",
+      event: clientNotified ? "whatsapp_sent" : "whatsapp_failed",
+      level: clientNotified ? "info" : "error",
+      payload: { order_id: business.order_id, to: msisdn, error: clientNotifyError } as never,
+    });
+  }
+
   return {
     ok: true,
     credentials: credentialsIssued ? { client_id: business.order_id, email, password } : null,
     dashboard_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
     factory_triggered: factoryTriggered,
     factory_error: factoryError,
+    client_notified: clientNotified,
+    client_notify_error: clientNotifyError,
   };
 }
 

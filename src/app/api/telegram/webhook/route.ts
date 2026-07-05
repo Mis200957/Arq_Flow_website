@@ -110,6 +110,8 @@ export async function POST(req: Request) {
         }
         let msg = "✅ <b>تم تأكيد الدفعة</b> — جاري تجهيز البوت.";
         if (res.factory_error) msg += `\n⚠️ مصنع البوت: ${res.factory_error}`;
+        if (res.client_notified) msg += "\n📲 اتبعتت بيانات الدخول للعميل على واتساب.";
+        else if (res.client_notify_error) msg += `\n⚠️ واتساب العميل: ${res.client_notify_error}`;
         await editResult(msg);
         if (res.credentials) {
           await sendMessage(
@@ -139,6 +141,6 @@ export async function POST(req: Request) {
     }
   });
 
-  // 5) Return 200 immediately — Telegram is satisfied, work continues in after().
+  // 5) Return 200 immediately — Telegram is satisfied; work continues in after().
   return NextResponse.json({ ok: true });
 }
