@@ -12,8 +12,11 @@ import type { Json } from "@/lib/database.types";
  * Provisioning state machine (businesses.status):
  *   provisioning      → factory building workflow + Evolution instance
  *   qr_pending        → provision_complete received; client sees QR-prep screen
- *   under_review      → instance_status: connected; internal checks + admin final OK
- *   active            → admin confirms via POST /api/admin/clients/:id/activate
+ *   active            → instance_status: connected (client scanned the QR).
+ *                       The business flips straight to active here; the
+ *                       client's provisioning screen then drops them into
+ *                       the dashboard. POST /api/admin/clients/:id/activate
+ *                       still exists as a manual override for stuck cases.
  *   provision_failed  → provision_failed received; admin investigates + retries
  *
  * Body:
@@ -153,40 +156,53 @@ export async function POST(req: Request) {
           .eq("instance_name", String(body.instance_name));
       }
 
-      // First successful WhatsApp link during provisioning → move the business
-      // to under_review. The client sees the "checking your bot" screen; the
-      // admin runs the internal checks and gives the final confirmation.
+      // First successful WhatsApp link during provisioning → activate the
+      // business immediately. The client's provisioning screen is listening
+      // on businesses realtime + polling status; the moment it sees `active`
+      // it router.refresh()es into the dashboard.
       if (
         status === "connected" &&
-        ["provisioning", "qr_pending", "provision_failed"].includes(business.status ?? "")
+        ["provisioning", "qr_pending", "under_review", "provision_failed"].includes(
+          business.status ?? ""
+        )
       ) {
         await admin
           .from("businesses")
           .update({
-            status: "under_review",
-            health_status: "whatsapp_connected",
+            status: "active",
+            activated_at: new Date().toISOString(),
+            health_status: "healthy",
             last_health_check: new Date().toISOString(),
           })
           .eq("id", businessId);
 
-        const { data: admins } = await admin.from("profiles").select("id").eq("role", "admin");
-        if (admins?.length) {
-          await admin.from("notifications").insert(
-            admins.map((a) => ({
-              user_id: a.id,
-              business_id: businessId,
-              type: "whatsapp_connected",
-              title: `WhatsApp connected: ${business.business_name}`,
-              body: "Run the final checks and confirm activation from the clients page.",
-              link: "/admin/clients",
-            }))
-          );
+        if (business.owner_id) {
+          await admin.from("notifications").insert({
+            user_id: business.owner_id,
+            business_id: businessId,
+            type: "bot_activated",
+            title: "تم تفعيل البوت ✅",
+            body: "مساعدك الذكي شغال دلوقتي على رقم الواتساب المرتبط.",
+            link: "/dashboard/overview",
+          });
         }
+
+        await admin.from("automation_logs").insert({
+          business_id: businessId,
+          workflow: "provisioning",
+          event: "auto_activated_on_qr_scan",
+          level: "info",
+          payload: {
+            connected_number: (body.connected_number as string) ?? null,
+            instance_name: (body.instance_name as string) ?? null,
+          } as Json,
+        });
+
         await telegramAdmins(
-          `✅ <b>تم ربط الواتساب</b>\n\n` +
+          `✅ <b>تم تفعيل البوت</b>\n\n` +
             `🏢 ${business.business_name}\n🆔 <code>${business.order_id}</code>\n` +
             `📞 ${String(body.connected_number ?? "—")}\n\n` +
-            `🔎 راجع البوت واعمل التفعيل النهائي من لوحة الأدمن.`
+            `العميل ربط الواتساب والبوت شغال دلوقتي.`
         );
       }
 
