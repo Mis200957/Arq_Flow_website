@@ -50,7 +50,6 @@ export const INDUSTRY_MODULES: ModuleDef[] = [
   /* ---- commerce extensions (soon) ---- */
   { key: "delivery-areas",  href: "/dashboard/delivery-areas",  icon: "MapPin",       group: "industry", available: true, label: { ar: "مناطق التوصيل", en: "Delivery Areas" } },
   { key: "inventory",       href: "/dashboard/inventory",       icon: "Boxes",        group: "industry", available: true, label: { ar: "المخزون",     en: "Inventory" } },
-  { key: "delivery",        href: "/dashboard/delivery",        icon: "Truck",        group: "industry", available: true, label: { ar: "التوصيل",     en: "Delivery" } },
   { key: "promotions",      href: "/dashboard/promotions",      icon: "Percent",      group: "industry", available: true, label: { ar: "العروض",      en: "Promotions" } },
   { key: "coupons",         href: "/dashboard/coupons",         icon: "Ticket",       group: "industry", available: true, label: { ar: "الكوبونات",   en: "Coupons" } },
 

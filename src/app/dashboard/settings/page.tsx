@@ -14,17 +14,5 @@ export default async function SettingsPage() {
 
   if (!profile || !business) redirect("/login");
 
-  const [{ data: apiKeys }, { data: webhooks }] = await Promise.all([
-    supabase.from("api_keys").select("id, name, key_prefix, created_at, last_used_at, revoked").eq("business_id", business.id),
-    supabase.from("webhook_endpoints").select("*").eq("business_id", business.id),
-  ]);
-
-  return (
-    <SettingsClient
-      profile={profile}
-      business={business}
-      apiKeys={apiKeys ?? []}
-      webhooks={webhooks ?? []}
-    />
-  );
+  return <SettingsClient profile={profile} business={business} />;
 }
