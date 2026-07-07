@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Bot, RefreshCw, ChevronDown, ChevronUp, Save } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Bot, RefreshCw, ChevronDown, ChevronUp, Save, CheckCircle2, Clock } from "lucide-react";
 import { Field, Spinner } from "@/components/ui";
 import { useT, useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,16 @@ const FALLBACKS = [
   { value: "apologize", ar: "اعتذار", en: "Apologize and retry" },
 ];
 
+/** Saving hands the fresh settings to n8n (automation_logs → AUTOMATION_ROUTER
+ *  → SHARED_GENERATE_PROMPT); the router drains the queue every minute, so a
+ *  sync normally lands within ~90s. */
+type SyncState = "idle" | "syncing" | "synced" | "queued";
+interface AiJob { id: string; workflow: string; processed_at: string | null }
+const POLL_MS = 5000;
+const POLL_TIMEOUT_MS = 3 * 60 * 1000;
+
 export default function AISettingsClient({ business }: Props) {
+  const router = useRouter();
   const { lang } = useLang();
   const t = useT({
     ar: {
@@ -31,6 +41,9 @@ export default function AISettingsClient({ business }: Props) {
       systemPrompt: "الـ System Prompt (للمطلعين)", save: "حفظ التغييرات", saving: "جاري الحفظ...",
       saved: "تم الحفظ", regenerate: "إعادة توليد الـ Prompt", regenerating: "جاري التوليد...",
       showPrompt: "عرض الـ System Prompt", hidePrompt: "إخفاء الـ System Prompt",
+      syncing: "جاري مزامنة الإعدادات مع البوت عبر n8n...",
+      synced: "تمت مزامنة البوت بالإعدادات الجديدة",
+      syncQueued: "في قائمة الانتظار — هيتم تحديث البوت خلال دقائق",
     },
     en: {
       tone: "Tone of voice", fallback: "Fallback behavior", greeting: "Greeting message",
@@ -38,6 +51,9 @@ export default function AISettingsClient({ business }: Props) {
       systemPrompt: "System Prompt (advanced)", save: "Save changes", saving: "Saving...",
       saved: "Saved", regenerate: "Regenerate Prompt", regenerating: "Regenerating...",
       showPrompt: "Show System Prompt", hidePrompt: "Hide System Prompt",
+      syncing: "Syncing settings to your bot via n8n...",
+      synced: "Bot synced with the new settings",
+      syncQueued: "Queued — the bot will update within a few minutes",
     },
   });
 
@@ -53,22 +69,61 @@ export default function AISettingsClient({ business }: Props) {
   const [saved, setSaved] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [syncState, setSyncState] = useState<SyncState>("idle");
+  const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (pollRef.current) clearTimeout(pollRef.current); }, []);
+
+  // Poll the n8n job queue until the prompt rebuild is processed, then pull
+  // the regenerated system prompt into the page via router.refresh().
+  const watchSync = () => {
+    if (pollRef.current) clearTimeout(pollRef.current);
+    setSyncState("syncing");
+    const startedAt = Date.now();
+    const tick = async () => {
+      try {
+        const res = await fetch("/api/dashboard/ai", { cache: "no-store" });
+        if (res.ok) {
+          const { jobs } = (await res.json()) as { jobs: AiJob[] };
+          const busy = jobs.some((j) => j.workflow === "regenerate_system_prompt" && !j.processed_at);
+          if (!busy) {
+            setSyncState("synced");
+            router.refresh();
+            pollRef.current = setTimeout(() => setSyncState("idle"), 6000);
+            return;
+          }
+        }
+      } catch { /* transient — keep polling */ }
+      if (Date.now() - startedAt > POLL_TIMEOUT_MS) { setSyncState("queued"); return; }
+      pollRef.current = setTimeout(tick, POLL_MS);
+    };
+    pollRef.current = setTimeout(tick, POLL_MS);
+  };
 
   const save = async () => {
     setSaving(true);
-    const res = await fetch("/api/dashboard/business", {
-      method: "PATCH",
+    const res = await fetch("/api/dashboard/ai", {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ action: "update_profile", ...form }),
     });
     setSaving(false);
-    if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2000); }
+    if (res.ok) {
+      setSaved(true); setTimeout(() => setSaved(false), 2000);
+      const json = await res.json().catch(() => null);
+      if (json?.synced) watchSync();
+    }
   };
 
   const regeneratePrompt = async () => {
     setRegenerating(true);
-    await fetch("/api/dashboard/regenerate-prompt", { method: "POST" });
+    const res = await fetch("/api/dashboard/ai", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "regenerate_prompt" }),
+    });
     setRegenerating(false);
+    if (res.ok) watchSync();
   };
 
   const toggleLang = (l: string) => {
@@ -194,6 +249,23 @@ export default function AISettingsClient({ business }: Props) {
           {regenerating ? t.regenerating : t.regenerate}
         </button>
       </div>
+
+      {/* n8n bot-sync status */}
+      {syncState !== "idle" && (
+        <div
+          className={cn(
+            "flex items-center gap-2 p-3 rounded-xl border text-sm font-semibold",
+            syncState === "synced"
+              ? "border-[var(--success)] text-[var(--success)] bg-[rgba(74,222,128,0.08)]"
+              : "border-[var(--accent)] text-accent bg-[rgba(107,160,172,0.08)]"
+          )}
+        >
+          {syncState === "syncing" && <Spinner className="w-4 h-4 shrink-0" />}
+          {syncState === "synced" && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+          {syncState === "queued" && <Clock className="w-4 h-4 shrink-0" />}
+          <span>{syncState === "syncing" ? t.syncing : syncState === "synced" ? t.synced : t.syncQueued}</span>
+        </div>
+      )}
 
       {/* Save */}
       <button onClick={save} disabled={saving} className="btn-primary w-full flex items-center justify-center gap-2">

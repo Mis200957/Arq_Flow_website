@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import { buildIndustryPromptContext } from "@/lib/modules/ai";
 import { resolveCapabilities } from "@/lib/capabilities";
 import type { Json } from "@/lib/database.types";
 
+/** Legacy endpoint — the AI settings page now posts to /api/dashboard/ai. */
 export async function POST() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -21,8 +23,10 @@ export async function POST() {
   // Plan capabilities keep the bot honest about what it can actually do.
   const industry = buildIndustryPromptContext(business.business_type, resolveCapabilities(plan));
 
-  // Log to automation_logs for n8n to pick up
-  await supabase.from("automation_logs").insert({
+  // Log to automation_logs for n8n to pick up. Admin client: RLS only lets
+  // admins write automation_logs, so a user-scoped insert silently no-ops.
+  const admin = createAdminClient();
+  const { error } = await admin.from("automation_logs").insert({
     business_id: business.id,
     workflow: "regenerate_system_prompt",
     event: "prompt_regeneration_requested",
@@ -34,6 +38,7 @@ export async function POST() {
       industry,
     } as unknown as Json,
   });
+  if (error) return NextResponse.json({ error: "Failed to queue job" }, { status: 500 });
 
   return NextResponse.json({ success: true, message: "Prompt regeneration queued" });
 }

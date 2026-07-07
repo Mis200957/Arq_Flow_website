@@ -7,7 +7,10 @@ contract — the dashboard never calls services directly for long-running work.
 
 ## Convention
 - **Direct DB writes** (CRUD, edit prompt/personality, business info) → written
-  straight to Supabase by the app. **No n8n.**
+  straight to Supabase by the app. **No n8n.** Exception: saving the AI-settings
+  profile (tone/greeting/personality/goal/languages) also queues a
+  `regenerate_system_prompt` job so the bot's live prompt follows the new
+  settings (deduped while one is pending).
 - **Automation jobs** → one `automation_logs` row `{ business_id, workflow, event,
   level, payload }`. n8n picks it up, does the work, and reports back via the
   existing **`POST /api/n8n/callback`** (HMAC-signed) where state must change.
@@ -16,7 +19,7 @@ contract — the dashboard never calls services directly for long-running work.
 
 | `workflow` | Emitted by | `event` | Payload (key fields) | n8n should… |
 |------------|-----------|---------|----------------------|-------------|
-| `regenerate_system_prompt` | AI route / AI panel | `requested` | `business_type`, `industry` | rebuild the system prompt (AI_PROMPT_BUILDER), PATCH `businesses.system_prompt`, callback |
+| `regenerate_system_prompt` | AI route / AI panel / AI-settings save (auto bot-sync; adds `trigger`, `changed`) | `requested` | `business_type`, `industry` | rebuild the system prompt (AI_PROMPT_BUILDER), PATCH `businesses.system_prompt`, callback |
 | `kb_rebuild` | AI panel | `requested` | `industry` | recompile knowledge base from `knowledge_base` + files, refresh embeddings |
 | `ai_retrain` | AI panel | `requested` | `industry` | re-process all sources (KB + files + FAQs), regenerate prompt, refresh embeddings |
 | `ai_restart_context` | AI panel | `requested` | — | clear the tenant bot's window memory / conversation context |
