@@ -1,0 +1,123 @@
+{
+  "name": "🔧 SHARED_GET_AVAILABLE_SLOTS_v1",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\":{\"business_id\":\"uuid\"},\"doctor_id\":null,\"service_id\":null,\"date\":\"2026-06-20\"}"
+      },
+      "id": "dae07c7a-2f22-4156-a296-e2af0981d0d9",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const t=i.tenant||{};\nif(!t.business_id) throw new Error('Missing tenant.business_id');\nconst date=String(i.date||'').slice(0,10);\nif(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)) throw new Error('Missing/invalid date (YYYY-MM-DD)');\nlet q='?select=starts_at,ends_at,status,doctor_id,service_id&business_id=eq.'+t.business_id+'&starts_at=gte.'+date+'T00:00:00&starts_at=lt.'+date+'T23:59:59&status=in.(scheduled,confirmed)&order=starts_at.asc';\nif(i.doctor_id) q+='&doctor_id=eq.'+i.doctor_id;\nif(i.service_id) q+='&service_id=eq.'+i.service_id;\nreturn {json:{business_id:t.business_id,date,url:'https://zjathejcdkpxjyvululp.supabase.co/rest/v1/appointments'+q}};"
+      },
+      "id": "c2a8269e-30c8-43a6-af96-bf47aa24cb70",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('PREPARE').first().json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7a9f8bdd-1b67-4731-bc29-21e9e68a6891",
+      "name": "GET_APPTS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows=$input.all().map(x=>x.json).filter(r=>r&&r.starts_at);\nconst booked=rows.map(r=>r.starts_at);const p=$('PREPARE').first().json;\nreturn {json:{success:true,date:p.date,booked_count:booked.length,booked_slots:booked,\n message: booked.length? ('المواعيد المحجوزة في '+p.date+': '+booked.length+'. اقترح وقتاً متاحاً خارج هذه الأوقات ضمن مواعيد العمل.') : ('لا توجد حجوزات في '+p.date+' — كل المواعيد متاحة ضمن مواعيد العمل.')}};"
+      },
+      "id": "836ac68f-cac4-404b-83ca-c9aeaf2aa27d",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "GET_APPTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_APPTS": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

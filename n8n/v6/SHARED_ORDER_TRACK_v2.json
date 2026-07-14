@@ -1,0 +1,123 @@
+{
+  "name": "🔧 SHARED_ORDER_TRACK_v2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"business_id\": \"uuid\"}, \"order_number\": \"ORD-2606-0001\"}"
+      },
+      "id": "a1ce4373-0c08-4fe1-bad7-180b0400fbcc",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const t=i.tenant||{};\nif(!t.business_id||!i.order_number) throw new Error('Missing business_id/order_number');\nreturn {json:{business_id:t.business_id,order_number:i.order_number}};"
+      },
+      "id": "62286b38-53fd-41a1-9f72-5fa6cce92638",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://zjathejcdkpxjyvululp.supabase.co/rest/v1/orders?select=order_number,status,type,total_egp,created_at,updated_at&business_id=eq.{{ $('PREPARE').first().json.business_id }}&order_number=eq.{{ $('PREPARE').first().json.order_number }}&limit=1",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9c26a1a3-c801-45bf-8a15-f677a0b3cc4f",
+      "name": "GET_ORDER",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows=$input.all().map(x=>x.json).filter(r=>r&&r.order_number);\nconst o=rows[0];\nconst labels={pending:'قيد المراجعة',confirmed:'مؤكد',preparing:'بيتجهز',out_for_delivery:'في الطريق إليك',delivered:'تم التوصيل',cancelled:'ملغي',refunded:'تم الاسترجاع'};\nif(!o) return {json:{success:false,message:'الطلب غير موجود'}};\nreturn {json:{success:true,order_number:o.order_number,status:o.status,status_text:labels[o.status]||o.status,\n  total_egp:o.total_egp,message:`الطلب ${o.order_number}: ${labels[o.status]||o.status}`}};"
+      },
+      "id": "30e7667a-87a9-4982-9598-847945da6093",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "GET_ORDER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_ORDER": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

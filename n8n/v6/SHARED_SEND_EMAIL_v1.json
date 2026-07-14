@@ -1,0 +1,68 @@
+{
+  "name": "🔧 SHARED_SEND_EMAIL_v1",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\":{\"business_name\":\"Arq\"},\"to\":\"client@example.com\",\"subject\":\"تحديث من ArqFlow\",\"html\":\"<p>مرحباً</p>\",\"text\":\"مرحباً\"}"
+      },
+      "id": "a0000000-0000-4000-8000-000000000001",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const t=i.tenant||{};\nif(!i.to) throw new Error('Missing to');\nif(!i.subject) throw new Error('Missing subject');\nconst from = i.from || 'ArqFlow <noreply@arqflow.app>';\nconst html = i.html || ('<p>'+String(i.text||i.subject)+'</p>');\nreturn {json:{ body: { from, to: Array.isArray(i.to)? i.to : [i.to], subject: String(i.subject), html } }};"
+      },
+      "id": "a0000000-0000-4000-8000-000000000002",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [ { "name": "Content-Type", "value": "application/json" } ] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('PREPARE').first().json.body) }}",
+        "options": {}
+      },
+      "id": "a0000000-0000-4000-8000-000000000003",
+      "name": "SEND_EMAIL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "credentials": { "httpHeaderAuth": { "id": "arqflow_resend", "name": "Resend account" } },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out=$input.first().json;\nreturn {json:{ success: !(out && out.error), detail: out||null, message: 'تم إرسال البريد ✓' }};"
+      },
+      "id": "a0000000-0000-4000-8000-000000000004",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0]
+    }
+  ],
+  "connections": {
+    "TRIGGER": { "main": [[{ "node": "PREPARE", "type": "main", "index": 0 }]] },
+    "PREPARE": { "main": [[{ "node": "SEND_EMAIL", "type": "main", "index": 0 }]] },
+    "SEND_EMAIL": { "main": [[{ "node": "RETURN", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": []
+}

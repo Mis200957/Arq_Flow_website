@@ -1,0 +1,130 @@
+{
+  "name": "🔧 SHARED_CANCEL_APPOINTMENT_v1",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\":{\"business_id\":\"uuid\"},\"appointment_id\":\"uuid\"}"
+      },
+      "id": "15ebbdfd-b56c-4727-809b-b1e6c07bb903",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const t=i.tenant||{};\nif(!t.business_id) throw new Error('Missing tenant.business_id');\nif(!i.appointment_id) throw new Error('Missing appointment_id');\nconst url='https://zjathejcdkpxjyvululp.supabase.co/rest/v1/appointments?id=eq.'+i.appointment_id+'&business_id=eq.'+t.business_id;\nreturn {json:{url,appointment_id:i.appointment_id,body:{status:'cancelled'}}};"
+      },
+      "id": "f9eac192-8c24-43af-a77d-1c50da43f07a",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $('PREPARE').first().json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('PREPARE').first().json.body) }}"
+      },
+      "id": "22a3f23c-a15f-4029-8c36-2aae1692280a",
+      "name": "CANCEL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out=$input.first().json;const r=Array.isArray(out)?out[0]:out;const ok=!!(r&&r.id);const p=$('PREPARE').first().json;\nreturn {json:{success:ok,appointment_id:p.appointment_id,message: ok?'تم إلغاء الموعد بنجاح ✅':'لم يتم العثور على الموعد أو تعذّر الإلغاء.'}};"
+      },
+      "id": "b1d2ab46-baff-4b32-814d-f47ffadc0583",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "CANCEL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CANCEL": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

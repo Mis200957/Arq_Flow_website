@@ -1,0 +1,181 @@
+{
+  "name": "🔧 SHARED_SEND_LINK_v2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"business_id\": \"00000000-0000-0000-0000-000000000000\", \"instance_name\": \"arq-cust-260613-a3f2\"}, \"customer_jid\": \"201234567890@s.whatsapp.net\", \"category\": \"menu\", \"link_name\": null, \"custom_message\": null}"
+      },
+      "id": "e8b0c23e-7cd5-467a-9b22-8bde7df58e53",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i = $input.first().json;\nconst t = i.tenant || {};\nif (!t.business_id) throw new Error('Missing tenant.business_id');\nif (!i.customer_jid) throw new Error('Missing customer_jid');\nconst category = i.category || 'menu';\nconst defaults = {\n  menu: `🍽️ *تفضل المنيو يا فندم*\\n\\n{{LINK}}\\n\\nأي صنف يعجبك أنا هنا 🌹`,\n  catalog: `📦 *تفضل الكتالوج*\\n\\n{{LINK}}\\n\\nأي منتج تحب تعرف عنه أكتر؟ ✨`,\n  booking: `📅 *احجز موعدك الآن*\\n\\n{{LINK}}\\n\\nلو احتجت مساعدة في الحجز قولي 😊`,\n  payment: `💳 *رابط الدفع*\\n\\n{{LINK}}\\n\\nبعد الدفع ابعتلي صورة التأكيد 🌹`,\n  location: `📍 *موقعنا*\\n\\n{{LINK}}`,\n  other: `🔗 {{LINK}}`\n};\nconst tmpl = i.custom_message || defaults[category] || defaults.other;\nconst byName = i.link_name ? `&name=eq.${encodeURIComponent(i.link_name)}` : `&category=eq.${encodeURIComponent(category)}`;\nreturn { json: { business_id: t.business_id, instance_name: t.instance_name, customer_jid: i.customer_jid,\n  category, message_template: tmpl, link_filter: byName } };"
+      },
+      "id": "6acf8885-0568-4eb3-9ed8-2ea3c8dc7993",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/links?select=name,url,category&business_id=eq.{{ $('PREPARE').first().json.business_id }}&active=eq.true{{ $('PREPARE').first().json.link_filter }}&limit=1",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "8f81ba6c-3ccd-466d-89fa-7a2cb288bb31",
+      "name": "FETCH_LINK",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $('PREPARE').first().json;\nconst rows = $input.all().map(x => x.json).filter(r => r && r.url);\nconst row = rows[0];\nif (!row) {\n  return { json: { ...p, link_found: false, final_message: 'عذراً، الرابط غير متاح حالياً. تواصل معنا مباشرة 🙏' } };\n}\nreturn { json: { ...p, link_found: true, link_url: row.url, final_message: p.message_template.replace('{{LINK}}', row.url) } };"
+      },
+      "id": "50c3b7ba-7cf5-4d94-a186-9a63935ee989",
+      "name": "BUILD_LINK_MESSAGE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('PREPARE').first().json.instance_name }}",
+        "remoteJid": "={{ $('PREPARE').first().json.customer_jid }}",
+        "messageText": "={{ $('BUILD_LINK_MESSAGE').first().json.final_message }}",
+        "options_message": {}
+      },
+      "id": "d4897e08-7da2-47b8-84b9-d01c8051631d",
+      "name": "SEND_LINK_TO_CUSTOMER",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $('BUILD_LINK_MESSAGE').first().json;\nreturn { json: { success: b.link_found, category: b.category,\n  message: b.link_found ? 'تم إرسال الرابط للعميل' : 'الرابط غير موجود في قاعدة البيانات' } };"
+      },
+      "id": "2a079d08-abfa-469b-a73e-1a06d8508c96",
+      "name": "RETURN_SUCCESS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "FETCH_LINK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FETCH_LINK": {
+      "main": [
+        [
+          {
+            "node": "BUILD_LINK_MESSAGE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_LINK_MESSAGE": {
+      "main": [
+        [
+          {
+            "node": "SEND_LINK_TO_CUSTOMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND_LINK_TO_CUSTOMER": {
+      "main": [
+        [
+          {
+            "node": "RETURN_SUCCESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

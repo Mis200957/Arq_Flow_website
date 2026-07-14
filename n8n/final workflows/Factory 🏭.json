@@ -1,0 +1,902 @@
+{
+  "name": "Factory 🏭",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "arqflow_factory_webhook_fw",
+        "options": {}
+      },
+      "id": "88c06b6f-b96a-4e62-9f46-6bc221d1f1a6",
+      "name": "FACTORY_WEBHOOK",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        0
+      ],
+      "webhookId": "32871b3a-5539-4cce-995d-5f5c174bf751"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "businesses",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.body.business_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        16,
+        0
+      ],
+      "id": "8e081330-c374-4002-977f-f852b7d6d562",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "workflowId": {
+          "__rl": true,
+          "value": "HjQ0RsHaQLReO4Az",
+          "mode": "id"
+        },
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        256,
+        0
+      ],
+      "id": "02f84b5a-3211-48da-94aa-a308d2a52b79",
+      "name": "Get a workflow",
+      "credentials": {
+        "n8nApi": {
+          "id": "96PmPGx4nCDJDMlG",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* ============================================================================\n * FACTORY_INJECT_AND_PRUNE  —  n8n Code node (JavaScript)\n * ----------------------------------------------------------------------------\n * ياخد قالب البوت الكامل + صف businesses + صف plans ويطلع workflow جاهز:\n *   1) Pruning حسب نوع النشاط (strict keep-set per business_type).\n *   2) Pruning حسب الباقة tier: الأدوات والوسائط [صوت/صور] المسموحة فقط.\n *   3) يبني عقدة TENANT_CONFIG1 مباشرة [jsCode = return json] مش placeholder.\n *   4) يربط قيم الباقة في عُقد البوت [الموديل + نافذة الذاكرة] + مسار الويبهوك + اسم الـworkflow.\n * المدخلات: { template, business, plan }   (شكل مطابق لـSupabase)\n * المخرجات: { provision_ok, workflow_payload, tenant_config, tier, kept_tools, removed_tools, ... }\n * ========================================================================== */\n\nvar ALIASES = {\n  medical: \"medical_center\", hospital: \"medical_center\",\n  restaurant_cafe: \"restaurant\", cafe: \"restaurant\",\n  realestate: \"real_estate\", \"real-estate\": \"real_estate\",\n  education: \"educational_center\", educational: \"educational_center\", school: \"educational_center\",\n  law_firm: \"lawyer\", lawyer_office: \"lawyer\", law: \"lawyer\",\n  beauty: \"salon\", spa: \"salon\", fitness: \"gym\",\n  services: \"service_company\", service: \"service_company\",\n  online_store: \"ecommerce\", shop: \"ecommerce\", store_online: \"ecommerce\"\n};\n\nvar ALWAYS_KEEP = [\"escalate\", \"Calculator\"];                                  // لا تُحذف أبدًا\nvar COMMON = [\"customer_information\", \"search_knowledge_base\", \"fetch_business_hours\", \"send_link\", \"save_preference\"]; // قراءة/معلومات لكل الباقات\n\nvar VERTICAL_TOOLS = {\n  restaurant:         [\"fitch_products\", \"fetch_categories\", \"delivery_zones\", \"promotions\", \"coupons\", \"order_track\", \"lookup_order_status\", \"save_transaction\", \"cancel_order\", \"send_product_photo\"],\n  ecommerce:          [\"fitch_products\", \"fetch_categories\", \"coupons\", \"promotions\", \"delivery_zones\", \"order_track\", \"lookup_order_status\", \"save_transaction\", \"cancel_order\", \"send_product_photo\"],\n  store:              [\"fitch_products\", \"fetch_categories\", \"order_track\", \"lookup_order_status\", \"save_transaction\", \"send_product_photo\"],\n  pharmacy:           [\"fitch_products\", \"order_track\", \"lookup_order_status\", \"save_transaction\", \"save_consultation_request\", \"send_product_photo\"],\n  clinic:             [\"fitch_doctors\", \"fetch_medical_services\", \"fitch_appointments\", \"book_appointment\", \"cancel_appointment\", \"save_consultation_request\"],\n  medical_center:     [\"fitch_doctors\", \"fetch_medical_services\", \"fitch_appointments\", \"book_appointment\", \"cancel_appointment\", \"save_consultation_request\"],\n  hotel:              [\"fetch_rooms\", \"book_reservation\", \"cancel_reservation\"],\n  gym:                [\"fetch_memberships\", \"fetch_classes\", \"fetch_trainers\", \"save_membership\", \"book_appointment\", \"cancel_appointment\"],\n  salon:              [\"fetch_services\", \"fetch_staff\", \"book_appointment\", \"cancel_appointment\"],\n  real_estate:        [\"fetch_properties\", \"fetch_agents\", \"save_property_request\", \"book_property_visit\"],\n  educational_center: [\"fetch_courses\", \"fetch_teachers\", \"save_student\", \"enroll_course\"],\n  lawyer:             [\"fetch_cases\", \"register_case_client\", \"save_consultation_request\", \"book_appointment\", \"cancel_appointment\"],\n  car_service:        [\"fetch_services\", \"fetch_technicians\", \"save_service_request\", \"track_work_order\", \"book_appointment\"],\n  service_company:    [\"fetch_services\", \"fetch_technicians\", \"save_service_request\", \"track_work_order\", \"book_appointment\"],\n  company:            [\"fetch_services\"]\n};\n\n// أدوات الكتابة [إجراءات] => باقة Business فأعلى. أي أداة مش هنا = قراءة => متاحة من Starter.\nvar WRITE_TOOLS = new Set([\n  \"save_transaction\", \"cancel_order\", \"book_appointment\", \"cancel_appointment\",\n  \"book_reservation\", \"cancel_reservation\", \"save_property_request\", \"book_property_visit\",\n  \"save_student\", \"enroll_course\", \"save_membership\", \"save_service_request\",\n  \"register_case_client\", \"save_consultation_request\", \"save_preference\", \"send_link\"\n]);\n\nvar PLAN_TIERS = {\n  starter:    { media: [\"text\"],                   memory_window: 8,  max_tokens: 1024, allow_write: false, label: \"Starter\" },\n  business:   { media: [\"text\", \"audio\"],          memory_window: 12, max_tokens: 1024, allow_write: true,  label: \"Business\" },\n  enterprise: { media: [\"text\", \"audio\", \"image\"], memory_window: 20, max_tokens: 2048, allow_write: true,  label: \"Enterprise\" }\n};\nvar TIER_ALIASES = {\n  starter: \"starter\", basic: \"starter\", start: \"starter\", free: \"starter\",\n  business: \"business\", pro: \"business\", growth: \"business\", standard: \"business\",\n  enterprise: \"enterprise\", premium: \"enterprise\", advanced: \"enterprise\", ultimate: \"enterprise\"\n};\n\nvar MEDIA_NODES = {\n  audio: [\"GET_MEDIA_BASE1\", \"CONVERT_TO_BINARY1\", \"TRANSCRIBE_AUDIO1\", \"EXTRACT_TRANSCRIPTION\", \"IS_AUDIO_UNCLEAR1\", \"SEND_UNCLEAR_AUDIO_MSG1\"],\n  image: [\"GET_MEDIA_BASE_IMAGE\", \"CONVERT_TO_BINARY_IMAGE\", \"ANALYZE_IMAGE\", \"BUILD_IMAGE_TEXT\"]\n};\n\nvar PERSONA = {\n  restaurant:         { role_ar: \"مساعد مطعم: تعرض المنيو والأصناف، تأخذ الطلب، تحسب التوصيل، وتتابع حالة الأوردر.\", role_en: \"Restaurant assistant\" },\n  ecommerce:          { role_ar: \"مساعد متجر إلكتروني: تبحث في المنتجات، تتحقق من التوافر، تطبّق الكوبونات، وتُنهي الشراء وتتابع الطلب.\", role_en: \"E-commerce assistant\" },\n  store:              { role_ar: \"مساعد محل تجاري: تعرض المنتجات المتاحة وتستقبل الطلبات.\", role_en: \"Store assistant\" },\n  pharmacy:           { role_ar: \"مساعد صيدلية: تتحقق من توافر الأدوية والمنتجات وتستقبل الطلبات.\", role_en: \"Pharmacy assistant\" },\n  clinic:             { role_ar: \"مساعد عيادة: تعرض الأطباء والخدمات الطبية وتتولّى الحجز والإلغاء.\", role_en: \"Clinic assistant\" },\n  medical_center:     { role_ar: \"مساعد مركز طبي متعدد التخصصات للحجز وإدارة المواعيد والاستفسارات الطبية.\", role_en: \"Medical center assistant\" },\n  hotel:              { role_ar: \"مساعد فندق: تعرض أنواع الغرف وأسعارها وتتولّى الحجوزات والإلغاء.\", role_en: \"Hotel assistant\" },\n  gym:                { role_ar: \"مساعد جيم: تشرح باقات العضوية والحصص والمدربين وتتولّى الاشتراك.\", role_en: \"Gym assistant\" },\n  salon:              { role_ar: \"مساعد صالون: تعرض الخدمات والأسعار وتحجز المواعيد مع الفريق.\", role_en: \"Salon assistant\" },\n  real_estate:        { role_ar: \"مساعد عقارات: تبحث عن العقارات المناسبة وتسجّل طلبات العملاء وتحجز المعاينات.\", role_en: \"Real estate assistant\" },\n  educational_center: { role_ar: \"مساعد مركز تعليمي: تعرض الكورسات والمدرّسين وتتولّى تسجيل الطلاب.\", role_en: \"Educational center assistant\" },\n  lawyer:             { role_ar: \"مساعد مكتب محاماة: تستقبل طلبات الاستشارة وتستعلم عن حالة القضايا وتسجّل بيانات الموكلين.\", role_en: \"Law office assistant\" },\n  car_service:        { role_ar: \"مساعد صيانة سيارات: تعرض الخدمات وتستقبل طلبات الصيانة وتتابع أوامر الشغل.\", role_en: \"Car service assistant\" },\n  service_company:    { role_ar: \"مساعد شركة خدمات: تعرض الخدمات وتستقبل الطلبات وتتابع أوامر الشغل.\", role_en: \"Service company assistant\" },\n  company:            { role_ar: \"مساعد أعمال عام: تجاوب على استفسارات العملاء وتعرّف بالخدمات.\", role_en: \"General business assistant\" }\n};\n\nvar NOTE_VERTICALS = [\n  [\"Restaurants & Online Stores\", [\"restaurant\", \"ecommerce\", \"store\", \"pharmacy\"]],\n  [\"الفنادق\", [\"hotel\"]], [\"Hotels\", [\"hotel\"]],\n  [\"العقارات\", [\"real_estate\"]], [\"Real Estate\", [\"real_estate\"]],\n  [\"التعليم\", [\"educational_center\"]], [\"Education\", [\"educational_center\"]],\n  [\"الجيم\", [\"gym\"]], [\"Gym\", [\"gym\"]],\n  [\"الخدمات والصيانة\", [\"car_service\", \"service_company\", \"salon\"]], [\"Services\", [\"car_service\", \"service_company\", \"salon\"]],\n  [\"المحاماة والاستشارات\", [\"lawyer\"]], [\"Legal\", [\"lawyer\"]],\n  [\"Clinics\", [\"clinic\", \"medical_center\"]], [\"العيادات\", [\"clinic\", \"medical_center\"]]\n];\n\nvar TOOL_TYPES = new Set([\n  \"n8n-nodes-base.supabaseTool\",\n  \"@n8n/n8n-nodes-langchain.toolWorkflow\",\n  \"@n8n/n8n-nodes-langchain.toolCalculator\"\n]);\n\nfunction digits(v) { return String(v == null ? \"\" : v).replace(/[^0-9]/g, \"\"); }\nfunction arr(x) { return Array.isArray(x) ? x : []; }\nfunction sanitizeSettings(s) {\n  s = s || {};\n  // n8n public API يقبل مفاتيح settings دي فقط؛ أي مفتاح تاني (زي binaryMode) بيرفضه\n  var ALLOWED = [\"executionOrder\",\"saveDataErrorExecution\",\"saveDataSuccessExecution\",\"saveManualExecutions\",\"saveExecutionProgress\",\"executionTimeout\",\"errorWorkflow\",\"timezone\"];\n  var out = { executionOrder: s.executionOrder || \"v1\" };\n  for (var i = 0; i < ALLOWED.length; i++) { var k = ALLOWED[i]; if (s[k] !== undefined && k !== \"executionOrder\") out[k] = s[k]; }\n  return out;\n}\nfunction canonType(t) { var bt = String(t || \"\").trim().toLowerCase(); return ALIASES[bt] || bt; }\nfunction jesc(v) {\n  return String(v == null ? \"\" : v).replace(/\\\\/g, \"\\\\\\\\\").replace(/\"/g, '\\\\\"')\n    .replace(/\\n/g, \"\\\\n\").replace(/\\r/g, \"\\\\r\").replace(/\\t/g, \"\\\\t\");\n}\nfunction resolveTier(plan) {\n  var raw = String((plan && (plan.tier || plan.id || plan.name || plan.plan_id)) || \"\").trim().toLowerCase();\n  if (TIER_ALIASES[raw]) return TIER_ALIASES[raw];\n  for (var k in TIER_ALIASES) { if (raw.indexOf(k) !== -1) return TIER_ALIASES[k]; }\n  var lvl = plan && plan.tier_level;\n  if (lvl === 1) return \"starter\";\n  if (lvl === 2) return \"business\";\n  if (lvl >= 3) return \"enterprise\";\n  return \"starter\";\n}\n\nfunction injectAndPrune(template, business, plan, options) {\n  options = options || {};\n  if (!template || !Array.isArray(template.nodes)) {\n    return { provision_ok: false, error: \"template غير صالح (مفيش nodes[])\" };\n  }\n  var b = business || {}, p = plan || {};\n  var bt = canonType(b.business_type);\n  var matched = !!VERTICAL_TOOLS[bt];\n  var icfg = b.industry_config || {};\n\n  // (أ) الباقة\n  var tier = resolveTier((p.id || p.tier || p.tier_level || p.name) ? p : { id: b.plan_id });\n  var T = PLAN_TIERS[tier] || PLAN_TIERS.starter;\n  var media_support = arr(p.media_support).length ? p.media_support.slice() : T.media.slice();\n  var memory_window = p.memory_window || T.memory_window;\n  var max_tokens = p.max_tokens || T.max_tokens;\n  var message_limit = p.message_limit || 5000;\n  var model = p.ai_model || b.model || \"openai/gpt-4o-mini\";\n  var fallback_model = p.fallback_model || \"openai/gpt-4o-mini\";\n\n  // (ب) keep-set: قطاع + مشتركة + أساسية، ثم تقفيل حسب الباقة\n  var keep = new Set([].concat(ALWAYS_KEEP, COMMON, VERTICAL_TOOLS[bt] || []));\n  if (!T.allow_write) { Array.from(keep).forEach(function (t) { if (WRITE_TOOLS.has(t)) keep.delete(t); }); }\n  if (Array.isArray(icfg.keep_tools)) icfg.keep_tools.forEach(function (t) { keep.add(t); });\n  if (Array.isArray(icfg.drop_tools)) icfg.drop_tools.forEach(function (t) { keep.delete(t); });\n\n  var enabled_tools = Array.from(keep).filter(function (t) { return t !== \"Calculator\"; });\n\n  // (ج) tenant_config (مطابق businesses + plans)\n  var tenant_config = {\n    business_id: b.id || b.business_id || \"\",\n    order_id: b.order_id || \"\",\n    plan_id: b.plan_id || p.id || tier,\n    tier: tier, plan_label: T.label,\n    business_name: b.business_name || \"\",\n    bot_name: b.bot_name || b.business_name || \"\",\n    currency: b.currency || \"ج.م\",\n    escalation_message: b.escalation_message || \"تمام، بحوّلك لأحد أعضاء الفريق وهيرد عليك في أقرب وقت 🙏\",\n    rules: b.rules || \"\",\n    min_order_value: (b.min_order_value != null ? b.min_order_value : null),\n    delivery_fee: (b.delivery_fee != null ? b.delivery_fee : null),\n    business_type: bt || null,\n    industry_matched: matched,\n    instance_name: b.instance_name || (\"arq-\" + String(b.order_id || \"\").toLowerCase()),\n    webhook_path: (b.webhook_path || (\"bot-\" + String(b.order_id || \"\").toLowerCase())).split('webhook/').pop(),\n    admin_whatsapp: digits(b.whatsapp_number || b.contact_phone),\n    model: model, fallback_model: fallback_model, max_tokens: max_tokens,\n    memory_window: memory_window, message_limit: message_limit, media_support: media_support,\n    tools: p.tools || [],\n    languages: arr(b.languages).length ? b.languages : [\"ar\"],\n    tone_of_voice: b.tone_of_voice || \"ودود ومحترف\",\n    fallback_behavior: b.fallback_behavior || \"handover\",\n    greeting_message: b.greeting_message || \"\",\n    assistant_personality: b.assistant_personality || \"\",\n    description: b.description || \"\",\n    working_hours: b.working_hours || \"\",\n    location: b.location || b.address || \"\",\n    payment_methods: arr(b.payment_methods),\n    delivery_info: b.delivery_info || \"\",\n    return_policy: b.return_policy || \"\",\n    order_instructions: b.order_instructions || \"\",\n    policy: b.policy || \"\",\n    knowledge_base: b.knowledge_base_raw || b.knowledge_base || \"\",\n    capabilities: icfg.capabilities || {},\n    persona: icfg.persona || PERSONA[bt] || null,\n    enabled_tools: enabled_tools,\n    system_prompt: b.system_prompt || \"\"\n  };\n\n  // (د) clone عميق + اسم الـworkflow\n  var wf = JSON.parse(JSON.stringify({\n    name: \"🤖 Arq | \" + (b.business_name || \"\") + \" (\" + (b.order_id || \"\") + \")\",\n    nodes: template.nodes,\n    connections: template.connections || {},\n    settings: sanitizeSettings(template.settings)\n  }));\n\n  // (هـ) قصّ عُقد الوسائط غير المدعومة بالباقة\n  var dropMedia = new Set();\n  if (media_support.indexOf(\"audio\") === -1) MEDIA_NODES.audio.forEach(function (n) { dropMedia.add(n); });\n  if (media_support.indexOf(\"image\") === -1) MEDIA_NODES.image.forEach(function (n) { dropMedia.add(n); });\n  if (options.pruneMedia === false) dropMedia.clear();\n\n  // (و) قصّ الأدوات [قطاعات تانية + مقفولة بالباقة] + عُقد الوسائط\n  var removed_tools = [], kept_tools = [], removed_media = [];\n  wf.nodes = wf.nodes.filter(function (n) {\n    if (!n) return false;\n    if (dropMedia.has(n.name)) { removed_media.push(n.name); return false; }\n    if (TOOL_TYPES.has(n.type)) {\n      if (keep.has(n.name)) { kept_tools.push(n.name); return true; }\n      removed_tools.push(n.name); return false;\n    }\n    return true;\n  });\n\n  // (ز) قصّ Sticky Notes الخاصة بقطاعات تانية\n  var removed_notes = [];\n  wf.nodes = wf.nodes.filter(function (n) {\n    if (n && n.type === \"n8n-nodes-base.stickyNote\") {\n      var content = (n.parameters && n.parameters.content) || \"\";\n      for (var i = 0; i < NOTE_VERTICALS.length; i++) {\n        var kw = NOTE_VERTICALS[i][0], verts = NOTE_VERTICALS[i][1];\n        if (content.indexOf(kw) !== -1 && verts.indexOf(bt) === -1) { removed_notes.push(content.split(\"\\n\")[0]); return false; }\n      }\n    }\n    return true;\n  });\n\n  // (ح) بناء TENANT_CONFIG1 مباشرة + ربط قيم الباقة في عُقد البوت + مسار الويبهوك\n  wf.nodes.forEach(function (n) {\n    if (!n || !n.parameters) return;\n    if (/^TENANT_CONFIG/i.test(n.name || \"\")) {\n      n.parameters.jsCode = \"return { json: \" + JSON.stringify(tenant_config) + \" };\";\n    }\n    if ((n.type || \"\").indexOf(\"memoryBufferWindow\") !== -1) { n.parameters.contextWindowLength = memory_window; }\n    if ((n.type || \"\").indexOf(\"lmChatOpenRouter\") !== -1) { n.parameters.model = model; }\n    if (n.type === \"n8n-nodes-base.webhook\") { n.parameters.path = tenant_config.webhook_path; }\n  });\n\n  // (ط) استبدال أي placeholders قديمة لو موجودة (آمن)\n  var replacements = {\n    \"__BUSINESS_ID__\": tenant_config.business_id, \"__ORDER_ID__\": tenant_config.order_id,\n    \"__PLAN_ID__\": tenant_config.plan_id, \"__BUSINESS_NAME__\": tenant_config.business_name,\n    \"__INSTANCE_NAME__\": tenant_config.instance_name, \"__WEBHOOK_PATH__\": tenant_config.webhook_path,\n    \"__ADMIN_WHATSAPP__\": tenant_config.admin_whatsapp, \"__MODEL__\": model, \"__FALLBACK_MODEL__\": fallback_model,\n    \"__MAX_TOKENS__\": String(max_tokens), \"__MEMORY_WINDOW__\": String(memory_window),\n    \"__MESSAGE_LIMIT__\": String(message_limit), \"__SYSTEM_PROMPT__\": tenant_config.system_prompt\n  };\n  var str = JSON.stringify(wf), ks = Object.keys(replacements);\n  for (var j = 0; j < ks.length; j++) { str = str.split(ks[j]).join(jesc(replacements[ks[j]])); }\n  try { wf = JSON.parse(str); }\n  catch (e) { return { provision_ok: false, error: \"الاستبدال أنتج JSON غير صالح: \" + e.message }; }\n\n  // (ي) تنظيف الوصلات من أي عقدة اتشالت (كمصدر أو هدف)\n  var names = new Set();\n  for (var ni = 0; ni < wf.nodes.length; ni++) { if (wf.nodes[ni]) names.add(wf.nodes[ni].name); }\n  var connKeys = Object.keys(wf.connections);\n  for (var ci = 0; ci < connKeys.length; ci++) {\n    var ck = connKeys[ci];\n    if (!names.has(ck)) { delete wf.connections[ck]; continue; }\n    var conn = wf.connections[ck];\n    var kinds = Object.keys(conn);\n    for (var ki = 0; ki < kinds.length; ki++) {\n      var groups = conn[kinds[ki]];\n      for (var gi = 0; gi < groups.length; gi++) {\n        groups[gi] = arr(groups[gi]).filter(function (c) { return c && names.has(c.node); });\n      }\n    }\n  }\n\n  return {\n    provision_ok: true, business_type: bt, industry_matched: matched, tier: tier, plan_label: T.label,\n    kept_tools: kept_tools.sort(), removed_tools: removed_tools.sort(),\n    removed_media: removed_media.sort(), removed_notes: removed_notes,\n    media_support: media_support, memory_window: memory_window, model: model,\n    tenant_config: tenant_config, workflow_payload: wf\n  };\n}\n\n/* ============================================================================\n * استخدام داخل n8n Code node:\n *   const src = $input.first().json;\n *   return [{ json: injectAndPrune(src.template, src.business || src.businesses || src, src.plan || src.plans || {}) }];\n * العقدة السابقة بتوفّر: template (القالب الكامل من FETCH_TEMPLATE) + business (صف businesses) + plan (صف plans).\n * ========================================================================== */\nif (typeof $input !== \"undefined\") {\n  try {\n    // 1. القالب (Template): هو المخرجات المباشرة للعقدة السابقة (Get a workflow)\n    var templateData = $input.first().json;\n    \n    // 2. بيانات البزنس (Business): نسحبها من عقدة Supabase (Get a row)\n    var businessData = $('Get a row').first().json;\n    \n    // 3. بيانات الباقة (Plan): نسحبها من الويب هوك المبدئي (FACTORY_WEBHOOK)\n    var webhookData = $('FACTORY_WEBHOOK').first().json.body || {};\n    var planData = webhookData.plan || {};\n\n    // 4. تنفيذ دالة الدمج والقص\n    var result = injectAndPrune(\n      templateData, \n      businessData, \n      planData\n    );\n    \n    return [{ json: result }];\n  } catch (err) {\n    // إرجاع الخطأ كـ JSON بدلاً من تحطيم العقدة بالكامل\n    return [{ json: { provision_ok: false, error: err.message, stack: err.stack } }];\n  }\n}\n\nif (typeof module !== \"undefined\") { \n  module.exports = { injectAndPrune: injectAndPrune, canonType: canonType, resolveTier: resolveTier, VERTICAL_TOOLS: VERTICAL_TOOLS, WRITE_TOOLS: WRITE_TOOLS, PLAN_TIERS: PLAN_TIERS }; \n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        0
+      ],
+      "id": "fca6c8b3-9ca5-4cf8-9bb4-a7ab77254233",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "workflowObject": "={{ $json.workflow_payload.toJsonString() }}",
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        368,
+        -320
+      ],
+      "id": "c454ad23-1a00-4e01-ad89-775827256f23",
+      "name": "Create a workflow",
+      "credentials": {
+        "n8nApi": {
+          "id": "96PmPGx4nCDJDMlG",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://bc1b1373.kube-ops.com/api/v1/workflows",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "n8nApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.workflow_payload.toJsonString() }}",
+        "options": {}
+      },
+      "id": "04830b56-c248-429a-80be-3c7ae322eeb9",
+      "name": "Create a workflow (HTTP)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        752,
+        0
+      ],
+      "credentials": {
+        "n8nApi": {
+          "id": "96PmPGx4nCDJDMlG",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "Arq Flow",
+        "remoteJid": "201090220773",
+        "messageText": "=✅ *إشعار نظام Arq - تم إنشاء بوت جديد* ✅\n\nتم بناء الـ Workflow الخاص بالعميل بنجاح، وهو جاهز الآن للفحص والتفعيل! 🚀\n\n🏢 *النشاط:* {{$('Code in JavaScript').item.json.tenant_config.business_name}}\n🆔 *رقم الطلب:* {{$('Code in JavaScript').item.json.tenant_config.order_id}}\n💼 *نوع النشاط:* {{$('Code in JavaScript').item.json.business_type}}\n📦 *الباقة:* {{$('Code in JavaScript').item.json.plan_label}}\n\n🛠️ *عدد الأدوات المفعلة:* {{$('Code in JavaScript').item.json.kept_tools.length}} أداة\n\n*لينك الوركفلو:* https://bc1b1373.kube-ops.com/workflow/{{ $json.id }}\n\nيرجى الدخول على n8n لمراجعة العُقد وتفعيل الـ Workflow (Active).",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        992,
+        -256
+      ],
+      "id": "f091b746-f24c-4e49-9cdc-2aee1d75d827",
+      "name": "Send text",
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "instanceName": "={{ $('Create a workflow (HTTP)').item.json.name }}",
+        "options_Create_instance": {
+          "instanceSettings": {
+            "settings": {
+              "groupsIgnore": true,
+              "alwaysOnline": true
+            }
+          },
+          "webhook": {
+            "webhookSettings": {
+              "webhookUrl": "=https://bc1b1373.kube-ops.com/webhook/{{ $json.webhook_path }}",
+              "webhookBase64": true,
+              "webhookEvents": [
+                "MESSAGES_UPSERT",
+                "CONNECTION_UPDATE"
+              ]
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        0
+      ],
+      "id": "b8d06aab-980b-4a18-a3b1-41d4d5376885",
+      "name": "Create instance",
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "instances",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('Get a row').item.json.id }}"
+            },
+            {
+              "fieldId": "instance_name",
+              "fieldValue": "={{ $json.data.instance.instanceName }}"
+            },
+            {
+              "fieldId": "webhook_url",
+              "fieldValue": "={{ $json.data.webhook.webhookUrl }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1824,
+        -128
+      ],
+      "id": "ca175bb2-959d-4a9e-af11-d579f25c90b2",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// استدعاء مصفوفة الـ nodes من العنصر الأول الجاي في الـ Input\nconst nodes = $input.first().json.nodes;\n\n// البحث عن الـ Webhook Node\nconst webhookNode = nodes.find(n => n.name === 'WEBHOOK_TRIGGER1');\n\n// استخراج المسار\nlet webhookPath = webhookNode?.parameters?.path || null;\n\n// تنظيف الرابط ومعالجة التكرار (استخراج آخر رابط صحيح في النص)\nif (webhookPath && webhookPath.lastIndexOf('http') > 0) {\n  webhookPath = webhookPath.substring(webhookPath.lastIndexOf('http'));\n}\n\n// إرجاع النتيجة كـ JSON\nreturn { \n  json: { \n    webhook_path: webhookPath \n  } \n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "1a13c630-b7ac-4488-972a-4eab51710199",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "businesses",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Get a row').item.json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "workflow_id",
+              "fieldValue": "={{ $('Create a workflow (HTTP)').item.json.id }}"
+            },
+            {
+              "fieldId": "instance_name",
+              "fieldValue": "={{ $json.data.instance.instanceName }}"
+            },
+            {
+              "fieldId": "webhook_path",
+              "fieldValue": "={{ $json.data.webhook.webhookUrl }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        80
+      ],
+      "id": "6741497b-0613-4c40-8075-baaa25594cd3",
+      "name": "Update a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "plans",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Get a row').item.json.plan_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        400
+      ],
+      "id": "e1dfdb13-b165-42b8-aca4-89e3f5e7e864",
+      "name": "Get a row1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "usage_counters",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('Get a row').item.json.id }}"
+            },
+            {
+              "fieldId": "period_start",
+              "fieldValue": "={{ $today.format('yyyy-MM-dd') }}"
+            },
+            {
+              "fieldId": "period_end",
+              "fieldValue": "={{ $today.plus(30, 'days').format('yyyy-MM-dd') }}"
+            },
+            {
+              "fieldId": "balance_egp",
+              "fieldValue": "={{ $json.token_budget_egp }}"
+            },
+            {
+              "fieldId": "wallet_egp",
+              "fieldValue": "={{ $json.monthly_fee_egp }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        400
+      ],
+      "id": "d5f5ea30-f958-420a-9483-08fb10dcc058",
+      "name": "Create a row1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allDays = [\"sun\", \"mon\", \"tue\", \"wed\", \"thu\", \"fri\", \"sat\"];\n\nconst results = [];\n\nfor (const item of $('Get a row').all()) {\n  const workingHoursStruct = item.json.working_hours_struct || {};\n\n  const {\n    days = [],\n    open = \"\",\n    close = \"\",\n    always = false,\n  } = workingHoursStruct;\n\n  for (const day of allDays) {\n    const isOpenDay = always || days.includes(day);\n\n    results.push({\n      json: {\n        day_of_week: day,\n        opens: isOpenDay ? open : \"\",\n        closes: isOpenDay ? close : \"\",\n        closed: !isOpenDay,\n        notes: \"\",\n      },\n    });\n  }\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        384
+      ],
+      "id": "8dae5713-ddf4-425a-a4c4-9bf61d3cd3f0",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1952,
+        384
+      ],
+      "id": "71cd6abb-a6b5-48bb-b110-43af9aa36fdb",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "tableId": "business_hours",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $('Get a row').item.json.id }}"
+            },
+            {
+              "fieldId": "day_of_week",
+              "fieldValue": "={{ $('Code in JavaScript2').item.json.day_of_week }}"
+            },
+            {
+              "fieldId": "opens",
+              "fieldValue": "={{ $('Code in JavaScript2').item.json.opens || '24 hours' }}"
+            },
+            {
+              "fieldId": "closes",
+              "fieldValue": "={{ $('Code in JavaScript2').item.json.closes || '24 hours' }}"
+            },
+            {
+              "fieldId": "closed",
+              "fieldValue": "={{ $('Code in JavaScript2').item.json.closed }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2192,
+        400
+      ],
+      "id": "08a9f38f-d9fc-45b3-a356-32330dd0a28e",
+      "name": "Create a row2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Reject any request that doesn't carry a valid HMAC signature from the\n * ArqFlow platform. Requires n8n env: ARQFLOW_HMAC_SECRET\n * (and NODE_FUNCTION_ALLOW_BUILTIN=crypto for the Code node). */\nconst crypto = require('crypto');\nconst secret = $env.ARQFLOW_HMAC_SECRET || '';\nif (!secret) throw new Error('ARQFLOW_HMAC_SECRET not set in n8n environment');\nconst item = $input.first().json;\nconst body = item.body || {};\nconst headers = item.headers || {};\nconst provided = headers['x-arqflow-signature'] || headers['X-ArqFlow-Signature'] || '';\n// Platform signs JSON.stringify(payload); JSON.parse→stringify round-trips\n// byte-identically for JSON produced by JSON.stringify.\nconst expected = crypto.createHmac('sha256', secret).update(JSON.stringify(body)).digest('hex');\nconst a = Buffer.from(String(provided));\nconst b = Buffer.from(expected);\nif (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {\n  throw new Error('Invalid X-ArqFlow-Signature — request rejected');\n}\nreturn $input.all();"
+      },
+      "id": "aaaa1111-hmac-4444-8888-validate00001",
+      "name": "VALIDATE_HMAC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "prov-ok-1",
+              "leftValue": "={{ $json.provision_ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "aaaa2222-ifok-4444-8888-provisionok1",
+      "name": "PROVISION_OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Report provision_failed back to the platform (HMAC-signed).\n * The platform flips the business to 'provision_failed' and alerts admins. */\nconst crypto = require('crypto');\nconst hook = $('FACTORY_WEBHOOK').first().json.body || {};\nconst payload = {\n  event: 'provision_failed',\n  business_id: hook.business_id || '',\n  error: String($json.error || 'inject_and_prune failed'),\n};\nconst body = JSON.stringify(payload);\nconst signature = crypto.createHmac('sha256', $env.ARQFLOW_HMAC_SECRET || '').update(body).digest('hex');\nconst url = hook.callback_url || $env.ARQFLOW_CALLBACK_URL || '';\nif (!url) throw new Error('No callback_url in webhook payload and ARQFLOW_CALLBACK_URL not set');\nreturn [{ json: { url, body, signature } }];"
+      },
+      "id": "aaaa3333-fail-4444-8888-buildfailed1",
+      "name": "BUILD_FAILED_CALLBACK",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-ArqFlow-Signature",
+              "value": "={{ $json.signature }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "aaaa4444-fail-4444-8888-cbfailed0001",
+      "name": "CALLBACK_FAILED",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        784,
+        176
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Report provision_complete back to the platform (HMAC-signed).\n * The platform flips the business to 'qr_pending' and the client's\n * provisioning screen advances to the WhatsApp-QR step. */\nconst crypto = require('crypto');\nconst hook = $('FACTORY_WEBHOOK').first().json.body || {};\nconst cfg = ($('Code in JavaScript').first().json || {}).tenant_config || {};\nconst wf = $('Create a workflow (HTTP)').first().json || {};\nlet inst = {}, hookData = {};\ntry { inst = $('Create instance').first().json || {}; } catch (e) {}\nconst data = inst.data || {};\nconst payload = {\n  event: 'provision_complete',\n  business_id: hook.business_id || cfg.business_id,\n  workflow_id: String(wf.id || ''),\n  instance_name: (data.instance && data.instance.instanceName) || cfg.instance_name || wf.name || '',\n  webhook_path: (data.webhook && data.webhook.webhookUrl) || cfg.webhook_path || '',\n};\nconst body = JSON.stringify(payload);\nconst signature = crypto.createHmac('sha256', $env.ARQFLOW_HMAC_SECRET || '').update(body).digest('hex');\nconst url = hook.callback_url || $env.ARQFLOW_CALLBACK_URL || '';\nif (!url) throw new Error('No callback_url in webhook payload and ARQFLOW_CALLBACK_URL not set');\nreturn [{ json: { url, body, signature } }];"
+      },
+      "id": "aaaa5555-succ-4444-8888-buildsucces1",
+      "name": "BUILD_SUCCESS_CALLBACK",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-ArqFlow-Signature",
+              "value": "={{ $json.signature }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "aaaa6666-succ-4444-8888-cbsuccess01",
+      "name": "CALLBACK_SUCCESS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1692,
+        -100
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {
+    "FACTORY_WEBHOOK": [
+      {
+        "json": {
+          "headers": {
+            "host": "bc1b1373.kube-ops.com",
+            "user-agent": "node",
+            "content-length": "1569",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "*",
+            "cdn-loop": "cloudflare; loops=1",
+            "cf-connecting-ip": "54.82.75.208",
+            "cf-ipcountry": "US",
+            "cf-ray": "a13896799a6e6c71-IAD",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-warp-tag-id": "bb386d2b-612b-4715-be77-fdbfde8aa474",
+            "content-type": "application/json",
+            "sec-fetch-mode": "cors",
+            "x-arqflow-signature": "39838a99db172efd179fbc4e90e840584e093d31c25bd3650abec2503e8c3e3e",
+            "x-forwarded-for": "172.18.0.1",
+            "x-forwarded-host": "bc1b1373.kube-ops.com",
+            "x-forwarded-port": "80",
+            "x-forwarded-proto": "http",
+            "x-forwarded-server": "22203f14bb99",
+            "x-invocation-id": "fra1::tbsbj-1782774447218-feb98b633e13",
+            "x-real-ip": "172.18.0.1",
+            "x-vercel-id": "fra1::tbsbj-1782774447218-feb98b633e13"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event": "provision_bot",
+            "source": "arqflow-platform",
+            "business_id": "b32fb01d-7e90-44ef-bb19-15a1247c85fe",
+            "order_id": "CUST_29062607",
+            "client_id": "CUST_29062607",
+            "plan_id": "business",
+            "plan": {
+              "tier": "business",
+              "model": "anthropic/claude-sonnet-4.5",
+              "fallback_model": "anthropic/claude-haiku-4.5",
+              "max_tokens": 1024,
+              "memory_window": 12,
+              "tools": [
+                "log_inquiry",
+                "escalate",
+                "send_link",
+                "save_transaction",
+                "lookup_order_status",
+                "calculator",
+                "save_preference"
+              ],
+              "media_support": [
+                "text",
+                "audio",
+                "location"
+              ],
+              "package_price_egp": 1100,
+              "token_budget_egp": 750,
+              "expires_on": "2026-07-29"
+            },
+            "business": {
+              "business_name": "متجر الاصيل",
+              "business_type": "ecommerce",
+              "description": "متجر الاصيل",
+              "contact_name": "محمد",
+              "contact_email": "arqflow87@gmail.com",
+              "contact_number": "201029168056",
+              "whatsapp_number": "201029168056",
+              "primary_goal": "mixed",
+              "tone_of_voice": "formal",
+              "fallback_behavior": "handover",
+              "greeting_message": "",
+              "assistant_personality": "نورهان",
+              "working_hours": "من السبت إلى الخميس: 10:00 ص – 10:00 م — مغلق: الجمعة",
+              "location": "",
+              "payment_methods": [
+                "cash",
+                "instapay",
+                "vodafone_cash"
+              ],
+              "policy": "",
+              "delivery_info": "",
+              "return_policy": "",
+              "order_instructions": "",
+              "languages": [
+                "ar",
+                "en"
+              ],
+              "knowledge_base": "اي حاجة"
+            },
+            "content": {
+              "faqs": [
+                {
+                  "kind": "doc",
+                  "category": "general",
+                  "question": null,
+                  "answer": "اي حاجة",
+                  "language": "ar"
+                }
+              ],
+              "products": [],
+              "services": []
+            },
+            "supabase": {
+              "url": "https://zjathejcdkpxjyvululp.supabase.co",
+              "project_ref": "zjathejcdkpxjyvululp"
+            },
+            "callback_url": "https://arq-flow-website.vercel.app/api/n8n/callback"
+          },
+          "webhookUrl": "https://bc1b1373.kube-ops.com/webhook/arqflow_factory_webhook_fw",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "FACTORY_WEBHOOK": {
+      "main": [
+        [
+          {
+            "node": "VALIDATE_HMAC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Get a workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "PROVISION_OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a workflow (HTTP)": {
+      "main": [
+        [
+          {
+            "node": "Send text",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create instance": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Create instance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row1": {
+      "main": [
+        [
+          {
+            "node": "Create a row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Create a row2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VALIDATE_HMAC": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PROVISION_OK?": {
+      "main": [
+        [
+          {
+            "node": "Create a workflow (HTTP)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "BUILD_FAILED_CALLBACK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_FAILED_CALLBACK": {
+      "main": [
+        [
+          {
+            "node": "CALLBACK_FAILED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row": {
+      "main": [
+        [
+          {
+            "node": "BUILD_SUCCESS_CALLBACK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_SUCCESS_CALLBACK": {
+      "main": [
+        [
+          {
+            "node": "CALLBACK_SUCCESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5df2fa5f-63b9-4271-bbd0-17179fcd15b6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c6ff05776992964543c85834eed789ae8d538e2826bed09559b1709e0337b4da"
+  },
+  "id": "VKOEMPT3ebJFUbpu",
+  "tags": []
+}

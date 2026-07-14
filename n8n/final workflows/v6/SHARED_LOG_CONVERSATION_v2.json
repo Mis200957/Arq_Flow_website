@@ -1,0 +1,472 @@
+{
+  "name": "🔧 SHARED_LOG_CONVERSATION_v2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"business_id\": \"00000000-0000-0000-0000-000000000000\"}, \"customer\": {\"phone\": \"201234567890\", \"name\": \"محمد\"}, \"conversation_id\": null, \"customer_message\": \"السلام عليكم\", \"ai_response\": \"أهلاً بيك يا محمد\", \"intent\": \"general\", \"sentiment_score\": 0, \"escalated\": false, \"input_tokens\": 1200, \"output_tokens\": 50, \"cost_egp\": 0.18, \"model\": \"anthropic/claude-sonnet-4.5\", \"wa_message_id\": \"\"}"
+      },
+      "id": "024ee56d-2ccf-4e4f-b431-6f21c842a84d",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i = $input.first().json;\nconst t = i.tenant || {};\nif (!t.business_id) throw new Error('Missing tenant.business_id');\nconst cust = i.customer || {};\nconst phone = String(cust.phone || i.customer_id || '').replace(/[^0-9]/g, '');\nif (!phone) throw new Error('Missing customer.phone');\nconst now = new Date().toISOString();\nconst customer_body = { business_id: t.business_id, phone, channel: 'whatsapp', last_interaction_at: now };\nif (cust.name) customer_body.name = cust.name;\nreturn { json: {\n  business_id: t.business_id,\n  phone,\n  now,\n  customer_message: i.customer_message || '',\n  ai_response: i.ai_response || '',\n  intent: i.intent || 'general',\n  sentiment_score: i.sentiment_score ?? 0,\n  escalated: i.escalated === true,\n  input_tokens: parseInt(i.input_tokens || 0),\n  output_tokens: parseInt(i.output_tokens || 0),\n  cost_egp: +(i.cost_egp || 0),\n  model: i.model || i.model_used || '',\n  wa_message_id: i.wa_message_id || null,\n  customer_body\n} };"
+      },
+      "id": "6e1afd99-6d91-4640-801d-451158f715b5",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/customers?on_conflict=business_id,phone",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('PREPARE').first().json.customer_body) }}"
+      },
+      "id": "9706da2a-e1de-4da3-8c81-0baca0571818",
+      "name": "UPSERT_CUSTOMER",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/conversations?select=id,message_count&business_id=eq.{{ $('PREPARE').first().json.business_id }}&customer_id=eq.{{ $('UPSERT_CUSTOMER').first().json.id }}&order=created_at.desc&limit=1",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "a7191aa7-dd4f-4c02-a211-334ec84c3948",
+      "name": "GET_CONVERSATION",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(x => x.json).filter(r => r && r.id);\nconst ex = rows[0];\nreturn { json: {\n  need_create: !ex,\n  conversation_id: ex ? ex.id : null,\n  message_count_prev: ex ? (ex.message_count || 0) : 0\n} };"
+      },
+      "id": "c18158e9-d1f6-422f-868c-17a39f6e766a",
+      "name": "CONV_ROUTER",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0b03de55-f16f-4302-ae66-128b785ea32e",
+              "leftValue": "={{ $('CONV_ROUTER').first().json.need_create }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "24f2285d-2c1b-4847-a3eb-f7068003084e",
+      "name": "NEED_CONVERSATION?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/conversations",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ business_id: $('PREPARE').first().json.business_id, customer_id: $('UPSERT_CUSTOMER').first().json.id, status: 'open', last_message_at: $('PREPARE').first().json.now, message_count: 0 }) }}"
+      },
+      "id": "1bfee125-c918-444c-ae53-cfdce0ff7693",
+      "name": "CREATE_CONVERSATION",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        -120
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $('PREPARE').first().json;\nconst cust = $('UPSERT_CUSTOMER').first().json;\nconst router = $('CONV_ROUTER').first().json;\nconst j = $json;\nconst conversation_id = j.id || router.conversation_id;\nreturn { json: {\n  business_id: p.business_id,\n  customer_id: cust.id,\n  conversation_id,\n  cost_egp: p.cost_egp,\n  inbound_body: { business_id: p.business_id, conversation_id, customer_id: cust.id, direction: 'inbound', content: p.customer_message, media_type: 'text', intent: p.intent, sentiment_score: p.sentiment_score, escalated: p.escalated, wa_message_id: p.wa_message_id, created_at: p.now },\n  outbound_body: { business_id: p.business_id, conversation_id, customer_id: cust.id, direction: 'outbound', content: p.ai_response, media_type: 'text', input_tokens: p.input_tokens, output_tokens: p.output_tokens, cost_egp: p.cost_egp, model: p.model, escalated: p.escalated, created_at: p.now },\n  bump_body: { last_message_at: p.now, message_count: (router.message_count_prev || 0) + 2, status: p.escalated ? 'escalated' : 'open' }\n} };"
+      },
+      "id": "7e4c75e9-bf07-4819-8692-f07022ac9344",
+      "name": "CONV_CONTEXT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/messages",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('CONV_CONTEXT').first().json.inbound_body) }}"
+      },
+      "id": "0ca615c8-b9b2-4204-beb4-24d82d3ab35f",
+      "name": "INSERT_INBOUND",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/messages",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('CONV_CONTEXT').first().json.outbound_body) }}"
+      },
+      "id": "6c1ba4f2-f23e-46d1-9cd2-fcfcd11b26f1",
+      "name": "INSERT_OUTBOUND",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/conversations?id=eq.{{ $('CONV_CONTEXT').first().json.conversation_id }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('CONV_CONTEXT').first().json.bump_body) }}"
+      },
+      "id": "411056ab-d365-49ca-89c7-4cd2d1633daa",
+      "name": "BUMP_CONVERSATION",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2200,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $('CONV_CONTEXT').first().json;\nreturn { json: { success: true, conversation_id: c.conversation_id, customer_id: c.customer_id, cost_egp: c.cost_egp } };"
+      },
+      "id": "73ea79cf-a89d-446e-94af-adeacab60a4d",
+      "name": "RETURN_SUCCESS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "UPSERT_CUSTOMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPSERT_CUSTOMER": {
+      "main": [
+        [
+          {
+            "node": "GET_CONVERSATION",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_CONVERSATION": {
+      "main": [
+        [
+          {
+            "node": "CONV_ROUTER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONV_ROUTER": {
+      "main": [
+        [
+          {
+            "node": "NEED_CONVERSATION?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NEED_CONVERSATION?": {
+      "main": [
+        [
+          {
+            "node": "CREATE_CONVERSATION",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "CONV_CONTEXT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CREATE_CONVERSATION": {
+      "main": [
+        [
+          {
+            "node": "CONV_CONTEXT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONV_CONTEXT": {
+      "main": [
+        [
+          {
+            "node": "INSERT_INBOUND",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSERT_INBOUND": {
+      "main": [
+        [
+          {
+            "node": "INSERT_OUTBOUND",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSERT_OUTBOUND": {
+      "main": [
+        [
+          {
+            "node": "BUMP_CONVERSATION",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUMP_CONVERSATION": {
+      "main": [
+        [
+          {
+            "node": "RETURN_SUCCESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

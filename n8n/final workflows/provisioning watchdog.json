@@ -1,0 +1,145 @@
+{
+  "name": "🕐 provisioning watchdog",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "dddd1111-wdog-4444-8888-schedule0001",
+      "name": "EVERY_10_MIN",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/businesses?status=eq.provisioning&select=id,order_id,updated_at,paid_at,created_at",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "dddd2222-wdog-4444-8888-fetchstuck01",
+      "name": "FETCH_PROVISIONING",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Businesses stuck in 'provisioning' for >15 min mean the Factory died\n * without reporting. Flip them to provision_failed via the platform callback\n * so admins get alerted and the client screen shows the failure state.\n * Requires n8n env: ARQFLOW_HMAC_SECRET + ARQFLOW_CALLBACK_URL. */\nconst crypto = require('crypto');\nconst rows = $input.first().json;\nconst list = Array.isArray(rows) ? rows : [];\nconst cutoff = Date.now() - 15 * 60 * 1000;\nconst url = $env.ARQFLOW_CALLBACK_URL || '';\nif (!url) throw new Error('ARQFLOW_CALLBACK_URL not set in n8n environment');\nconst out = [];\nfor (const r of list) {\n  const ts = Date.parse(r.updated_at || r.paid_at || r.created_at || '');\n  if (isNaN(ts) || ts > cutoff) continue;\n  const payload = {\n    event: 'provision_failed',\n    business_id: r.id,\n    error: 'Provisioning watchdog: stuck in provisioning for over 15 minutes (factory did not report back).',\n  };\n  const body = JSON.stringify(payload);\n  const signature = crypto.createHmac('sha256', $env.ARQFLOW_HMAC_SECRET || '').update(body).digest('hex');\n  out.push({ json: { url, body, signature, order_id: r.order_id } });\n}\nreturn out;"
+      },
+      "id": "dddd3333-wdog-4444-8888-buildfail001",
+      "name": "BUILD_FAILED_CALLBACKS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-ArqFlow-Signature",
+              "value": "={{ $json.signature }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "dddd4444-wdog-4444-8888-postfail0001",
+      "name": "REPORT_PROVISION_FAILED",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        600,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "EVERY_10_MIN": {
+      "main": [
+        [
+          {
+            "node": "FETCH_PROVISIONING",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FETCH_PROVISIONING": {
+      "main": [
+        [
+          {
+            "node": "BUILD_FAILED_CALLBACKS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_FAILED_CALLBACKS": {
+      "main": [
+        [
+          {
+            "node": "REPORT_PROVISION_FAILED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": true
+}

@@ -1,0 +1,123 @@
+{
+  "name": "🔧 SHARED_STOCK_CHECK_v2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"business_id\": \"uuid\"}, \"product_name\": \"كنافة\"}"
+      },
+      "id": "ff87638a-f3eb-4737-9fd6-6e34a5528740",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const t=i.tenant||{};\nif(!t.business_id) throw new Error('Missing business_id');\nreturn {json:{business_id:t.business_id,product_name:i.product_name||''}};"
+      },
+      "id": "08ae7683-f677-49bd-8028-e737581ab721",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://zjathejcdkpxjyvululp.supabase.co/rest/v1/products?select=name,price_egp,available,category&business_id=eq.{{ $('PREPARE').first().json.business_id }}&name=ilike.*{{ $('PREPARE').first().json.product_name }}*&limit=5",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "811b8172-3991-4335-a5e9-15e1d7a179b6",
+      "name": "GET_PRODUCT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows=$input.all().map(x=>x.json).filter(r=>r&&r.name);\nif(!rows.length) return {json:{success:false,message:'المنتج غير موجود في القائمة'}};\nconst items=rows.map(p=>({name:p.name,price_egp:p.price_egp,available:p.available!==false}));\nreturn {json:{success:true,count:items.length,items,\n  message:items.map(p=>`${p.name}: ${p.available?'متوفر':'غير متوفر'}${p.price_egp!=null?(' - '+p.price_egp+' ج.م'):''}`).join('\\n')}};"
+      },
+      "id": "ecb7bf91-3d9b-4c28-8d27-b7102211480e",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "GET_PRODUCT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_PRODUCT": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

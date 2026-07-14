@@ -1,0 +1,191 @@
+{
+  "name": "stop bots",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5bf8c2fd-d498-4750-9a0c-d3bdf1a30d32",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "amount": 4,
+        "unit": "days"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        256,
+        0
+      ],
+      "id": "564d1321-570a-4e5c-8f30-8bac3fc317e5",
+      "name": "Wait",
+      "webhookId": "5aa2c964-a20a-4488-a9c7-b28f580ff4cc"
+    },
+    {
+      "parameters": {
+        "operation": "deactivate",
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $json.workflow_id }}",
+          "mode": "id"
+        },
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        944,
+        0
+      ],
+      "id": "cd8cd17b-8a28-46b9-ab33-858dae4621eb",
+      "name": "Unpublish a workflow",
+      "credentials": {
+        "n8nApi": {
+          "id": "96PmPGx4nCDJDMlG",
+          "name": "n8n account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "businesses",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('When Executed by Another Workflow').item.json.business_id }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        464,
+        0
+      ],
+      "id": "8cd29f5c-f3a5-48df-b8fe-0015ffb67366",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "businesses",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "suspended"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        944,
+        208
+      ],
+      "id": "8a6cd60a-a5e2-462a-8108-bb085e6b7552",
+      "name": "Update a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "rXgc8PEXJoXWBygd",
+          "name": "Supabase service_role"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "business_id": "3a8cf860-1f71-4dfa-bcb6-8bf4039445ed",
+          "message": "عزيزي العميل،\nاليوم هو آخر يوم في باقتك الحالية (تنتهي 2026-06-28)، سيتم إيقاف الخدمة تلقائياً خلال 4 ايام في حالة لم يتم التسجيل يمكنك تجديد الخدمة من خلال الداش بورد الخاصة بك.\n\nشكراً لتعاملك معنا.",
+          "alerts_count": 1,
+          "period_end": "2026-06-28",
+          "balance_egp": 750
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Unpublish a workflow",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0e21c8cb-b96a-4b69-b197-5d49f59208ea",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c6ff05776992964543c85834eed789ae8d538e2826bed09559b1709e0337b4da"
+  },
+  "id": "gfqMIQDvPIR7IkQ1",
+  "tags": []
+}

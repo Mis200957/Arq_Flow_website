@@ -1,0 +1,372 @@
+{
+  "name": "🔧 SHARED_SAVE_TRANSACTION_v2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"business_id\": \"00000000-0000-0000-0000-000000000000\", \"business_name\": \"مطعم السدة\", \"instance_name\": \"arq-cust-260613-a3f2\", \"admin_whatsapp\": \"201029168056\", \"tax_pct\": 0}, \"customer\": {\"phone\": \"201234567890\", \"name\": \"أحمد محمد\"}, \"conversation_id\": null, \"type\": \"order\", \"items\": [{\"name\": \"كنافة جبنة\", \"qty\": 2, \"price\": 127.5}], \"delivery_fee\": 25, \"discount_egp\": 0, \"payment_method\": \"cash\", \"delivery_address\": \"القاهرة - مدينة نصر\", \"notes\": \"\"}"
+      },
+      "id": "b25a7bdb-a5e7-47ad-8eb2-07d20eb5fe26",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i = $input.first().json;\nconst t = i.tenant || {};\nif (!t.business_id) throw new Error('Missing tenant.business_id');\nconst cust = i.customer || {};\nconst phone = String(cust.phone || '').replace(/[^0-9]/g, '');\nif (!phone) throw new Error('Missing customer.phone');\nconst items = (Array.isArray(i.items) ? i.items : []).map(it => {\n  const qty = parseFloat(it.qty ?? it.quantity ?? 1) || 1;\n  const price = parseFloat(it.price ?? it.unit_price ?? 0) || 0;\n  return { name: String(it.name ?? 'صنف').trim(), qty, price, line_total: +(qty * price).toFixed(2) };\n});\nif (items.length === 0) throw new Error('No items');\nconst subtotal = +items.reduce((s, x) => s + x.line_total, 0).toFixed(2);\nconst delivery = parseFloat(i.delivery_fee || 0) || 0;\nlet discount = parseFloat(i.discount_egp || 0) || 0;\nif (!discount && i.discount_pct) discount = +(subtotal * (parseFloat(i.discount_pct) / 100)).toFixed(2);\nconst taxable = +(subtotal + delivery - discount).toFixed(2);\nconst taxPct = parseFloat(t.tax_pct || 0) || 0;\nconst tax = +(taxable * taxPct / 100).toFixed(2);\nconst total = +(taxable + tax).toFixed(2);\nconst pm = i.payment_method || 'cash';\nconst now = new Date().toISOString();\nconst lines = items.map(x => `• ${x.name} × ${x.qty} = ${x.line_total} ج.م`).join('\\n');\nconst pmLabel = ({cash:'💵 كاش عند الاستلام', online:'💳 دفع إلكتروني', transfer:'💰 تحويل بنكي', card:'💳 بطاقة', wallet:'📱 محفظة'})[pm] || ('💰 ' + pm);\nlet customerMsg = `✅ *تم تأكيد طلبك بنجاح!*\\n\\n👤 ${cust.name || ''}\\n\\n📋 *التفاصيل:*\\n${lines}\\n\\n💰 *الحساب:*\\n- المجموع: ${subtotal} ج.م\\n`;\nif (delivery > 0) customerMsg += `- التوصيل: ${delivery} ج.م\\n`;\nif (discount > 0) customerMsg += `- الخصم: -${discount} ج.م\\n`;\nif (tax > 0) customerMsg += `- الضريبة (${taxPct}%): ${tax} ج.م\\n`;\ncustomerMsg += `- *الإجمالي: ${total} ج.م*\\n\\n`;\nif (i.delivery_address) customerMsg += `📍 ${i.delivery_address}\\n`;\ncustomerMsg += `${pmLabel}\\n`;\nif (i.notes) customerMsg += `📝 ${i.notes}\\n`;\ncustomerMsg += `\\nنشكر ثقتك في *${t.business_name || ''}* 🌹`;\nlet adminMsg = `🆕 *طلب جديد*\\n\\n👤 ${cust.name || ''} | 📱 ${phone}\\n`;\nif (i.delivery_address) adminMsg += `📍 ${i.delivery_address}\\n`;\nadminMsg += `\\n${lines}\\n\\n💰 الإجمالي: *${total} ج.م*\\n${pmLabel}\\n`;\nif (i.notes) adminMsg += `📝 ${i.notes}\\n`;\nadminMsg += `\\n🕐 ${now.slice(0,19).replace('T',' ')}`;\nconst notesFull = [i.notes || '', 'طريقة الدفع: ' + pm].filter(Boolean).join(' | ');\nreturn { json: {\n  business_id: t.business_id, instance_name: t.instance_name,\n  admin_jid: (t.admin_whatsapp || '') + '@s.whatsapp.net',\n  customer_jid: phone + '@s.whatsapp.net', phone, now,\n  type: i.type || 'order', items, subtotal, delivery, discount, tax, total,\n  delivery_address: i.delivery_address || '', notes_full: notesFull,\n  customer_msg: customerMsg, admin_msg: adminMsg,\n  customer_body: { business_id: t.business_id, phone, channel: 'whatsapp', last_interaction_at: now, ...(cust.name ? { name: cust.name } : {}) },\n  num_body: { b_id: t.business_id }\n} };"
+      },
+      "id": "4e2b2f10-d406-428c-8c91-79b969e91257",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/customers?on_conflict=business_id,phone",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('PREPARE').first().json.customer_body) }}"
+      },
+      "id": "a9b98c76-f399-4755-973b-f68d0f559196",
+      "name": "UPSERT_CUSTOMER",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/rpc/next_order_number",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('PREPARE').first().json.num_body) }}"
+      },
+      "id": "dc168bf1-fa3f-4462-934d-e7c7b58c19b1",
+      "name": "GET_ORDER_NUMBER",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $('PREPARE').first().json;\nconst cust = $('UPSERT_CUSTOMER').first().json;\nlet onum = $json;\nif (Array.isArray(onum)) onum = onum[0];\nif (onum && typeof onum === 'object') onum = onum.next_order_number ?? onum.value ?? Object.values(onum)[0];\nconst order_number = (typeof onum === 'string') ? onum : ('ORD-' + Date.now());\nreturn { json: {\n  order_number, customer_id: cust.id,\n  order_body: { business_id: p.business_id, customer_id: cust.id, order_number, type: p.type,\n    items: p.items.map(x => ({ name: x.name, qty: x.qty, price: x.price })),\n    subtotal_egp: p.subtotal, delivery_fee_egp: p.delivery, discount_egp: p.discount,\n    tax_egp: p.tax, total_egp: p.total, status: 'confirmed',\n    delivery_address: p.delivery_address, notes: p.notes_full },\n  customer_update_body: { total_orders: (parseInt(cust.total_orders || 0) + 1),\n    total_spent_egp: +((parseFloat(cust.total_spent_egp || 0)) + p.total).toFixed(2),\n    last_interaction_at: p.now }\n} };"
+      },
+      "id": "54ae2b15-2b35-4377-a06c-8e245ecd9a59",
+      "name": "ORDER_CTX",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/orders",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('ORDER_CTX').first().json.order_body) }}"
+      },
+      "id": "8ed6f647-9c85-4ce7-87b1-5d6f79ad96c1",
+      "name": "INSERT_ORDER",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/customers?id=eq.{{ $('ORDER_CTX').first().json.customer_id }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('ORDER_CTX').first().json.customer_update_body) }}"
+      },
+      "id": "90376344-b30b-4348-bf16-2cea38bc2d10",
+      "name": "UPDATE_CUSTOMER_TOTALS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('PREPARE').first().json.instance_name }}",
+        "remoteJid": "={{ $('PREPARE').first().json.customer_jid }}",
+        "messageText": "={{ $('PREPARE').first().json.customer_msg }}",
+        "options_message": {}
+      },
+      "id": "35b81fd1-67a3-478e-b946-83850f6aa0ed",
+      "name": "SEND_CUSTOMER_CONFIRMATION",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        0
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $('PREPARE').first().json.instance_name }}",
+        "remoteJid": "={{ $('PREPARE').first().json.admin_jid }}",
+        "messageText": "={{ $('PREPARE').first().json.admin_msg }}",
+        "options_message": {}
+      },
+      "id": "6ab05a8b-d97e-4a5b-aa00-0fc153306245",
+      "name": "NOTIFY_ADMIN",
+      "type": "n8n-nodes-evolution-api-english.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        0
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "2MxBhVWARkVSE5fQ",
+          "name": "Evolution account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('ORDER_CTX').first().json;\nconst p = $('PREPARE').first().json;\nlet row = {}; try { row = $('INSERT_ORDER').first().json; if (Array.isArray(row)) row = row[0]; } catch(e){}\nreturn { json: { success: true, order_id: row.id || null, order_number: ctx.order_number,\n  total_egp: p.total, currency: 'EGP', message: `تم حفظ الطلب ${ctx.order_number} بإجمالي ${p.total} ج.م` } };"
+      },
+      "id": "940464d8-c9f9-493b-a480-f19b23421908",
+      "name": "RETURN_SUCCESS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "UPSERT_CUSTOMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPSERT_CUSTOMER": {
+      "main": [
+        [
+          {
+            "node": "GET_ORDER_NUMBER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_ORDER_NUMBER": {
+      "main": [
+        [
+          {
+            "node": "ORDER_CTX",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ORDER_CTX": {
+      "main": [
+        [
+          {
+            "node": "INSERT_ORDER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSERT_ORDER": {
+      "main": [
+        [
+          {
+            "node": "UPDATE_CUSTOMER_TOTALS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPDATE_CUSTOMER_TOTALS": {
+      "main": [
+        [
+          {
+            "node": "SEND_CUSTOMER_CONFIRMATION",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEND_CUSTOMER_CONFIRMATION": {
+      "main": [
+        [
+          {
+            "node": "NOTIFY_ADMIN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NOTIFY_ADMIN": {
+      "main": [
+        [
+          {
+            "node": "RETURN_SUCCESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

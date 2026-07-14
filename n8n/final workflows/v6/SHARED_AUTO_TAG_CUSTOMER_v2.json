@@ -1,0 +1,246 @@
+{
+  "name": "🔧 SHARED_AUTO_TAG_CUSTOMER_v2",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"tenant\": {\"business_id\": \"00000000-0000-0000-0000-000000000000\"}, \"customer\": {\"phone\": \"201234567890\"}, \"history_limit\": 100}"
+      },
+      "id": "0956569b-d0df-42ad-93cc-1508f9434e7b",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i = $input.first().json;\nconst t = i.tenant || {};\nif (!t.business_id) throw new Error('Missing tenant.business_id');\nconst phone = String((i.customer && i.customer.phone) || '').replace(/[^0-9]/g, '');\nif (!phone) throw new Error('Missing customer.phone');\nreturn { json: { business_id: t.business_id, phone, history_limit: i.history_limit || 100,\n  customer_body: { business_id: t.business_id, phone, channel: 'whatsapp' } } };"
+      },
+      "id": "baec448b-c3f4-478e-9ed9-bff08af8ee38",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/customers?on_conflict=business_id,phone",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('PREPARE').first().json.customer_body) }}"
+      },
+      "id": "658d51b6-96be-44eb-af25-3ad7f63b88b6",
+      "name": "GET_CUSTOMER",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/messages?select=intent,sentiment_score,escalated,direction,created_at&business_id=eq.{{ $('PREPARE').first().json.business_id }}&customer_id=eq.{{ $('GET_CUSTOMER').first().json.id }}&order=created_at.desc&limit={{ $('PREPARE').first().json.history_limit }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "0789ec07-0425-4aea-a696-be642415f38a",
+      "name": "FETCH_MESSAGES",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const cust = $('GET_CUSTOMER').first().json;\nconst msgs = $input.all().map(x => x.json).filter(m => m && m.direction);\nconst tags = [];\nconst totalOrders = parseInt(cust.total_orders || 0);\nif (totalOrders >= 5) tags.push('regular_customer');\nif (totalOrders >= 15) tags.push('loyal_customer');\nconst spent = parseFloat(cust.total_spent_egp || 0);\nif (spent >= 5000) tags.push('high_value');\nconst scores = msgs.map(m => parseFloat(m.sentiment_score)).filter(n => !isNaN(n));\nconst avg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : 0;\nif (avg >= 1) tags.push('promoter');\nif (avg <= -1) tags.push('at_risk');\nconst complaints = msgs.filter(m => String(m.intent||'').toLowerCase().includes('complaint')).length;\nif (complaints >= 3) tags.push('frequent_complainer');\nconst esc = msgs.filter(m => m.escalated === true).length;\nif (esc >= 2) tags.push('needs_attention');\nconst inbound = msgs.filter(m => m.direction === 'inbound').length;\nif (inbound >= 25) tags.push('engaged');\nif (inbound >= 50) tags.push('super_engaged');\nif (cust.created_at) {\n  const d = (Date.now() - new Date(cust.created_at).getTime()) / 86400000;\n  if (d < 7) tags.push('new_customer');\n}\nif (cust.last_interaction_at) {\n  const d = (Date.now() - new Date(cust.last_interaction_at).getTime()) / 86400000;\n  if (d > 30) tags.push('inactive');\n  if (d > 90) tags.push('churned');\n}\nconst uniq = [...new Set(tags)];\nreturn { json: { customer_id: cust.id, tags: uniq, avg_sentiment: +avg.toFixed(2),\n  update_body: { tags: uniq, sentiment: +avg.toFixed(2), updated_at: new Date().toISOString() } } };"
+      },
+      "id": "fe516eaa-4388-4197-8af4-948279704f5e",
+      "name": "ANALYZE_TAGS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://zjathejcdkpxjyvululp.supabase.co/rest/v1/customers?id=eq.{{ $('ANALYZE_TAGS').first().json.customer_id }}",
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($('ANALYZE_TAGS').first().json.update_body) }}"
+      },
+      "id": "ec43327d-b3c6-4dac-b933-035cc8ddc3da",
+      "name": "SAVE_TAGS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const t = $('ANALYZE_TAGS').first().json;\nreturn { json: { success: true, customer_id: t.customer_id, tags: t.tags, avg_sentiment: t.avg_sentiment } };"
+      },
+      "id": "46f1c242-15e9-44e3-bbca-001b76fbd019",
+      "name": "RETURN_TAGS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "GET_CUSTOMER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_CUSTOMER": {
+      "main": [
+        [
+          {
+            "node": "FETCH_MESSAGES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FETCH_MESSAGES": {
+      "main": [
+        [
+          {
+            "node": "ANALYZE_TAGS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ANALYZE_TAGS": {
+      "main": [
+        [
+          {
+            "node": "SAVE_TAGS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SAVE_TAGS": {
+      "main": [
+        [
+          {
+            "node": "RETURN_TAGS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}

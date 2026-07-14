@@ -1,0 +1,386 @@
+{
+  "name": "🔧 SHARED_GENERATE_PROMPT_v1",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\"business_id\":\"uuid\"}"
+      },
+      "id": "a840951a-2459-4e9d-99f0-7d893c4d7b84",
+      "name": "TRIGGER",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const i=$input.first().json;const id=i.business_id||(i.tenant&&i.tenant.business_id);\nif(!id) throw new Error('Missing business_id');\nreturn {json:{business_id:id}};"
+      },
+      "id": "5bfac317-aeff-45d7-9c57-edc6469b56b6",
+      "name": "PREPARE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://zjathejcdkpxjyvululp.supabase.co/rest/v1/businesses?select=*&id=eq.'+$('PREPARE').first().json.business_id+'&limit=1' }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "468f89b6-a93e-4dd2-8525-53ebaee8c623",
+      "name": "GET_BUSINESS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://zjathejcdkpxjyvululp.supabase.co/rest/v1/knowledge_base?select=kind,question,answer,category&active=eq.true&business_id=eq.'+$('PREPARE').first().json.business_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0d663288-2e9a-4272-a639-5978bba22a6c",
+      "name": "GET_KB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://zjathejcdkpxjyvululp.supabase.co/rest/v1/products?select=name,price_egp,description&available=eq.true&business_id=eq.'+$('PREPARE').first().json.business_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3d4820d5-b713-47f5-9dc9-87ae2e45cc49",
+      "name": "GET_PRODUCTS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://zjathejcdkpxjyvululp.supabase.co/rest/v1/services?select=name,price_egp,description&active=eq.true&business_id=eq.'+$('PREPARE').first().json.business_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "241a14d1-7ad3-4e00-8a3e-a2338104ea7b",
+      "name": "GET_SERVICES",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b=($('GET_BUSINESS').first().json[0])||{};\nconst kb=$('GET_KB').all().map(x=>x.json).filter(r=>r&&(r.answer||r.question));\nconst prod=$('GET_PRODUCTS').all().map(x=>x.json).filter(r=>r&&r.name);\nconst serv=$('GET_SERVICES').all().map(x=>x.json).filter(r=>r&&r.name);\nconst arr=x=>Array.isArray(x)?x:[];\nconst money=v=>v!=null?(' ('+v+' ج.م)'):'';\nlet p='';\np+=`# هوية البوت\\nأنت المساعد الذكي الرسمي لـ \"${b.business_name||''}\" (${b.business_type||'نشاط'}).\\n`;\nif(b.description) p+=`${b.description}\\n`;\np+=`\\n# الشخصية\\n- نبرة الصوت: ${b.tone_of_voice||'ودود ومحترف'}.\\n`;\nif(b.assistant_personality) p+=`- الشخصية: ${b.assistant_personality}\\n`;\np+=`- اللغات: ${arr(b.languages).join('، ')||'العربية'}.\\n`;\nif(b.greeting_message) p+=`- الترحيب: ${b.greeting_message}\\n`;\np+=`\\n# قواعد صارمة\\n- لا تخترع معلومات غير موجودة.\\n- عند عدم المعرفة: ${b.fallback_behavior||'حوّل لموظف'}.\\n`;\nif(b.working_hours) p+=`\\n# مواعيد العمل\\n${b.working_hours}\\n`;\nif(b.location) p+=`\\n# الموقع\\n${b.location}\\n`;\nif(arr(b.payment_methods).length) p+=`\\n# الدفع\\n${arr(b.payment_methods).join('، ')}\\n`;\nif(b.delivery_info) p+=`\\n# التوصيل\\n${b.delivery_info}\\n`;\nif(b.return_policy) p+=`\\n# الاسترجاع\\n${b.return_policy}\\n`;\nif(prod.length) p+=`\\n# المنتجات\\n`+prod.map(x=>`- ${x.name}${money(x.price_egp)}${x.description?': '+x.description:''}`).join('\\n')+'\\n';\nif(serv.length) p+=`\\n# الخدمات\\n`+serv.map(x=>`- ${x.name}${money(x.price_egp)}${x.description?': '+x.description:''}`).join('\\n')+'\\n';\nconst faqs=kb.filter(r=>r.kind==='faq'&&r.question);\nconst docs=kb.filter(r=>r.kind!=='faq'&&r.answer);\nif(docs.length) p+=`\\n# قاعدة المعرفة\\n`+docs.map(d=>d.answer).join('\\n\\n')+'\\n';\nif(faqs.length) p+=`\\n# أسئلة شائعة\\n`+faqs.map(f=>`س: ${f.question}\\nج: ${f.answer}`).join('\\n\\n')+'\\n';\nconst sp=p.trim();\nreturn {json:{business_id:b.id,owner_id:b.owner_id||null,system_prompt:sp,patch_body:JSON.stringify({system_prompt:sp}),\n  notif:JSON.stringify({user_id:b.owner_id,business_id:b.id,type:'ai_prompt_updated',title:'تم تحديث برومبت المساعد ✅',body:'تم إعادة توليد تعليمات الذكاء من بياناتك',link:'/dashboard/ai-settings'})}};"
+      },
+      "id": "09021c92-19d6-4dea-addc-10bb12eda8f0",
+      "name": "BUILD_PROMPT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://zjathejcdkpxjyvululp.supabase.co/rest/v1/businesses?id=eq.'+$('BUILD_PROMPT').first().json.business_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('BUILD_PROMPT').first().json.patch_body }}"
+      },
+      "id": "f37ae970-6225-44e0-91f4-db922da06814",
+      "name": "PATCH_PROMPT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://zjathejcdkpxjyvululp.supabase.co/rest/v1/notifications",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $('BUILD_PROMPT').first().json.notif }}"
+      },
+      "id": "40e7e87f-94d4-4e2c-af50-3c18e104450d",
+      "name": "NOTIFY",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "arqflow_supabase",
+          "name": "Supabase service_role"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return {json:{success:true,business_id:$('BUILD_PROMPT').first().json.business_id,message:'prompt regenerated'}};"
+      },
+      "id": "6d512aca-04c3-4523-b8a5-f62459c52922",
+      "name": "RETURN",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "TRIGGER": {
+      "main": [
+        [
+          {
+            "node": "PREPARE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PREPARE": {
+      "main": [
+        [
+          {
+            "node": "GET_BUSINESS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_BUSINESS": {
+      "main": [
+        [
+          {
+            "node": "GET_KB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_KB": {
+      "main": [
+        [
+          {
+            "node": "GET_PRODUCTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_PRODUCTS": {
+      "main": [
+        [
+          {
+            "node": "GET_SERVICES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET_SERVICES": {
+      "main": [
+        [
+          {
+            "node": "BUILD_PROMPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUILD_PROMPT": {
+      "main": [
+        [
+          {
+            "node": "PATCH_PROMPT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH_PROMPT": {
+      "main": [
+        [
+          {
+            "node": "NOTIFY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NOTIFY": {
+      "main": [
+        [
+          {
+            "node": "RETURN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
