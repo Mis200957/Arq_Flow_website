@@ -36,6 +36,7 @@ import {
   CTABanner,
   DirArrow,
 } from "@/components/marketing/Shared";
+import ParticleText from "@/components/ui/ParticleText";
 
 /* ================= Hero ================= */
 
@@ -60,20 +61,16 @@ function Hero() {
 
   return (
     <section className="relative overflow-hidden min-h-[580px] sm:min-h-[640px] flex items-center justify-center bg-transparent py-20 sm:py-28">
-      {/* Big outlined background text "ARQFLOW" */}
+      {/* Particle-fill animated "ARQFLOW" background */}
       <div
         className={cn(
-          "absolute top-1/2 -translate-y-1/2 font-black select-none pointer-events-none text-7xl sm:text-8xl lg:text-[9.5rem] opacity-35 z-0 font-display transition-all duration-300",
-          dir === "rtl" 
-            ? "left-[4%] md:left-[8%] lg:left-[12%] text-left" 
-            : "right-[4%] md:right-[8%] lg:right-[12%] text-right"
+          "absolute top-1/2 -translate-y-1/2 pointer-events-none select-none z-0 w-[55%] h-[220px] sm:h-[280px] lg:h-[320px]",
+          dir === "rtl"
+            ? "left-[2%] md:left-[4%] lg:left-[6%]"
+            : "right-[2%] md:right-[4%] lg:right-[6%]"
         )}
-        style={{
-          WebkitTextStroke: "1.5px #b89063",
-          color: "transparent",
-        }}
       >
-        ARQFLOW
+        <ParticleText text="ARQFLOW" className="w-full h-full" />
       </div>
 
       <div className="absolute inset-0 grid-bg opacity-30 z-0 pointer-events-none" aria-hidden />
