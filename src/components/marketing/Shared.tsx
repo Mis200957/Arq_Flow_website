@@ -160,9 +160,9 @@ export function PlanCard({
     <Reveal delay={delay} className="h-full">
       <div
         className={cn(
-          "card card-hover h-full flex flex-col p-6 sm:p-7 relative",
+          "card card-hover h-full flex flex-col p-6 sm:p-7 relative bg-white shadow-[0_4px_20px_rgba(14,32,56,0.02)] border border-[#0e2038]/5 text-[#0e2038]",
           plan.highlighted &&
-            "border-[rgba(184,144,99,0.45)] shadow-[0_0_48px_rgba(184,144,99,0.15)]"
+            "border-[rgba(184,144,99,0.65)] shadow-[0_0_48px_rgba(184,144,99,0.15)] bg-white"
         )}
       >
         {plan.highlighted && (
@@ -170,7 +170,7 @@ export function PlanCard({
             {t.popular}
           </span>
         )}
-        <h3 className="text-xl font-extrabold">{pick(plan.name)}</h3>
+        <h3 className="text-xl font-extrabold text-[#0e2038]">{pick(plan.name)}</h3>
         <p className="text-muted text-sm mt-2 leading-relaxed min-h-10">{pick(plan.tagline)}</p>
         <div className="mt-6">
           <div className="flex items-baseline gap-2 flex-wrap">
@@ -229,31 +229,31 @@ export function CTABanner({
   });
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-      <Reveal>
-        <div className="glass-strong relative overflow-hidden p-7 sm:p-12 lg:p-16 text-center">
-          <div className="glow-orb w-72 h-72 bg-brand-teal -top-24 -start-24" aria-hidden />
-          <div className="glow-orb w-72 h-72 bg-brand-sky -bottom-24 -end-24" aria-hidden />
-          <div className="relative">
-            <h2 className="text-[1.75rem] leading-9 sm:text-4xl sm:leading-[1.2] font-extrabold gradient-text pb-0.5">
-              {title ?? t.title}
-            </h2>
-            <p className="text-muted mt-4 max-w-2xl mx-auto leading-relaxed">
-              {subtitle ?? t.subtitle}
-            </p>
-            <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-center gap-3 mt-8 max-w-md sm:max-w-none mx-auto">
-              <Link href="/pricing" className="btn-primary">
-                {t.start}
-                <DirArrow />
-              </Link>
-              <Link href="/book-demo" className="btn-outline">
-                <MessageCircle className="w-4 h-4" aria-hidden />
-                {t.demo}
-              </Link>
+    <section className="w-full bg-[#0b121f] text-[#f9f8f5] py-16 sm:py-20 border-t border-white/5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <Reveal>
+          <div className="glass-strong relative overflow-hidden p-7 sm:p-12 lg:p-16 text-center bg-[#121d1b]/40 border-[#b89063]/15">
+            <div className="relative">
+              <h2 className="text-[1.75rem] leading-9 sm:text-4xl sm:leading-[1.2] font-extrabold gradient-text-dark pb-0.5">
+                {title ?? t.title}
+              </h2>
+              <p className="text-[#8a96a3] mt-4 max-w-2xl mx-auto leading-relaxed">
+                {subtitle ?? t.subtitle}
+              </p>
+              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-center gap-3 mt-8 max-w-md sm:max-w-none mx-auto">
+                <Link href="/pricing" className="btn-primary">
+                  {t.start}
+                  <DirArrow />
+                </Link>
+                <Link href="/book-demo" className="btn-outline border-white/20 text-white hover:bg-white/10 hover:text-white hover:border-white">
+                  <MessageCircle className="w-4 h-4" aria-hidden />
+                  {t.demo}
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      </Reveal>
+        </Reveal>
+      </div>
     </section>
   );
 }

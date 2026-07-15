@@ -36,7 +36,7 @@ import {
   CTABanner,
   DirArrow,
 } from "@/components/marketing/Shared";
-import Interactive3DObject from "@/components/ui/Interactive3DObject";
+import UnicornScene from "unicornstudio-react/next";
 
 /* ================= Hero ================= */
 
@@ -59,17 +59,22 @@ function Hero() {
   });
 
   return (
-    <section className="relative overflow-hidden min-h-[550px] flex items-center justify-center">
-      {/* Interactive 3D Sculpture in the Absolute Background */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-45 flex items-center justify-center overflow-hidden">
-        <div className="w-full max-w-4xl h-[600px] relative">
-          <Interactive3DObject />
-        </div>
+    <section className="relative overflow-hidden min-h-[580px] flex items-center justify-center bg-[#0b121f] text-[#f9f8f5] py-20 sm:py-28">
+      {/* Interactive WebGL Unicorn Scene in the Absolute Background */}
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
+        <UnicornScene
+          projectId="bafrVveozaROdzuwwk23"
+          sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.7/dist/unicornStudio.umd.js"
+          width="100%"
+          height="100%"
+          lazyLoad={true}
+          scale={0.75}
+        />
       </div>
 
-      <div className="absolute inset-0 grid-bg opacity-40 z-0 pointer-events-none" aria-hidden />
+      <div className="absolute inset-0 grid-bg opacity-30 z-0 pointer-events-none" aria-hidden />
 
-      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-16 sm:pt-28 pb-20 sm:pb-24 z-10 flex flex-col items-center justify-center text-center">
+      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 z-10 flex flex-col items-center justify-center text-center">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -77,11 +82,11 @@ function Hero() {
           className="flex flex-col items-center justify-center"
         >
           <h1 className="text-3xl sm:text-5xl lg:text-5xl leading-tight font-extrabold tracking-tight max-w-3xl">
-            <span className="gradient-text">{t.h1a}</span>
+            <span className="gradient-text-dark">{t.h1a}</span>
             <br />
-            <span>{t.h1b}</span>
+            <span className="text-white">{t.h1b}</span>
           </h1>
-          <p className="text-muted mt-6 text-xs sm:text-sm tracking-wide max-w-2xl text-center leading-relaxed">
+          <p className="text-gray-300 mt-6 text-xs sm:text-sm tracking-wide max-w-2xl text-center leading-relaxed">
             {t.sub}
           </p>
         </motion.div>
@@ -96,7 +101,7 @@ function Hero() {
             {t.cta1}
             <DirArrow />
           </Link>
-          <Link href="/book-demo" className="btn-outline text-sm !px-8 !py-3.5 w-full sm:w-auto">
+          <Link href="/book-demo" className="btn-outline border-white/20 text-white hover:bg-white/10 hover:text-white hover:border-white text-sm !px-8 !py-3.5 w-full sm:w-auto">
             <MessageCircle className="w-4 h-4" aria-hidden />
             {t.cta2}
           </Link>
@@ -177,20 +182,22 @@ function Features() {
   });
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-      <SectionHeading badge={t.badge} title={t.title} subtitle={t.sub} />
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
-        {t.items.map((f, i) => (
-          <Reveal key={f.h} delay={i * 0.07}>
-            <div className="card card-hover p-6 h-full">
-              <span className="w-11 h-11 icon-chip mb-4">
-                <f.icon className="w-5 h-5" aria-hidden />
-              </span>
-              <h3 className="font-bold text-lg">{f.h}</h3>
-              <p className="text-muted text-sm mt-2 leading-relaxed">{f.p}</p>
-            </div>
-          </Reveal>
-        ))}
+    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-16 sm:py-24 border-b border-[#0e2038]/5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <SectionHeading badge={t.badge} title={t.title} subtitle={t.sub} />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
+          {t.items.map((f, i) => (
+            <Reveal key={f.h} delay={i * 0.07}>
+              <div className="card card-hover p-6 h-full bg-white shadow-[0_4px_20px_rgba(14,32,56,0.02)] border border-[#0e2038]/5">
+                <span className="w-11 h-11 icon-chip mb-4">
+                  <f.icon className="w-5 h-5" aria-hidden />
+                </span>
+                <h3 className="font-bold text-lg">{f.h}</h3>
+                <p className="text-muted text-sm mt-2 leading-relaxed">{f.p}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -227,23 +234,22 @@ function HowItWorks() {
   });
 
   return (
-    <section className="relative py-16 sm:py-24 overflow-hidden">
-      <div className="glow-orb w-96 h-96 bg-brand-teal top-10 -end-40" aria-hidden />
+    <section className="w-full bg-[#0b121f] text-[#f9f8f5] py-16 sm:py-24 border-b border-white/5 relative overflow-hidden">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} subtitle={t.sub} />
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-12">
           {t.steps.map((s, i) => (
             <Reveal key={s.h} delay={i * 0.1}>
-              <div className="card card-hover p-6 h-full relative">
-                <span className="text-5xl font-extrabold gradient-text opacity-80">{i + 1}</span>
-                <h3 className="font-bold text-lg mt-3">{s.h}</h3>
-                <p className="text-muted text-sm mt-2 leading-relaxed">{s.p}</p>
+              <div className="card card-hover p-6 h-full relative bg-[#121d1b]/45 border-white/5">
+                <span className="text-5xl font-extrabold gradient-text-dark opacity-80">{i + 1}</span>
+                <h3 className="font-bold text-lg mt-3 text-white">{s.h}</h3>
+                <p className="text-[#8a96a3] text-sm mt-2 leading-relaxed">{s.p}</p>
               </div>
             </Reveal>
           ))}
         </div>
         <Reveal className="text-center mt-10">
-          <Link href="/how-it-works" className="btn-ghost text-accent">
+          <Link href="/how-it-works" className="btn-ghost text-accent hover:bg-white/5">
             {t.more}
             <DirArrow />
           </Link>
@@ -290,19 +296,21 @@ function Industries() {
   });
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-      <SectionHeading badge={t.badge} title={t.title} />
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3 mt-12">
-        {t.items.map((it, i) => (
-          <Reveal key={it.l} delay={i * 0.05}>
-            <div className="card card-hover p-4 text-center h-full flex flex-col items-center gap-2.5">
-              <span className="w-10 h-10 icon-chip">
-                <it.icon className="w-5 h-5" aria-hidden />
-              </span>
-              <p className="text-xs font-semibold leading-snug">{it.l}</p>
-            </div>
-          </Reveal>
-        ))}
+    <section className="w-full bg-[#0b121f] text-[#f9f8f5] py-16 sm:py-24 border-b border-white/5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <SectionHeading badge={t.badge} title={t.title} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3 mt-12">
+          {t.items.map((it, i) => (
+            <Reveal key={it.l} delay={i * 0.05}>
+              <div className="card card-hover p-4 text-center h-full flex flex-col items-center gap-2.5 bg-[#121d1b]/45 border-white/5">
+                <span className="w-10 h-10 icon-chip">
+                  <it.icon className="w-5 h-5" aria-hidden />
+                </span>
+                <p className="text-xs font-semibold leading-snug text-white">{it.l}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -327,8 +335,7 @@ function PricingPreview() {
   });
 
   return (
-    <section className="relative py-16 sm:py-24 overflow-hidden">
-      <div className="glow-orb w-96 h-96 bg-brand-sky -bottom-32 -start-32" aria-hidden />
+    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-16 sm:py-24 border-b border-[#0e2038]/5 relative overflow-hidden">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} subtitle={t.sub} />
         <div className="grid lg:grid-cols-3 gap-6 mt-14 items-stretch">
@@ -337,7 +344,7 @@ function PricingPreview() {
           ))}
         </div>
         <Reveal className="text-center mt-10">
-          <Link href="/pricing" className="btn-ghost text-accent">
+          <Link href="/pricing" className="btn-ghost text-accent hover:bg-[#0e2038]/5">
             {t.full}
             <DirArrow />
           </Link>
@@ -503,17 +510,19 @@ function HomeFaq() {
   });
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
-      <SectionHeading badge={t.badge} title={t.title} />
-      <Reveal className="max-w-3xl mx-auto mt-12">
-        <Accordion items={t.items} idPrefix="home-faq" />
-        <div className="text-center mt-8">
-          <Link href="/faq" className="btn-ghost text-accent">
-            {t.all}
-            <DirArrow />
-          </Link>
-        </div>
-      </Reveal>
+    <section className="w-full bg-[#0b121f] text-[#f9f8f5] py-16 sm:py-24 border-b border-white/5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <SectionHeading badge={t.badge} title={t.title} />
+        <Reveal className="max-w-3xl mx-auto mt-12">
+          <Accordion items={t.items} idPrefix="home-faq" />
+          <div className="text-center mt-8">
+            <Link href="/faq" className="btn-ghost text-accent hover:bg-white/5">
+              {t.all}
+              <DirArrow />
+            </Link>
+          </div>
+        </Reveal>
+      </div>
     </section>
   );
 }
@@ -525,10 +534,8 @@ export default function HomeClient() {
     <>
       <Hero />
       <Features />
-      <div className="section-divider max-w-7xl mx-auto" />
       <HowItWorks />
       <Industries />
-      <div className="section-divider max-w-7xl mx-auto" />
       <PricingPreview />
       <HomeFaq />
       <CTABanner />

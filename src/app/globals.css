@@ -162,9 +162,9 @@ h1, h2, h3, h4, h5, h6, .font-display {
   }
 }
 
-/* Force layouts transparent to reveal the canvas winding ribbon background */
-main, section, header, footer {
-  background: transparent !important;
+/* Header & Footer backgrounds */
+header, footer {
+  background: transparent;
 }
 
 /* ===== Luxury Glassmorphic Surfaces ===== */
@@ -408,6 +408,14 @@ select.input-base option {
 /* Display gradient: Midnight Navy -> Warm Bronze style */
 .gradient-text {
   background: linear-gradient(135deg, #0e2038 0%, #b89063 70%, #0e2038 110%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Display gradient for dark backgrounds: White -> Bronze -> White */
+.gradient-text-dark {
+  background: linear-gradient(135deg, #ffffff 0%, #b89063 75%, #ffffff 110%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
