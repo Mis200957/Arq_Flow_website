@@ -36,11 +36,11 @@ import {
   CTABanner,
   DirArrow,
 } from "@/components/marketing/Shared";
-import UnicornScene from "unicornstudio-react/next";
 
 /* ================= Hero ================= */
 
 function Hero() {
+  const { dir } = useLang();
   const t = useT({
     ar: {
       h1a: "موظف ذكاء اصطناعي متكامل",
@@ -59,53 +59,66 @@ function Hero() {
   });
 
   return (
-    <section className="relative overflow-hidden min-h-[580px] flex items-center justify-center bg-[#0b121f] text-[#f9f8f5] py-20 sm:py-28">
-      {/* Interactive WebGL Unicorn Scene in the Absolute Background */}
-      <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
-        <UnicornScene
-          projectId="bafrVveozaROdzuwwk23"
-          sdkUrl="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v2.2.7/dist/unicornStudio.umd.js"
-          width="100%"
-          height="100%"
-          lazyLoad={true}
-          scale={0.75}
-        />
+    <section className="relative overflow-hidden min-h-[580px] sm:min-h-[640px] flex items-center justify-center bg-transparent py-20 sm:py-28">
+      {/* Big outlined background text "ARQFLOW" */}
+      <div
+        className={cn(
+          "absolute top-1/2 -translate-y-1/2 font-black select-none pointer-events-none text-7xl sm:text-8xl lg:text-[9.5rem] opacity-35 z-0 font-display transition-all duration-300",
+          dir === "rtl" 
+            ? "left-[4%] md:left-[8%] lg:left-[12%] text-left" 
+            : "right-[4%] md:right-[8%] lg:right-[12%] text-right"
+        )}
+        style={{
+          WebkitTextStroke: "1.5px #b89063",
+          color: "transparent",
+        }}
+      >
+        ARQFLOW
       </div>
 
       <div className="absolute inset-0 grid-bg opacity-30 z-0 pointer-events-none" aria-hidden />
 
-      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 z-10 flex flex-col items-center justify-center text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="flex flex-col items-center justify-center"
+      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 z-10 flex items-center h-full">
+        <div
+          className={cn(
+            "w-full max-w-lg flex flex-col transition-all duration-300",
+            dir === "rtl" 
+              ? "items-start text-right md:mr-[6%] lg:mr-[10%] ml-auto" 
+              : "items-start text-left md:ml-[6%] lg:ml-[10%] mr-auto"
+          )}
         >
-          <h1 className="text-3xl sm:text-5xl lg:text-5xl leading-tight font-extrabold tracking-tight max-w-3xl">
-            <span className="gradient-text-dark">{t.h1a}</span>
-            <br />
-            <span className="text-white">{t.h1b}</span>
-          </h1>
-          <p className="text-gray-300 mt-6 text-xs sm:text-sm tracking-wide max-w-2xl text-center leading-relaxed">
-            {t.sub}
-          </p>
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className={cn("flex flex-col", dir === "rtl" ? "items-start text-right" : "items-start text-left")}
+          >
+            <h1 className="text-3xl sm:text-4xl lg:text-4xl leading-tight font-extrabold text-[#0e2038] max-w-md">
+              <span className="gradient-text">{t.h1a}</span>
+              <br />
+              <span>{t.h1b}</span>
+            </h1>
+            <p className="text-muted mt-8 text-xs sm:text-sm tracking-wide max-w-md leading-relaxed">
+              {t.sub}
+            </p>
+          </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 w-full max-w-md"
-        >
-          <Link href="/pricing" className="btn-primary text-sm !px-8 !py-3.5 w-full sm:w-auto">
-            {t.cta1}
-            <DirArrow />
-          </Link>
-          <Link href="/book-demo" className="btn-outline border-white/20 text-white hover:bg-white/10 hover:text-white hover:border-white text-sm !px-8 !py-3.5 w-full sm:w-auto">
-            <MessageCircle className="w-4 h-4" aria-hidden />
-            {t.cta2}
-          </Link>
-        </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className={cn("flex flex-col sm:flex-row items-center gap-4 mt-10 w-full max-w-md", dir === "rtl" ? "justify-start" : "justify-start")}
+          >
+            <Link href="/pricing" className="btn-primary text-sm !px-8 !py-3.5 w-full sm:w-auto">
+              {t.cta1}
+              <DirArrow />
+            </Link>
+            <Link href="/book-demo" className="btn-outline text-sm !px-8 !py-3.5 w-full sm:w-auto">
+              <MessageCircle className="w-4 h-4" aria-hidden />
+              {t.cta2}
+            </Link>
+          </motion.div>
+        </div>
       </div>
     </section>
   );
@@ -234,22 +247,22 @@ function HowItWorks() {
   });
 
   return (
-    <section className="w-full bg-[#0b121f] text-[#f9f8f5] py-16 sm:py-24 border-b border-white/5 relative overflow-hidden">
+    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-16 sm:py-24 border-b border-[#0e2038]/5 relative overflow-hidden">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} subtitle={t.sub} />
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-12">
           {t.steps.map((s, i) => (
             <Reveal key={s.h} delay={i * 0.1}>
-              <div className="card card-hover p-6 h-full relative bg-[#121d1b]/45 border-white/5">
-                <span className="text-5xl font-extrabold gradient-text-dark opacity-80">{i + 1}</span>
-                <h3 className="font-bold text-lg mt-3 text-white">{s.h}</h3>
-                <p className="text-[#8a96a3] text-sm mt-2 leading-relaxed">{s.p}</p>
+              <div className="card card-hover p-6 h-full relative bg-white shadow-[0_4px_20px_rgba(14,32,56,0.02)] border border-[#0e2038]/5">
+                <span className="text-5xl font-extrabold gradient-text opacity-80">{i + 1}</span>
+                <h3 className="font-bold text-lg mt-3 text-[#0e2038]">{s.h}</h3>
+                <p className="text-muted text-sm mt-2 leading-relaxed">{s.p}</p>
               </div>
             </Reveal>
           ))}
         </div>
         <Reveal className="text-center mt-10">
-          <Link href="/how-it-works" className="btn-ghost text-accent hover:bg-white/5">
+          <Link href="/how-it-works" className="btn-ghost text-accent hover:bg-[#0e2038]/5">
             {t.more}
             <DirArrow />
           </Link>
@@ -296,17 +309,17 @@ function Industries() {
   });
 
   return (
-    <section className="w-full bg-[#0b121f] text-[#f9f8f5] py-16 sm:py-24 border-b border-white/5">
+    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-16 sm:py-24 border-b border-[#0e2038]/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} />
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3 mt-12">
           {t.items.map((it, i) => (
             <Reveal key={it.l} delay={i * 0.05}>
-              <div className="card card-hover p-4 text-center h-full flex flex-col items-center gap-2.5 bg-[#121d1b]/45 border-white/5">
+              <div className="card card-hover p-4 text-center h-full flex flex-col items-center gap-2.5 bg-white shadow-[0_4px_20px_rgba(14,32,56,0.02)] border border-[#0e2038]/5">
                 <span className="w-10 h-10 icon-chip">
                   <it.icon className="w-5 h-5" aria-hidden />
                 </span>
-                <p className="text-xs font-semibold leading-snug text-white">{it.l}</p>
+                <p className="text-xs font-semibold leading-snug text-[#0e2038]">{it.l}</p>
               </div>
             </Reveal>
           ))}
@@ -510,13 +523,13 @@ function HomeFaq() {
   });
 
   return (
-    <section className="w-full bg-[#0b121f] text-[#f9f8f5] py-16 sm:py-24 border-b border-white/5">
+    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-16 sm:py-24 border-b border-[#0e2038]/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} />
         <Reveal className="max-w-3xl mx-auto mt-12">
           <Accordion items={t.items} idPrefix="home-faq" />
           <div className="text-center mt-8">
-            <Link href="/faq" className="btn-ghost text-accent hover:bg-white/5">
+            <Link href="/faq" className="btn-ghost text-accent hover:bg-[#0e2038]/5">
               {t.all}
               <DirArrow />
             </Link>

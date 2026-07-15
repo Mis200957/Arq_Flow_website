@@ -58,6 +58,47 @@ export default function InteractiveGridBackground() {
 
     initGrid();
 
+    // Waves configuration
+    interface Wave {
+      amplitude: number;
+      frequency: number;
+      phase: number;
+      speed: number;
+      color: string;
+      lineWidth: number;
+      yOffset: number;
+    }
+
+    const waves: Wave[] = [
+      {
+        amplitude: 55,
+        frequency: 0.0022,
+        phase: 0,
+        speed: 0.0035,
+        color: "rgba(184, 144, 99, 0.065)", // soft bronze
+        lineWidth: 1.5,
+        yOffset: 0.45, // positioned around center-top
+      },
+      {
+        amplitude: 35,
+        frequency: 0.004,
+        phase: 2,
+        speed: 0.005,
+        color: "rgba(184, 144, 99, 0.045)",
+        lineWidth: 1.0,
+        yOffset: 0.52,
+      },
+      {
+        amplitude: 75,
+        frequency: 0.0015,
+        phase: 4,
+        speed: 0.002,
+        color: "rgba(184, 144, 99, 0.035)",
+        lineWidth: 2.0,
+        yOffset: 0.6,
+      },
+    ];
+
     // Event listeners
     const onMouseMove = (e: MouseEvent) => {
       mouseRef.current.targetX = e.clientX;
@@ -79,16 +120,50 @@ export default function InteractiveGridBackground() {
 
     // Animation Loop
     const render = () => {
-      // Clear with warm alabaster/cream background
+      // Clear canvas with light warm cream
       ctx.fillStyle = "#f9f8f5";
       ctx.fillRect(0, 0, width, height);
 
-      // Smooth mouse coordinates translation
       const mouse = mouseRef.current;
       mouse.x += (mouse.targetX - mouse.x) * 0.1;
       mouse.y += (mouse.targetY - mouse.y) * 0.1;
 
-      // Draw distorted grid points
+      // 1. Draw Waving Flow Field Curves
+      waves.forEach((w) => {
+        w.phase += w.speed;
+        
+        ctx.strokeStyle = w.color;
+        ctx.lineWidth = w.lineWidth;
+        ctx.beginPath();
+
+        const step = 8;
+        const centerY = height * w.yOffset;
+
+        for (let x = 0; x <= width; x += step) {
+          // Calculate baseline sine wave
+          let y = centerY + Math.sin(x * w.frequency + w.phase) * w.amplitude;
+
+          // Apply mouse fluid warping: pull wave slightly toward mouse if close
+          const dx = mouse.x - x;
+          const dy = mouse.y - y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 180 && dist > 0) {
+            const force = (180 - dist) / 180;
+            // Pull wave y coordinate toward mouse
+            y += dy * force * 0.35;
+          }
+
+          if (x === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        }
+        ctx.stroke();
+      });
+
+      // 2. Draw Distorted Dot Grid
       const maxDistance = 160;
       const forceFactor = 22;
 
@@ -102,7 +177,6 @@ export default function InteractiveGridBackground() {
 
         if (dist < maxDistance && dist > 0) {
           const force = (maxDistance - dist) / maxDistance;
-          // Magnetic pull toward cursor
           targetX += (dx / dist) * force * forceFactor;
           targetY += (dy / dist) * force * forceFactor;
         }
@@ -119,7 +193,7 @@ export default function InteractiveGridBackground() {
         const nearCursor = dotDist < 120;
         
         ctx.fillStyle = nearCursor 
-          ? "rgba(184, 144, 99, 0.2)"   // warm bronze near cursor
+          ? "rgba(184, 144, 99, 0.22)"  // warm bronze glow near cursor
           : "rgba(14, 32, 56, 0.035)";   // subtle navy baseline dot
         
         ctx.beginPath();

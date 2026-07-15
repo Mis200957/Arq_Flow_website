@@ -2,7 +2,7 @@
 
 /* ============================================================
    ArqFlow — "Luxury Alabaster & Midnight Navy" design system
-   Warm Cream · Midnight Navy · Warm Bronze/Gold Accents
+   Unified Premium Light Mode Theme
    ============================================================ */
 
 @theme {
@@ -18,7 +18,7 @@
 
 /* ===== Theme tokens ===== */
 :root {
-  /* Surfaces */
+  /* Surfaces (Always Light Mode) */
   --bg: #f9f8f5;                     /* warm cream background */
   --bg-elev: rgba(255, 255, 255, 0.7);/* translucent white glass cards */
   --bg-solid: #f4f2eb;               /* light warm gray containers */
@@ -76,8 +76,8 @@ html {
 
 html,
 body {
-  background: var(--bg);
-  color: var(--fg);
+  background: var(--bg) !important;
+  color: var(--fg) !important;
 }
 
 body {
@@ -120,8 +120,7 @@ h1, h2, h3, h4, h5, h6, .font-display {
 
 /* ===== Utilities ===== */
 @layer utilities {
-  /* Make page containers transparent so the animated canvas grid shows through */
-  .bg-app { background: transparent !important; }
+  .bg-app { background: var(--bg) !important; }
   .bg-elev { background: var(--bg-elev); }
   .bg-solid { background: var(--bg-solid); }
   .text-app { color: var(--fg); }
@@ -178,7 +177,7 @@ header, footer {
 }
 
 .glass-strong {
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-strong);
@@ -201,6 +200,7 @@ header, footer {
   box-shadow: 0px 12px 32px rgba(14, 32, 56, 0.04);
 }
 
+/* ===== Luxury Buttons (Midnight Navy & Bronze Accent) ===== */
 .btn-primary {
   background: #0e2038;
   color: #ffffff;
@@ -413,9 +413,9 @@ select.input-base option {
   color: transparent;
 }
 
-/* Display gradient for dark backgrounds: White -> Bronze -> White */
+/* Gradient for light background heading titles (Navy -> Bronze -> Navy) */
 .gradient-text-dark {
-  background: linear-gradient(135deg, #ffffff 0%, #b89063 75%, #ffffff 110%);
+  background: linear-gradient(135deg, #0e2038 0%, #b89063 75%, #0e2038 110%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
