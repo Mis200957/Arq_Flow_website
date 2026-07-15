@@ -83,7 +83,7 @@ export default function AutomationClient() {
                 <div key={s.key} className="card p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-[rgba(27,27,30,0.12)] text-accent flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-[rgba(0,229,163,0.12)] text-accent flex items-center justify-center shrink-0">
                         <SvcIcon className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">

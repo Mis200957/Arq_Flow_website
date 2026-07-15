@@ -72,7 +72,7 @@ export default function CustomersClient({ businessId, initialCustomers }: Props)
           {tagFilter && (
             <button
               onClick={() => setTagFilter(null)}
-              className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-full bg-[rgba(27,27,30,0.15)] text-accent border border-[var(--accent)]"
+              className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-full bg-[rgba(0,229,163,0.15)] text-accent border border-[var(--accent)]"
             >
               <X className="w-3 h-3" /> {tagFilter}
             </button>
@@ -91,7 +91,7 @@ export default function CustomersClient({ businessId, initialCustomers }: Props)
               className={cn(
                 "text-xs px-2.5 py-1 rounded-full border transition-all",
                 tagFilter === tag
-                  ? "bg-[rgba(27,27,30,0.2)] text-accent border-[var(--accent)]"
+                  ? "bg-[rgba(0,229,163,0.2)] text-accent border-[var(--accent)]"
                   : "text-muted border-[var(--border)] hover:border-[var(--border-strong)]"
               )}
             >
@@ -120,7 +120,7 @@ export default function CustomersClient({ businessId, initialCustomers }: Props)
                   <>
                     <tr
                       key={c.id}
-                      className="border-b border-[var(--border)] hover:bg-[rgba(27,27,30,0.04)] cursor-pointer"
+                      className="border-b border-[var(--border)] hover:bg-[rgba(44,76,69,0.04)] cursor-pointer"
                       onClick={() => setExpanded(expanded === c.id ? null : c.id)}
                     >
                       <td className="p-3 font-medium">{c.name ?? "—"}</td>

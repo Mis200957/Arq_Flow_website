@@ -28,12 +28,12 @@ const CHART_COLORS = ["#6ba0ac", "#2a6072", "#eeedd2", "#4ade80", "#fbbf24", "#f
 const TOOLTIP_STYLE = {
   contentStyle: {
     background: "rgba(17,39,66,0.95)",
-    border: "1px solid rgba(27,27,30,0.15)",
+    border: "1px solid rgba(0,229,163,0.15)",
     borderRadius: "0.75rem",
     color: "#eeedd2",
     fontSize: 12,
   },
-  cursor: { fill: "rgba(27,27,30,0.04)" },
+  cursor: { fill: "rgba(44,76,69,0.04)" },
 };
 
 const AXIS_PROPS = {
@@ -91,7 +91,7 @@ export default function AnalyticsDashboard({
                 <stop offset="100%" stopColor="#6ba0ac" stopOpacity={0.02} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(27,27,30,0.07)" />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(44,76,69,0.07)" />
             <XAxis dataKey="label" {...AXIS_PROPS} />
             <YAxis {...AXIS_PROPS} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} />
             <Tooltip {...TOOLTIP_STYLE} formatter={(v: number) => [`${v.toLocaleString()} EGP`]} />
@@ -114,7 +114,7 @@ export default function AnalyticsDashboard({
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={signupsByMonth}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(27,27,30,0.07)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(44,76,69,0.07)" />
               <XAxis dataKey="label" {...AXIS_PROPS} />
               <YAxis {...AXIS_PROPS} width={30} />
               <Tooltip {...TOOLTIP_STYLE} />
@@ -135,7 +135,7 @@ export default function AnalyticsDashboard({
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={tokensByMonth}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(27,27,30,0.07)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(44,76,69,0.07)" />
               <XAxis dataKey="label" {...AXIS_PROPS} />
               <YAxis {...AXIS_PROPS} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} width={40} />
               <Tooltip {...TOOLTIP_STYLE} formatter={(v: number) => [v.toLocaleString()]} />
@@ -162,7 +162,7 @@ export default function AnalyticsDashboard({
                       <span>{p.name}</span>
                       <span className="text-muted">{p.count} ({pct}%)</span>
                     </div>
-                    <div className="h-2 bg-[rgba(27,27,30,0.08)] rounded-full overflow-hidden">
+                    <div className="h-2 bg-[rgba(44,76,69,0.08)] rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{ width: `${pct}%`, background: CHART_COLORS[i % CHART_COLORS.length] }}
@@ -192,7 +192,7 @@ export default function AnalyticsDashboard({
                         <span className="capitalize">{t.name.replace(/_/g, " ")}</span>
                         <span className="text-muted">{t.count} ({pct}%)</span>
                       </div>
-                      <div className="h-2 bg-[rgba(27,27,30,0.08)] rounded-full overflow-hidden">
+                      <div className="h-2 bg-[rgba(44,76,69,0.08)] rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full"
                           style={{ width: `${pct}%`, background: CHART_COLORS[i % CHART_COLORS.length] }}

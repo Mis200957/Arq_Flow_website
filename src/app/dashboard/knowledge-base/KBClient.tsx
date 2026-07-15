@@ -139,7 +139,7 @@ export default function KBClient({ businessId, initialEntries }: Props) {
               {kindEntries.map((entry) => (
                 <div key={entry.id} className="border border-[var(--border)] rounded-xl overflow-hidden">
                   <div
-                    className="flex items-center gap-3 p-3 hover:bg-[rgba(27,27,30,0.04)] cursor-pointer"
+                    className="flex items-center gap-3 p-3 hover:bg-[rgba(44,76,69,0.04)] cursor-pointer"
                     onClick={() => setExpanded(expanded === entry.id ? null : entry.id)}
                   >
                     <div className="flex-1 min-w-0">

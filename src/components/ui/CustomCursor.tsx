@@ -51,24 +51,21 @@ export default function CustomCursor() {
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseover", handleMouseOver);
 
-    // Animation loop using requestAnimationFrame for 120fps fluid physics
+    // Animation loop using requestAnimationFrame (snappy lerping for high response)
     const updatePosition = () => {
-      // Interpolate dot (fast tracking)
-      dot.current.x += (mouse.current.x - dot.current.x) * 0.22;
-      dot.current.y += (mouse.current.y - dot.current.y) * 0.22;
+      // Snappy tracking (dot: 0.45, ring: 0.25)
+      dot.current.x += (mouse.current.x - dot.current.x) * 0.45;
+      dot.current.y += (mouse.current.y - dot.current.y) * 0.45;
 
-      // Interpolate ring (slower tracking, creates the trailing liquid goo effect)
-      ring.current.x += (mouse.current.x - ring.current.x) * 0.085;
-      ring.current.y += (mouse.current.y - ring.current.y) * 0.085;
+      ring.current.x += (mouse.current.x - ring.current.x) * 0.22;
+      ring.current.y += (mouse.current.y - ring.current.y) * 0.22;
 
       if (dotRef.current) {
-        // Adjust for center
         dotRef.current.style.transform = `translate3d(${dot.current.x - 4}px, ${dot.current.y - 4}px, 0)`;
       }
 
       if (ringRef.current) {
-        // Adjust for center
-        const rSize = isHovered.current ? 26 : 18; // radius
+        const rSize = isHovered.current ? 26 : 18;
         ringRef.current.style.transform = `translate3d(${ring.current.x - rSize}px, ${ring.current.y - rSize}px, 0)`;
       }
 
@@ -106,18 +103,18 @@ export default function CustomCursor() {
 
       {/* Cursor Elements Wrapper */}
       <div
-        className="pointer-events-none fixed inset-0 z-[9999] mix-blend-difference hidden sm:block"
+        className="pointer-events-none fixed inset-0 z-[9999] hidden sm:block"
         style={{ filter: "url(#cursor-goo)" }}
       >
-        {/* Core Dot */}
+        {/* Core Dot (Glowing Mint) */}
         <div
           ref={dotRef}
-          className="fixed left-0 top-0 w-2 h-2 rounded-full bg-white transition-all duration-300 ease-out"
+          className="fixed left-0 top-0 w-2 h-2 rounded-full bg-[#00e5a3] shadow-[0_0_8px_#00e5a3] transition-all duration-300 ease-out"
         />
-        {/* Trailing Liquid Ring */}
+        {/* Trailing Liquid Ring (Transparent Emerald Glow) */}
         <div
           ref={ringRef}
-          className="fixed left-0 top-0 w-9 h-9 rounded-full bg-white opacity-80 transition-all duration-300 ease-out"
+          className="fixed left-0 top-0 w-9 h-9 rounded-full bg-[#00e5a3]/45 shadow-[0_0_12px_rgba(0,229,163,0.3)] transition-all duration-300 ease-out"
           style={{
             transformOrigin: "center center",
           }}

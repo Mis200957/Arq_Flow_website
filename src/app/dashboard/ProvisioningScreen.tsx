@@ -238,8 +238,8 @@ export default function ProvisioningScreen({ business }: Props) {
                 i < active
                   ? "bg-[rgba(74,222,128,0.15)] text-[var(--success)]"
                   : i === active
-                  ? "bg-[rgba(27,27,30,0.2)] text-accent animate-pulse"
-                  : "bg-[rgba(27,27,30,0.06)] text-muted"
+                  ? "bg-[rgba(0,229,163,0.2)] text-accent animate-pulse"
+                  : "bg-[rgba(44,76,69,0.06)] text-muted"
               )}
             >
               {i < active ? <CheckCircle className="w-4 h-4" /> : i + 1}
@@ -279,7 +279,7 @@ export default function ProvisioningScreen({ business }: Props) {
   if (stage === "creating") {
     return (
       <Shell>
-        <div className="w-20 h-20 rounded-2xl bg-[rgba(27,27,30,0.12)] flex items-center justify-center mx-auto mb-6">
+        <div className="w-20 h-20 rounded-2xl bg-[rgba(0,229,163,0.12)] flex items-center justify-center mx-auto mb-6">
           <Bot className="w-10 h-10 text-accent" />
         </div>
         <h1 className="text-2xl font-bold mb-2">{t.creatingTitle}</h1>
@@ -306,7 +306,7 @@ export default function ProvisioningScreen({ business }: Props) {
     const steps = [t.prep1, t.prep2, t.prep3, t.prep4];
     return (
       <Shell>
-        <div className="w-20 h-20 rounded-2xl bg-[rgba(27,27,30,0.12)] flex items-center justify-center mx-auto mb-6">
+        <div className="w-20 h-20 rounded-2xl bg-[rgba(0,229,163,0.12)] flex items-center justify-center mx-auto mb-6">
           <Smartphone className="w-10 h-10 text-accent" />
         </div>
         <h1 className="text-2xl font-bold mb-2">{t.prepTitle}</h1>
@@ -314,7 +314,7 @@ export default function ProvisioningScreen({ business }: Props) {
         <div className="space-y-3 text-start mb-8">
           {steps.map((s, i) => (
             <div key={i} className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[rgba(27,27,30,0.2)] text-accent flex items-center justify-center text-sm font-bold shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[rgba(0,229,163,0.2)] text-accent flex items-center justify-center text-sm font-bold shrink-0">
                 {i + 1}
               </div>
               <span className="text-app">{s}</span>

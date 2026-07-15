@@ -22,7 +22,6 @@ export default function InteractiveGridBackground() {
     let cols = Math.ceil(width / spacing) + 1;
     let rows = Math.ceil(height / spacing) + 1;
 
-    // Define initial dot coordinates and base offsets
     interface Point {
       x: number;
       y: number;
@@ -80,8 +79,8 @@ export default function InteractiveGridBackground() {
 
     // Animation Loop
     const render = () => {
-      // Clear with very light tinted monochrome background
-      ctx.fillStyle = "#fbf8fc";
+      // Clear with new deep slate-emerald background
+      ctx.fillStyle = "#0b1210";
       ctx.fillRect(0, 0, width, height);
 
       // Smooth mouse coordinates translation
@@ -89,13 +88,9 @@ export default function InteractiveGridBackground() {
       mouse.x += (mouse.targetX - mouse.x) * 0.1;
       mouse.y += (mouse.targetY - mouse.y) * 0.1;
 
-      // Draw very subtle grid line alignments first
-      ctx.strokeStyle = "rgba(116, 120, 120, 0.02)"; // very faint outline
-      ctx.lineWidth = 1;
-
-      // Render distorted grid points
+      // Draw distorted grid points
       const maxDistance = 160; // radius of mouse magnetic field
-      const forceFactor = 24;  // strength of warping push/pull
+      const forceFactor = 22;  // strength of warping push/pull
 
       points.forEach((pt) => {
         const dx = mouse.x - pt.baseX;
@@ -105,15 +100,14 @@ export default function InteractiveGridBackground() {
         let targetX = pt.baseX;
         let targetY = pt.baseY;
 
-        // If cursor is within magnetic radius, apply distortion force
         if (dist < maxDistance && dist > 0) {
-          const force = (maxDistance - dist) / maxDistance; // 0 to 1
-          // Magnetic pull: distort toward the cursor slightly to emphasize alignment
+          const force = (maxDistance - dist) / maxDistance;
+          // Magnetic pull: warp points slightly toward the mouse cursor
           targetX += (dx / dist) * force * forceFactor;
           targetY += (dy / dist) * force * forceFactor;
         }
 
-        // Apply springs logic to smooth transition back to base positions
+        // Spring calculations
         pt.vx += (targetX - pt.x) * 0.15;
         pt.vy += (targetY - pt.y) * 0.15;
         pt.vx *= 0.78;
@@ -122,17 +116,24 @@ export default function InteractiveGridBackground() {
         pt.y += pt.vy;
 
         // Draw dot
-        // We use slightly larger dots near the mouse, and fade them out further away
         const dotDist = Math.sqrt((mouse.x - pt.x) ** 2 + (mouse.y - pt.y) ** 2);
         const nearCursor = dotDist < 120;
         
         ctx.fillStyle = nearCursor 
-          ? "rgba(27, 27, 30, 0.18)" // Onyx gray when close
-          : "rgba(27, 27, 30, 0.055)"; // subtle gray baseline
+          ? "rgba(0, 229, 163, 0.22)" // glowing mint-green near cursor
+          : "rgba(0, 229, 163, 0.05)";  // subtle green baseline dot
         
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, nearCursor ? 2.2 : 1.5, 0, Math.PI * 2);
         ctx.fill();
+
+        // Draw micro-glow
+        if (nearCursor && dotDist < 60) {
+          ctx.fillStyle = "rgba(0, 229, 163, 0.035)";
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+          ctx.fill();
+        }
       });
 
       animationFrameId = requestAnimationFrame(render);
@@ -152,7 +153,6 @@ export default function InteractiveGridBackground() {
     <canvas
       ref={canvasRef}
       className="pointer-events-none fixed inset-0 z-[-10] block w-full h-full"
-      style={{ mixBlendMode: "normal" }}
     />
   );
 }

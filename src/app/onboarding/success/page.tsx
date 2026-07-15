@@ -125,7 +125,7 @@ function SuccessInner() {
           initial={{ scale: 0, rotate: -30 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 220, damping: 14, delay: 0.1 }}
-          className="mx-auto w-24 h-24 rounded-full bg-gradient-to-br from-brand-teal to-brand-sky flex items-center justify-center shadow-[0_0_60px_rgba(27,27,30,0.5)]"
+          className="mx-auto w-24 h-24 rounded-full bg-gradient-to-br from-brand-teal to-brand-sky flex items-center justify-center shadow-[0_0_60px_rgba(0,229,163,0.5)]"
         >
           <motion.span
             initial={{ scale: 0, opacity: 0 }}
@@ -204,12 +204,12 @@ function SuccessInner() {
                         "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border",
                         last
                           ? "bg-gradient-to-br from-brand-teal to-brand-sky text-white border-transparent"
-                          : "bg-[rgba(27,27,30,0.12)] text-accent border-[rgba(27,27,30,0.25)]"
+                          : "bg-[rgba(0,229,163,0.12)] text-accent border-[rgba(0,229,163,0.25)]"
                       )}
                     >
                       <Icon className="w-4.5 h-4.5" />
                     </span>
-                    {!last && <span className="w-px flex-1 bg-[rgba(27,27,30,0.25)] mt-1.5" />}
+                    {!last && <span className="w-px flex-1 bg-[rgba(0,229,163,0.25)] mt-1.5" />}
                   </div>
                   <div className="pb-1">
                     <p className="font-bold text-sm">{item.title}</p>

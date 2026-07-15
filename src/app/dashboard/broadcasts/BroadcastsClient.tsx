@@ -146,7 +146,7 @@ export default function BroadcastsClient({ businessId, initialBroadcasts, allTag
                     className={cn(
                       "text-xs px-2.5 py-1 rounded-full border transition-all",
                       form.audience_tags.includes(tag)
-                        ? "bg-[rgba(27,27,30,0.2)] text-accent border-[var(--accent)]"
+                        ? "bg-[rgba(0,229,163,0.2)] text-accent border-[var(--accent)]"
                         : "text-muted border-[var(--border)]"
                     )}
                   >
@@ -166,7 +166,7 @@ export default function BroadcastsClient({ businessId, initialBroadcasts, allTag
                   className={cn(
                     "text-sm px-4 py-2 rounded-xl border transition-all",
                     form.schedule === opt
-                      ? "bg-[rgba(27,27,30,0.2)] text-accent border-[var(--accent)]"
+                      ? "bg-[rgba(0,229,163,0.2)] text-accent border-[var(--accent)]"
                       : "text-muted border-[var(--border)]"
                   )}
                 >

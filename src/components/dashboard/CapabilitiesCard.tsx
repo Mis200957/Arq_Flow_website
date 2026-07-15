@@ -48,7 +48,7 @@ export default function CapabilitiesCard({
                   "w-5 h-5 rounded-md flex items-center justify-center shrink-0 mt-0.5 " +
                   (on
                     ? "bg-[rgba(74,222,128,0.15)] text-[var(--success)]"
-                    : "bg-[rgba(27,27,30,0.06)] text-muted")
+                    : "bg-[rgba(44,76,69,0.06)] text-muted")
                 }
               >
                 {on ? <Check className="w-3 h-3" /> : <Lock className="w-3 h-3" />}

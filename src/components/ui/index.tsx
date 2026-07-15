@@ -41,7 +41,7 @@ export function StatCard({
           {hint && <div className="text-muted text-xs mt-1.5">{hint}</div>}
         </div>
         {icon && (
-          <div className="shrink-0 w-10 h-10 rounded-xl bg-[rgba(27,27,30,0.12)] text-accent flex items-center justify-center">
+          <div className="shrink-0 w-10 h-10 rounded-xl bg-[rgba(0,229,163,0.12)] text-accent flex items-center justify-center">
             {icon}
           </div>
         )}
