@@ -86,7 +86,7 @@ export default function SettingsClient({ profile, business }: Props) {
             onClick={() => setTab(t_)}
             className={cn(
               "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all",
-              tab === t_ ? "bg-[rgba(0,229,163,0.2)] text-accent" : "text-muted hover:text-app"
+              tab === t_ ? "bg-[rgba(184,144,99,0.2)] text-accent" : "text-muted hover:text-app"
             )}
           >
             {tabIcons[t_]} {t[t_]}

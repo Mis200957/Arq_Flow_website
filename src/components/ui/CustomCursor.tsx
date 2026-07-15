@@ -51,9 +51,8 @@ export default function CustomCursor() {
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseover", handleMouseOver);
 
-    // Animation loop using requestAnimationFrame (snappy lerping for high response)
+    // Animation loop (lerp values: snappy tracking)
     const updatePosition = () => {
-      // Snappy tracking (dot: 0.45, ring: 0.25)
       dot.current.x += (mouse.current.x - dot.current.x) * 0.45;
       dot.current.y += (mouse.current.y - dot.current.y) * 0.45;
 
@@ -106,15 +105,15 @@ export default function CustomCursor() {
         className="pointer-events-none fixed inset-0 z-[9999] hidden sm:block"
         style={{ filter: "url(#cursor-goo)" }}
       >
-        {/* Core Dot (Glowing Mint) */}
+        {/* Core Dot (Deep Navy) */}
         <div
           ref={dotRef}
-          className="fixed left-0 top-0 w-2 h-2 rounded-full bg-[#00e5a3] shadow-[0_0_8px_#00e5a3] transition-all duration-300 ease-out"
+          className="fixed left-0 top-0 w-2 h-2 rounded-full bg-[#0e2038] shadow-[0_0_6px_rgba(14,32,56,0.3)] transition-all duration-300 ease-out"
         />
-        {/* Trailing Liquid Ring (Transparent Emerald Glow) */}
+        {/* Trailing Liquid Ring (Warm Bronze/Gold) */}
         <div
           ref={ringRef}
-          className="fixed left-0 top-0 w-9 h-9 rounded-full bg-[#00e5a3]/45 shadow-[0_0_12px_rgba(0,229,163,0.3)] transition-all duration-300 ease-out"
+          className="fixed left-0 top-0 w-9 h-9 rounded-full bg-[#b89063]/45 shadow-[0_0_12px_rgba(184,144,99,0.25)] transition-all duration-300 ease-out"
           style={{
             transformOrigin: "center center",
           }}

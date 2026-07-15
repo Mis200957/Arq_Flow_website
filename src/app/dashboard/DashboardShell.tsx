@@ -69,7 +69,7 @@ function ProvisioningPlaceholder({ business, lang }: { business: Business; lang:
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ background: "var(--bg)" }}>
       <div className="glass-strong max-w-lg w-full p-8 text-center">
-        <div className="w-20 h-20 rounded-2xl bg-[rgba(0,229,163,0.12)] flex items-center justify-center mx-auto mb-6">
+        <div className="w-20 h-20 rounded-2xl bg-[rgba(184,144,99,0.12)] flex items-center justify-center mx-auto mb-6">
           <Loader2 className="w-10 h-10 text-accent animate-spin" />
         </div>
         <h1 className="text-2xl font-bold mb-2">{t.title}</h1>
@@ -83,8 +83,8 @@ function ProvisioningPlaceholder({ business, lang }: { business: Business; lang:
                   i < activeStep
                     ? "bg-[rgba(74,222,128,0.15)] text-[var(--success)]"
                     : i === activeStep
-                    ? "bg-[rgba(0,229,163,0.2)] text-accent animate-pulse"
-                    : "bg-[rgba(44,76,69,0.06)] text-muted"
+                    ? "bg-[rgba(184,144,99,0.2)] text-accent animate-pulse"
+                    : "bg-[rgba(14,32,56,0.06)] text-muted"
                 )}
               >
                 {i < activeStep ? <CheckCircle className="w-4 h-4" /> : i + 1}
@@ -238,7 +238,7 @@ export default function DashboardShell({ profile, business, capabilities, unread
                 >
                   <Icon className="w-4 h-4 shrink-0" />
                   <span className="truncate">{label}</span>
-                  <span className="ms-auto shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-[rgba(44,76,69,0.07)] text-muted">
+                  <span className="ms-auto shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-md bg-[rgba(14,32,56,0.07)] text-muted">
                     {soonLabel}
                   </span>
                 </div>
@@ -255,7 +255,7 @@ export default function DashboardShell({ profile, business, capabilities, unread
                   href={`/dashboard/subscription?upgrade=${mod.key}`}
                   onClick={() => setSidebarOpen(false)}
                   title={upgradeLabel}
-                  className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted/70 hover:bg-[rgba(44,76,69,0.06)] hover:text-app transition-all"
+                  className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted/70 hover:bg-[rgba(14,32,56,0.06)] hover:text-app transition-all"
                 >
                   <Icon className="w-4 h-4 shrink-0" />
                   <span className="truncate">{label}</span>
@@ -276,8 +276,8 @@ export default function DashboardShell({ profile, business, capabilities, unread
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
                   active
-                    ? "bg-[rgba(0,229,163,0.18)] text-accent"
-                    : "text-muted hover:bg-[rgba(44,76,69,0.06)] hover:text-app"
+                    ? "bg-[rgba(184,144,99,0.18)] text-accent"
+                    : "text-muted hover:bg-[rgba(14,32,56,0.06)] hover:text-app"
                 )}
               >
                 <Icon className="w-4 h-4 shrink-0" />
@@ -295,7 +295,7 @@ export default function DashboardShell({ profile, business, capabilities, unread
         {/* Bottom user */}
         <div className="p-3 border-t border-[var(--border)]">
           <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-8 h-8 rounded-full bg-[rgba(0,229,163,0.2)] flex items-center justify-center text-accent font-bold text-sm shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[rgba(184,144,99,0.2)] flex items-center justify-center text-accent font-bold text-sm shrink-0">
               {(profile.full_name ?? profile.email ?? "?")[0]?.toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
@@ -378,8 +378,8 @@ export default function DashboardShell({ profile, business, capabilities, unread
                           <div
                             key={n.id}
                             className={cn(
-                              "p-4 border-b border-[var(--border)] last:border-0 hover:bg-[rgba(44,76,69,0.04)] cursor-pointer",
-                              !n.read && "bg-[rgba(44,76,69,0.06)]"
+                              "p-4 border-b border-[var(--border)] last:border-0 hover:bg-[rgba(14,32,56,0.04)] cursor-pointer",
+                              !n.read && "bg-[rgba(14,32,56,0.06)]"
                             )}
                             onClick={() => {
                               if (n.link) router.push(n.link);

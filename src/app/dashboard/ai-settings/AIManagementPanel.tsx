@@ -137,7 +137,7 @@ export default function AIManagementPanel({ businessId, systemPrompt, initialFil
           {files.length === 0 ? (
             <p className="text-muted text-sm">{t.noFiles}</p>
           ) : files.map((f) => (
-            <div key={f.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-[rgba(44,76,69,0.04)]">
+            <div key={f.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-[rgba(14,32,56,0.04)]">
               {f.kind === "image" ? <ImageIcon className="w-4 h-4 text-accent shrink-0" /> : <FileText className="w-4 h-4 text-accent shrink-0" />}
               <span className="text-sm truncate flex-1">{f.file_name}</span>
               <button onClick={() => deleteFile(f)} className="btn-ghost !p-1.5 text-[var(--danger)]"><Trash2 className="w-3.5 h-3.5" /></button>
@@ -153,7 +153,7 @@ export default function AIManagementPanel({ businessId, systemPrompt, initialFil
           {OPS.map(({ action, Icon }) => (
             <button key={action} onClick={() => runJob(action)} disabled={busy === action}
               className="flex items-start gap-3 p-4 rounded-xl border border-[var(--border)] hover:border-[var(--border-strong)] text-start transition-all disabled:opacity-60">
-              <div className="w-9 h-9 rounded-lg bg-[rgba(0,229,163,0.12)] text-accent flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-[rgba(184,144,99,0.12)] text-accent flex items-center justify-center shrink-0">
                 {busy === action ? <Loader2 className="w-4 h-4 animate-spin" /> : <Icon className="w-4 h-4" />}
               </div>
               <div className="min-w-0">

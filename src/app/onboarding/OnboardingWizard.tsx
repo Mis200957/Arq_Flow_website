@@ -1096,7 +1096,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
           <SectionHeader icon={CreditCard} eyebrow={t.sectionPlan} title={t.planTitle} sub={t.planSub} />
 
           {!showPlanCards && plan ? (
-            <div className="card p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4 border-[rgba(0,229,163,0.35)]">
+            <div className="card p-5 sm:p-6 flex flex-wrap items-center justify-between gap-4 border-[rgba(184,144,99,0.35)]">
               <div className="flex items-center gap-4">
                 <span className="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-teal to-brand-sky flex items-center justify-center text-white shrink-0">
                   <CreditCard className="w-6 h-6" />
@@ -1127,7 +1127,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
                     }}
                     className={cn(
                       "card card-hover p-5 text-start relative flex flex-col gap-3 transition-all",
-                      selected && "border-accent shadow-[0_0_0_1px_var(--accent),0_12px_40px_rgba(0,229,163,0.25)]"
+                      selected && "border-accent shadow-[0_0_0_1px_var(--accent),0_12px_40px_rgba(184,144,99,0.25)]"
                     )}
                   >
                     {p.highlighted && (
@@ -1282,7 +1282,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
                       className={cn(
                         "flex items-center gap-2 rounded-xl border px-4 py-2.5 cursor-pointer transition-all text-sm font-semibold select-none",
                         on
-                          ? "border-accent bg-[rgba(0,229,163,0.12)] text-app"
+                          ? "border-accent bg-[rgba(184,144,99,0.12)] text-app"
                           : "border-app text-muted hover:border-strong"
                       )}
                     >
@@ -1492,7 +1492,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
                             className={cn(
                               "rounded-full px-4 py-2 text-sm font-semibold border transition-all inline-flex items-center gap-1.5",
                               on
-                                ? "border-accent bg-[rgba(0,229,163,0.15)] text-app"
+                                ? "border-accent bg-[rgba(184,144,99,0.15)] text-app"
                                 : "border-app text-muted hover:border-strong"
                             )}
                           >
@@ -1551,7 +1551,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
 
                   {/* live summary */}
                   {form.working_hours && (
-                    <div className="flex items-start gap-2 text-sm text-muted rounded-lg border border-app px-3 py-2 bg-[rgba(44,76,69,0.06)]">
+                    <div className="flex items-start gap-2 text-sm text-muted rounded-lg border border-app px-3 py-2 bg-[rgba(14,32,56,0.06)]">
                       <Clock className="w-4 h-4 mt-0.5 text-accent shrink-0" />
                       <span dir="auto">{form.working_hours}</span>
                     </div>
@@ -1609,7 +1609,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
                       className={cn(
                         "rounded-full px-4 py-2 text-sm font-semibold border transition-all inline-flex items-center gap-1.5",
                         on
-                          ? "border-accent bg-[rgba(0,229,163,0.15)] text-app"
+                          ? "border-accent bg-[rgba(184,144,99,0.15)] text-app"
                           : "border-app text-muted hover:border-strong"
                       )}
                     >
@@ -1688,7 +1688,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
                       className={cn(
                         "rounded-2xl border p-4 text-start transition-all flex flex-col gap-2",
                         on
-                          ? "border-accent bg-[rgba(44,76,69,0.1)] shadow-[0_0_0_1px_var(--accent)]"
+                          ? "border-accent bg-[rgba(14,32,56,0.1)] shadow-[0_0_0_1px_var(--accent)]"
                           : "border-app hover:border-strong"
                       )}
                     >
@@ -1899,7 +1899,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
                       className={cn(
                         "rounded-2xl border p-4 text-start transition-all",
                         on
-                          ? "border-accent bg-[rgba(44,76,69,0.1)] shadow-[0_0_0_1px_var(--accent)]"
+                          ? "border-accent bg-[rgba(14,32,56,0.1)] shadow-[0_0_0_1px_var(--accent)]"
                           : "border-app hover:border-strong"
                       )}
                     >
@@ -1954,7 +1954,7 @@ export default function OnboardingWizard({ initialPlan }: { initialPlan: string 
                     <ol className="mt-4 space-y-2">
                       {t.payInstructions.map((line, i) => (
                         <li key={i} className="flex items-start gap-2.5 text-sm text-muted">
-                          <span className="w-5 h-5 rounded-full bg-[rgba(0,229,163,0.15)] text-accent text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="w-5 h-5 rounded-full bg-[rgba(184,144,99,0.15)] text-accent text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                             {i + 1}
                           </span>
                           {line}
@@ -2067,7 +2067,7 @@ function SectionHeader({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="w-10 h-10 rounded-xl bg-[rgba(0,229,163,0.12)] text-accent flex items-center justify-center shrink-0 mt-0.5">
+      <span className="w-10 h-10 rounded-xl bg-[rgba(184,144,99,0.12)] text-accent flex items-center justify-center shrink-0 mt-0.5">
         <Icon className="w-5 h-5" />
       </span>
       <div className="min-w-0">
@@ -2276,7 +2276,7 @@ function DynamicSection({
             <button
               type="button"
               onClick={onImport}
-              className="btn-outline !py-1.5 !px-3 text-xs border-accent text-accent hover:bg-[rgba(44,76,69,0.1)] inline-flex items-center gap-1"
+              className="btn-outline !py-1.5 !px-3 text-xs border-accent text-accent hover:bg-[rgba(14,32,56,0.1)] inline-flex items-center gap-1"
             >
               <Upload className="w-3.5 h-3.5" />
               {importLabel}
@@ -2445,8 +2445,8 @@ function OrderFieldsPicker({
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold border",
                 locked
-                  ? "border-accent bg-[rgba(0,229,163,0.2)] text-app"
-                  : "border-app bg-[rgba(44,76,69,0.08)] text-app"
+                  ? "border-accent bg-[rgba(184,144,99,0.2)] text-app"
+                  : "border-app bg-[rgba(14,32,56,0.08)] text-app"
               )}
             >
               <Check className="w-3.5 h-3.5 text-accent" />
@@ -2503,7 +2503,7 @@ function OrderFieldsPicker({
                             <button
                               type="button"
                               onClick={() => addPreset(p.id)}
-                              className="w-full text-start px-3 py-2 rounded-lg text-sm hover:bg-[rgba(44,76,69,0.1)] transition-colors flex items-center gap-2"
+                              className="w-full text-start px-3 py-2 rounded-lg text-sm hover:bg-[rgba(14,32,56,0.1)] transition-colors flex items-center gap-2"
                             >
                               <Plus className="w-3.5 h-3.5 text-accent shrink-0" />
                               {pick(p.label)}
@@ -2516,7 +2516,7 @@ function OrderFieldsPicker({
                       <button
                         type="button"
                         onClick={() => setCustomMode(true)}
-                        className="w-full text-start px-3 py-2 rounded-lg text-sm hover:bg-[rgba(44,76,69,0.1)] transition-colors flex items-center gap-2 text-accent font-semibold"
+                        className="w-full text-start px-3 py-2 rounded-lg text-sm hover:bg-[rgba(14,32,56,0.1)] transition-colors flex items-center gap-2 text-accent font-semibold"
                       >
                         <Plus className="w-3.5 h-3.5 shrink-0" />
                         {t.orderCollectCustom}

@@ -153,7 +153,7 @@ export default function ConversationsClient({ businessId, initialConversations }
               className={cn(
                 "text-xs px-3 py-1.5 rounded-full font-semibold border transition-all",
                 filter === f
-                  ? "bg-[rgba(0,229,163,0.2)] text-accent border-[var(--accent)]"
+                  ? "bg-[rgba(184,144,99,0.2)] text-accent border-[var(--accent)]"
                   : "text-muted border-[var(--border)] hover:border-[var(--border-strong)]"
               )}
             >
@@ -171,9 +171,9 @@ export default function ConversationsClient({ businessId, initialConversations }
                 key={c.id}
                 onClick={() => setSelected(c)}
                 className={cn(
-                  "w-full text-start p-3 rounded-xl transition-all hover:bg-[rgba(44,76,69,0.06)] border",
+                  "w-full text-start p-3 rounded-xl transition-all hover:bg-[rgba(14,32,56,0.06)] border",
                   selected?.id === c.id
-                    ? "bg-[rgba(0,229,163,0.12)] border-[var(--accent)]"
+                    ? "bg-[rgba(184,144,99,0.12)] border-[var(--accent)]"
                     : "border-[var(--border)]"
                 )}
               >

@@ -79,8 +79,8 @@ export default function InteractiveGridBackground() {
 
     // Animation Loop
     const render = () => {
-      // Clear with new deep slate-emerald background
-      ctx.fillStyle = "#0b1210";
+      // Clear with warm alabaster/cream background
+      ctx.fillStyle = "#f9f8f5";
       ctx.fillRect(0, 0, width, height);
 
       // Smooth mouse coordinates translation
@@ -89,8 +89,8 @@ export default function InteractiveGridBackground() {
       mouse.y += (mouse.targetY - mouse.y) * 0.1;
 
       // Draw distorted grid points
-      const maxDistance = 160; // radius of mouse magnetic field
-      const forceFactor = 22;  // strength of warping push/pull
+      const maxDistance = 160;
+      const forceFactor = 22;
 
       points.forEach((pt) => {
         const dx = mouse.x - pt.baseX;
@@ -102,7 +102,7 @@ export default function InteractiveGridBackground() {
 
         if (dist < maxDistance && dist > 0) {
           const force = (maxDistance - dist) / maxDistance;
-          // Magnetic pull: warp points slightly toward the mouse cursor
+          // Magnetic pull toward cursor
           targetX += (dx / dist) * force * forceFactor;
           targetY += (dy / dist) * force * forceFactor;
         }
@@ -115,25 +115,16 @@ export default function InteractiveGridBackground() {
         pt.x += pt.vx;
         pt.y += pt.vy;
 
-        // Draw dot
         const dotDist = Math.sqrt((mouse.x - pt.x) ** 2 + (mouse.y - pt.y) ** 2);
         const nearCursor = dotDist < 120;
         
         ctx.fillStyle = nearCursor 
-          ? "rgba(0, 229, 163, 0.22)" // glowing mint-green near cursor
-          : "rgba(0, 229, 163, 0.05)";  // subtle green baseline dot
+          ? "rgba(184, 144, 99, 0.2)"   // warm bronze near cursor
+          : "rgba(14, 32, 56, 0.035)";   // subtle navy baseline dot
         
         ctx.beginPath();
         ctx.arc(pt.x, pt.y, nearCursor ? 2.2 : 1.5, 0, Math.PI * 2);
         ctx.fill();
-
-        // Draw micro-glow
-        if (nearCursor && dotDist < 60) {
-          ctx.fillStyle = "rgba(0, 229, 163, 0.035)";
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
-          ctx.fill();
-        }
       });
 
       animationFrameId = requestAnimationFrame(render);

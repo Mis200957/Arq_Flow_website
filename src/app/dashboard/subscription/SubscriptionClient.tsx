@@ -240,7 +240,7 @@ export default function SubscriptionClient({
               <span>{t.remaining}</span>
               <span className="font-semibold">{formatEGP(remainingDisplay, lang)} {t.of} {formatEGP(walletTotal, lang)}</span>
             </div>
-            <div className="h-3 rounded-full bg-[rgba(44,76,69,0.1)] overflow-hidden">
+            <div className="h-3 rounded-full bg-[rgba(14,32,56,0.1)] overflow-hidden">
               <div className="h-full rounded-full transition-all" style={{ width: `${usedPct}%`, background: usedPct > 85 ? "var(--danger)" : usedPct > 65 ? "var(--warning)" : "var(--accent)" }} />
             </div>
             <div className="flex justify-between text-xs text-muted">
@@ -326,7 +326,7 @@ export default function SubscriptionClient({
         ) : (
           <div className="space-y-5">
             {/* amount */}
-            <div className="rounded-xl bg-[rgba(44,76,69,0.08)] border border-[var(--accent)]/30 p-4">
+            <div className="rounded-xl bg-[rgba(14,32,56,0.08)] border border-[var(--accent)]/30 p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted">{t.amountDue}</p>
@@ -348,12 +348,12 @@ export default function SubscriptionClient({
               <div className="grid grid-cols-3 gap-2">
                 {(Object.keys(accounts) as Channel[]).map((ch) => (
                   <button key={ch} onClick={() => setMethod(ch)}
-                    className={cn("rounded-xl border p-3 text-center text-sm transition", method === ch ? "border-[var(--accent)] bg-[rgba(44,76,69,0.1)]" : "border-[var(--border)]")}>
+                    className={cn("rounded-xl border p-3 text-center text-sm transition", method === ch ? "border-[var(--accent)] bg-[rgba(14,32,56,0.1)]" : "border-[var(--border)]")}>
                     <p className="font-semibold">{ACCOUNT_LABELS[ch]}</p>
                   </button>
                 ))}
               </div>
-              <div className="mt-2 rounded-lg bg-[rgba(44,76,69,0.04)] p-3 text-sm flex items-center justify-between">
+              <div className="mt-2 rounded-lg bg-[rgba(14,32,56,0.04)] p-3 text-sm flex items-center justify-between">
                 <span className="text-muted">{t.transferTo}</span>
                 <span className="font-mono font-bold text-accent" dir="ltr">{accounts[method]}</span>
               </div>

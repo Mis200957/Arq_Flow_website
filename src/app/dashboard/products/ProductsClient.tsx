@@ -141,7 +141,7 @@ export default function ProductsClient({ businessId, initialProducts }: Props) {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {products.map((p) => (
             <div key={p.id} className={cn("card p-4 card-hover", !p.available && "opacity-60")}>
-              <div className="aspect-square rounded-xl overflow-hidden mb-3 bg-[rgba(44,76,69,0.05)] flex items-center justify-center">
+              <div className="aspect-square rounded-xl overflow-hidden mb-3 bg-[rgba(14,32,56,0.05)] flex items-center justify-center">
                 {p.image_url ? (
                   <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
                 ) : (
@@ -191,7 +191,7 @@ export default function ProductsClient({ businessId, initialProducts }: Props) {
           </Field>
           <Field label={t.image}>
             <div className="flex items-center gap-3">
-              <div className="w-20 h-20 rounded-xl overflow-hidden bg-[rgba(44,76,69,0.05)] flex items-center justify-center shrink-0 border border-[var(--border)]">
+              <div className="w-20 h-20 rounded-xl overflow-hidden bg-[rgba(14,32,56,0.05)] flex items-center justify-center shrink-0 border border-[var(--border)]">
                 {form.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={form.image_url} alt="" className="w-full h-full object-cover" />

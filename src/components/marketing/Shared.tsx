@@ -162,7 +162,7 @@ export function PlanCard({
         className={cn(
           "card card-hover h-full flex flex-col p-6 sm:p-7 relative",
           plan.highlighted &&
-            "border-[rgba(0,229,163,0.45)] shadow-[0_0_48px_rgba(0,229,163,0.15)]"
+            "border-[rgba(184,144,99,0.45)] shadow-[0_0_48px_rgba(184,144,99,0.15)]"
         )}
       >
         {plan.highlighted && (

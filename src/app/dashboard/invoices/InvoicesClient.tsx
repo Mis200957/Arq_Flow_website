@@ -53,7 +53,7 @@ export default function InvoicesClient({ invoices }: Props) {
               </thead>
               <tbody>
                 {invoices.map((inv) => (
-                  <tr key={inv.id} className="border-b border-[var(--border)] hover:bg-[rgba(44,76,69,0.04)]">
+                  <tr key={inv.id} className="border-b border-[var(--border)] hover:bg-[rgba(14,32,56,0.04)]">
                     <td className="p-3 font-mono text-xs text-accent">{inv.number}</td>
                     <td className="p-3">{formatEGP(inv.amount_egp, lang)}</td>
                     <td className="p-3 text-muted">{formatEGP(inv.tax_egp, lang)}</td>

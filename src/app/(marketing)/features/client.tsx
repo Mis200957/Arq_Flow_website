@@ -35,7 +35,7 @@ function ChatLinesMock() {
   });
   return (
     <div className="glass-strong p-6 space-y-3">
-      <div className="max-w-[85%] self-start bg-[rgba(44,76,69,0.1)] border border-app rounded-2xl rounded-ss-md px-4 py-3 text-sm">
+      <div className="max-w-[85%] self-start bg-[rgba(14,32,56,0.1)] border border-app rounded-2xl rounded-ss-md px-4 py-3 text-sm">
         {t.q}
       </div>
       <div className="max-w-[85%] ms-auto bg-gradient-to-br from-brand-teal to-brand-sky text-white rounded-2xl rounded-se-md px-4 py-3 text-sm leading-relaxed">
@@ -101,9 +101,9 @@ function VoiceMock() {
   });
   return (
     <div className="glass-strong p-6 space-y-3">
-      <div className="max-w-[85%] self-start bg-[rgba(44,76,69,0.1)] border border-app rounded-2xl rounded-ss-md px-4 py-3">
+      <div className="max-w-[85%] self-start bg-[rgba(14,32,56,0.1)] border border-app rounded-2xl rounded-ss-md px-4 py-3">
         <div className="flex items-center gap-3">
-          <span className="w-8 h-8 rounded-full bg-[rgba(0,229,163,0.2)] text-accent flex items-center justify-center shrink-0">
+          <span className="w-8 h-8 rounded-full bg-[rgba(184,144,99,0.2)] text-accent flex items-center justify-center shrink-0">
             <Mic className="w-4 h-4" aria-hidden />
           </span>
           <div className="flex items-center gap-0.5" aria-hidden>
@@ -285,7 +285,7 @@ function Comparison() {
                       key={i}
                       className={cn(
                         "text-center",
-                        i === 0 && "bg-[rgba(44,76,69,0.07)] font-semibold text-accent"
+                        i === 0 && "bg-[rgba(14,32,56,0.07)] font-semibold text-accent"
                       )}
                     >
                       {cell(v)}

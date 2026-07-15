@@ -142,7 +142,7 @@ export default function OverviewClient({
                   <span>{usedPct}%</span>
                   <span>{t.limit}: {formatEGP(wConsumedDisplay, lang)}</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-[rgba(44,76,69,0.1)] overflow-hidden">
+                <div className="h-1.5 rounded-full bg-[rgba(14,32,56,0.1)] overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all"
                     style={{
@@ -187,13 +187,13 @@ export default function OverviewClient({
               <YAxis hide />
               <Tooltip
                 contentStyle={{ background: "var(--bg-solid)", border: "1px solid var(--border)", borderRadius: "0.75rem", color: "var(--fg)" }}
-                cursor={{ fill: "rgba(44,76,69,0.05)" }}
+                cursor={{ fill: "rgba(14,32,56,0.05)" }}
               />
               <Bar dataKey="count" radius={[6, 6, 0, 0]}>
                 {chartData.map((entry, i) => (
                   <Cell
                     key={i}
-                    fill={entry.count === maxMessages ? "var(--accent)" : "rgba(0,229,163,0.3)"}
+                    fill={entry.count === maxMessages ? "var(--accent)" : "rgba(184,144,99,0.3)"}
                   />
                 ))}
               </Bar>
@@ -212,9 +212,9 @@ export default function OverviewClient({
                 <Link
                   key={mod.key}
                   href={mod.href}
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-[rgba(44,76,69,0.06)] transition-colors group"
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-[rgba(14,32,56,0.06)] transition-colors group"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-[rgba(0,229,163,0.12)] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-[rgba(184,144,99,0.12)] flex items-center justify-center">
                     <Icon className="w-4 h-4 text-accent" />
                   </div>
                   <span className="text-sm font-medium flex-1">{label}</span>

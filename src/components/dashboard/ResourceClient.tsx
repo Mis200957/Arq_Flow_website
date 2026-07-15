@@ -249,7 +249,7 @@ export default function ResourceClient({ businessId, title, descriptor, initialR
             </thead>
             <tbody>
               {pageRows.map((row) => (
-                <tr key={String(row.id)} className="border-b border-[var(--border)] last:border-0 hover:bg-[rgba(44,76,69,0.04)]">
+                <tr key={String(row.id)} className="border-b border-[var(--border)] last:border-0 hover:bg-[rgba(14,32,56,0.04)]">
                   {listFields.map((f) => (
                     <td key={f.key} className="px-4 py-3 whitespace-nowrap">{display(f, row)}</td>
                   ))}

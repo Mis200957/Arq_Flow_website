@@ -26,51 +26,40 @@ export default function Interactive3DObject() {
 
     let animationFrameId: number;
     let width = (canvas.width = container.clientWidth);
-    let height = (canvas.height = 450); // fixed hero size
+    let height = (canvas.height = 450);
 
-    // Generate 3D sphere points
+    // Generate Trefoil Knot 3D path points
     const points: Point3D[] = [];
-    const radius = 130;
-    const rings = 14;   // latitude lines
-    const sectors = 18; // longitude lines
+    const numPoints = 200; // dense points to draw a solid continuous tube
 
-    for (let i = 0; i <= rings; i++) {
-      const lat = (Math.PI * i) / rings;
-      const sinLat = Math.sin(lat);
-      const cosLat = Math.cos(lat);
+    for (let i = 0; i < numPoints; i++) {
+      const t = (Math.PI * 2 * i) / numPoints;
+      // Trefoil Knot parametric equations
+      const x = (Math.sin(t) + 2 * Math.sin(2 * t)) * 48;
+      const y = (Math.cos(t) - 2 * Math.cos(2 * t)) * 48;
+      const z = -Math.sin(3 * t) * 48;
 
-      for (let j = 0; j < sectors; j++) {
-        const lon = (Math.PI * 2 * j) / sectors;
-        const sinLon = Math.sin(lon);
-        const cosLon = Math.cos(lon);
-
-        const x = radius * sinLat * cosLon;
-        const y = radius * sinLat * sinLon;
-        const z = radius * cosLat;
-
-        points.push({
-          x,
-          y,
-          z,
-          baseX: x,
-          baseY: y,
-          baseZ: z,
-        });
-      }
+      points.push({
+        x,
+        y,
+        z,
+        baseX: x,
+        baseY: y,
+        baseZ: z,
+      });
     }
 
     // Rotations state
-    let angleX = 0.006;
-    let angleY = 0.008;
-    const rotSpeedX = 0.003;
-    const rotSpeedY = 0.004;
+    let angleX = 0.005;
+    let angleY = 0.007;
+    const rotSpeedX = 0.002;
+    const rotSpeedY = 0.003;
 
-    const fov = 400; // Field of View (camera perspective)
+    const fov = 500; // perspective depth
 
     // Event listeners
     const onMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
-      // relative coordinates inside the canvas
       mouse.current.targetX = e.clientX - rect.left;
       mouse.current.targetY = e.clientY - rect.top;
       mouse.current.isHovering = true;
@@ -102,7 +91,6 @@ export default function Interactive3DObject() {
     mouse.current.x = width / 2;
     mouse.current.y = height / 2;
 
-    // Helper functions for 3D rotations
     const rotateX = (p: { x: number; y: number; z: number }, angle: number) => {
       const cos = Math.cos(angle);
       const sin = Math.sin(angle);
@@ -125,135 +113,113 @@ export default function Interactive3DObject() {
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
-      // Smooth mouse coordinates interpolation
-      mouse.current.x += (mouse.current.targetX - mouse.current.x) * 0.08;
-      mouse.current.y += (mouse.current.targetY - mouse.current.y) * 0.08;
+      // Smooth mouse coordinates translation
+      mouse.current.x += (mouse.current.targetX - mouse.current.x) * 0.06;
+      mouse.current.y += (mouse.current.targetY - mouse.current.y) * 0.06;
 
-      // Adjust rotation angles based on mouse offset from center (mouse tilt effect)
       const mouseOffsetX = (mouse.current.x - width / 2) / (width / 2);
       const mouseOffsetY = (mouse.current.y - height / 2) / (height / 2);
 
-      const currentAngleX = rotSpeedX + mouseOffsetY * 0.015;
-      const currentAngleY = rotSpeedY + mouseOffsetX * 0.015;
+      const currentAngleX = rotSpeedX + mouseOffsetY * 0.012;
+      const currentAngleY = rotSpeedY + mouseOffsetX * 0.012;
 
       angleX += currentAngleX;
       angleY += currentAngleY;
 
-      // Projection and translation mapping
-      const projected: { x: number; y: number; depth: number; zIndex: number }[] = [];
+      // Project and map points
+      interface ProjectedPoint {
+        x: number;
+        y: number;
+        z: number;
+        scale: number;
+        basePoint: Point3D;
+      }
+
+      let projected: ProjectedPoint[] = [];
 
       points.forEach((pt) => {
-        // Copy original coords
         let p = { x: pt.baseX, y: pt.baseY, z: pt.baseZ };
 
-        // Apply interactive mouse warping if close
+        // Apply mouse-warp distortion (gently pulling points if mouse is hovering)
         if (mouse.current.isHovering) {
-          // Find distance from cursor to 3D center of sphere
-          const rect = canvas.getBoundingClientRect();
           const cx = width / 2;
           const cy = height / 2;
-          
-          // Warp calculations
-          const warpRadius = 150;
           const mouseX3D = mouse.current.x - cx;
           const mouseY3D = mouse.current.y - cy;
           
-          // distance on the 2D plane
           const dx = mouseX3D - p.x;
           const dy = mouseY3D - p.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           
-          if (dist < warpRadius && dist > 0) {
-            const pullForce = (warpRadius - dist) / warpRadius * 15;
+          if (dist < 180 && dist > 0) {
+            const pullForce = (180 - dist) / 180 * 18;
             p.x += (dx / dist) * pullForce;
             p.y += (dy / dist) * pullForce;
           }
         }
 
-        // Apply continuous 3D rotations
+        // Apply rotations
         rotateX(p, angleX);
         rotateY(p, angleY);
 
-        // Project onto 2D screen (Perspective projection)
-        const depth = 200; // camera depth offset
-        const scale = fov / (fov + p.z + depth);
+        // Perspective projection
+        const depthOffset = 220;
+        const scale = fov / (fov + p.z + depthOffset);
         const screenX = width / 2 + p.x * scale;
         const screenY = height / 2 + p.y * scale;
 
         projected.push({
           x: screenX,
           y: screenY,
-          depth: scale,
-          zIndex: p.z, // higher zIndex = closer to camera
+          z: p.z,
+          scale,
+          basePoint: pt,
         });
       });
 
-      // Draw wireframe grid lines
-      ctx.lineWidth = 1;
-      
-      // Connect rings (latitude rows)
-      for (let i = 0; i <= rings; i++) {
-        for (let j = 0; j < sectors; j++) {
-          const idx1 = i * sectors + j;
-          const idx2 = i * sectors + ((j + 1) % sectors);
-          
-          const p1 = projected[idx1];
-          const p2 = projected[idx2];
-          
-          if (p1 && p2) {
-            // Depth shading: lines closer to screen are brighter emerald, back lines are faded slate
-            const avgZ = (p1.zIndex + p2.zIndex) / 2;
-            const alpha = Math.max(0.04, Math.min(0.4, (avgZ + radius) / (radius * 2) * 0.35));
-            
-            ctx.strokeStyle = `rgba(0, 229, 163, ${alpha})`;
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-          }
-        }
-      }
+      // Painter's Algorithm: Sort by Z coordinate from back to front (farthest first)
+      // This is crucial for solid overlapping cylinder projection!
+      projected.sort((a, b) => a.z - b.z);
 
-      // Connect columns (longitude arcs)
-      for (let i = 0; i < rings; i++) {
-        for (let j = 0; j < sectors; j++) {
-          const idx1 = i * sectors + j;
-          const idx2 = (i + 1) * sectors + j;
-          
-          const p1 = projected[idx1];
-          const p2 = projected[idx2];
-          
-          if (p1 && p2) {
-            const avgZ = (p1.zIndex + p2.zIndex) / 2;
-            const alpha = Math.max(0.04, Math.min(0.35, (avgZ + radius) / (radius * 2) * 0.3));
-            
-            ctx.strokeStyle = `rgba(0, 229, 163, ${alpha})`;
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-          }
-        }
-      }
+      // Tube radius settings
+      const baseRadius = 26;
 
-      // Draw glowing vertices (dots)
+      // Render tubular slices
       projected.forEach((p) => {
-        // Points closer to camera are larger and brighter
-        const radiusFactor = (p.zIndex + radius) / (radius * 2); // 0 to 1
-        const size = Math.max(1, 1.2 + radiusFactor * 2.5);
-        const alpha = Math.max(0.1, Math.min(0.95, radiusFactor * 0.9));
-        
-        ctx.fillStyle = `rgba(0, 229, 163, ${alpha})`;
+        const r = baseRadius * p.scale;
+        if (r <= 0) return;
+
+        // Create volumetric radial gradient shading (simulates thick round 3D tube)
+        // Highlight positioned slightly top-left of center
+        const grad = ctx.createRadialGradient(
+          p.x - r * 0.28,
+          p.y - r * 0.28,
+          r * 0.08, // inner circle (specular highlight)
+          p.x,
+          p.y,
+          r // outer cylinder limit
+        );
+
+        // Warm light-gray luxury matte glass styling
+        // Matches the 3D looping structure in the reference image
+        grad.addColorStop(0, "rgba(255, 255, 255, 0.95)");      // highlight
+        grad.addColorStop(0.2, "rgba(215, 218, 218, 0.85)");   // lit surface
+        grad.addColorStop(0.55, "rgba(168, 178, 178, 0.75)");   // body shade
+        grad.addColorStop(0.85, "rgba(100, 114, 114, 0.65)");   // shadow core
+        grad.addColorStop(1, "rgba(14, 32, 56, 0.15)");         // shadow edge blending
+
+        ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
         ctx.fill();
 
-        // Draw soft glow on nearest points
-        if (radiusFactor > 0.8) {
-          ctx.fillStyle = `rgba(0, 229, 163, ${alpha * 0.15})`;
+        // Subtle bronze ring overlays to denote the consulting luxury color theme
+        if (Math.floor(p.z) % 8 === 0) {
+          ctx.strokeStyle = "rgba(184, 144, 99, 0.07)"; // thin bronze wireframe overlay
+          ctx.lineWidth = 0.5;
           ctx.beginPath();
-          ctx.arc(p.x, p.y, size * 3.5, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.stroke();
         }
       });
 
@@ -274,21 +240,19 @@ export default function Interactive3DObject() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-[450px] flex items-center justify-center overflow-hidden border border-[#263f39]/30 bg-[#121d1b]/40 rounded-2xl cursor-none"
+      className="relative w-full h-[450px] flex items-center justify-center overflow-hidden border border-[#b89063]/15 bg-[#faf9f6]/40 rounded-2xl cursor-none"
       style={{
-        boxShadow: "inset 0 1px 0 rgba(0, 229, 163, 0.05), 0 20px 50px rgba(0, 0, 0, 0.2)",
-        backdropFilter: "blur(8px)",
+        boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 20px 48px rgba(14, 32, 56, 0.03)",
+        backdropFilter: "blur(4px)",
       }}
     >
-      {/* 3D Canvas */}
       <canvas ref={canvasRef} className="block w-full h-full" />
       
-      {/* Subtle architectural overlay guides */}
-      <div className="absolute top-4 start-4 font-mono text-[9px] text-[#00e5a3]/50 uppercase tracking-widest pointer-events-none select-none">
-        Mesh Object: SPHERE_01
+      <div className="absolute top-4 start-4 font-mono text-[9px] text-[#0e2038]/40 uppercase tracking-widest pointer-events-none select-none">
+        Sculpture: TREFOIL_LOOP_3D
       </div>
-      <div className="absolute bottom-4 end-4 font-mono text-[9px] text-[#00e5a3]/50 uppercase tracking-widest pointer-events-none select-none">
-        Projection: 3D_PERSPECTIVE
+      <div className="absolute bottom-4 end-4 font-mono text-[9px] text-[#b89063]/60 uppercase tracking-widest pointer-events-none select-none">
+        VIA WESTERN STYLE
       </div>
     </div>
   );

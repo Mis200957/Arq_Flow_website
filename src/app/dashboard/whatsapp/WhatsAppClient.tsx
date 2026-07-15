@@ -67,7 +67,7 @@ export default function WhatsAppClient({ businessId, initialInstance }: Props) {
   if (!instance) {
     return (
       <div className="card p-10 text-center max-w-lg mx-auto">
-        <div className="w-16 h-16 rounded-2xl bg-[rgba(0,229,163,0.12)] flex items-center justify-center mx-auto mb-4">
+        <div className="w-16 h-16 rounded-2xl bg-[rgba(184,144,99,0.12)] flex items-center justify-center mx-auto mb-4">
           <Phone className="w-8 h-8 text-accent" />
         </div>
         <h2 className="text-xl font-bold mb-2">{t.notProvisioned}</h2>
@@ -152,7 +152,7 @@ export default function WhatsAppClient({ businessId, initialInstance }: Props) {
           <ol className="space-y-2">
             {[t.step1, t.step2, t.step3, t.step4].map((step, i) => (
               <li key={i} className="flex items-center gap-3 text-sm">
-                <span className="w-6 h-6 rounded-full bg-[rgba(0,229,163,0.2)] text-accent flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
+                <span className="w-6 h-6 rounded-full bg-[rgba(184,144,99,0.2)] text-accent flex items-center justify-center text-xs font-bold shrink-0">{i + 1}</span>
                 <span className="min-w-0">{step}</span>
               </li>
             ))}

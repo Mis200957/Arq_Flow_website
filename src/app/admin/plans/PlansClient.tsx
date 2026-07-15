@@ -113,11 +113,11 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[rgba(44,76,69,0.04)] rounded-xl p-3">
+              <div className="bg-[rgba(14,32,56,0.04)] rounded-xl p-3">
                 <p className="text-xs text-muted mb-1">Package Price</p>
                 <p className="font-bold">{formatEGP(plan.monthly_fee_egp, "en")}</p>
               </div>
-              <div className="bg-[rgba(44,76,69,0.04)] rounded-xl p-3">
+              <div className="bg-[rgba(14,32,56,0.04)] rounded-xl p-3">
                 <p className="text-xs text-muted mb-1">Setup Fee</p>
                 <p className="font-bold">{formatEGP(plan.setup_fee_egp, "en")}</p>
               </div>
@@ -198,7 +198,7 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
             <input type="number" className="input-base" value={form.margin_egp ?? ""} onChange={(e) => setForm((f) => ({ ...f, margin_egp: Number(e.target.value) }))} />
           </Field>
 
-          <div className="sm:col-span-2 rounded-xl bg-[rgba(44,76,69,0.08)] border border-[var(--accent)]/30 p-3 flex items-center justify-between text-sm">
+          <div className="sm:col-span-2 rounded-xl bg-[rgba(14,32,56,0.08)] border border-[var(--accent)]/30 p-3 flex items-center justify-between text-sm">
             <span className="text-muted">Token budget (consumed by the bot) = Price − Margin</span>
             <span className="font-bold text-accent">{formatEGP(budgetPreview, "en")}</span>
           </div>
@@ -206,7 +206,7 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
           <Field label="Setup Fee (EGP)" hint="One-time, first payment only">
             <input type="number" className="input-base" value={form.setup_fee_egp ?? ""} onChange={(e) => setForm((f) => ({ ...f, setup_fee_egp: Number(e.target.value) }))} />
           </Field>
-          <div className="rounded-xl bg-[rgba(44,76,69,0.04)] p-3 text-xs text-muted flex items-center">
+          <div className="rounded-xl bg-[rgba(14,32,56,0.04)] p-3 text-xs text-muted flex items-center">
             Renewal: monthly (same day next calendar month)
           </div>
 
@@ -249,7 +249,7 @@ export default function PlansClient({ plans: initial, subscriberCounts }: Props)
               {CAPABILITY_META.map((c) => (
                 <label
                   key={c.key}
-                  className="flex items-start gap-2.5 text-sm cursor-pointer rounded-xl bg-[rgba(44,76,69,0.04)] p-3"
+                  className="flex items-start gap-2.5 text-sm cursor-pointer rounded-xl bg-[rgba(14,32,56,0.04)] p-3"
                 >
                   <input
                     type="checkbox"

@@ -150,7 +150,7 @@ export default function AISettingsClient({ business }: Props) {
               className={cn(
                 "p-4 rounded-xl border text-center text-sm font-semibold transition-all",
                 form.tone_of_voice === value
-                  ? "bg-[rgba(0,229,163,0.2)] border-[var(--accent)] text-accent"
+                  ? "bg-[rgba(184,144,99,0.2)] border-[var(--accent)] text-accent"
                   : "border-[var(--border)] text-muted hover:border-[var(--border-strong)]"
               )}
             >
@@ -171,7 +171,7 @@ export default function AISettingsClient({ business }: Props) {
               className={cn(
                 "w-full p-3 rounded-xl border text-start text-sm font-semibold transition-all",
                 form.fallback_behavior === value
-                  ? "bg-[rgba(0,229,163,0.2)] border-[var(--accent)] text-accent"
+                  ? "bg-[rgba(184,144,99,0.2)] border-[var(--accent)] text-accent"
                   : "border-[var(--border)] text-muted hover:border-[var(--border-strong)]"
               )}
             >
@@ -215,7 +215,7 @@ export default function AISettingsClient({ business }: Props) {
                 className={cn(
                   "px-4 py-2 rounded-xl border text-sm font-semibold transition-all",
                   form.languages.includes(l)
-                    ? "bg-[rgba(0,229,163,0.2)] border-[var(--accent)] text-accent"
+                    ? "bg-[rgba(184,144,99,0.2)] border-[var(--accent)] text-accent"
                     : "border-[var(--border)] text-muted"
                 )}
               >

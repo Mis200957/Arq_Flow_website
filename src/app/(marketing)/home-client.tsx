@@ -469,7 +469,7 @@ function Testimonials() {
                   aria-label={`${t.goto} ${i + 1}`}
                   className={cn(
                     "w-2.5 h-2.5 rounded-full transition-colors",
-                    i === index ? "bg-[var(--accent)]" : "bg-[rgba(0,229,163,0.2)]"
+                    i === index ? "bg-[var(--accent)]" : "bg-[rgba(184,144,99,0.2)]"
                   )}
                 />
               ))}
