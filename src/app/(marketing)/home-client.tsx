@@ -43,76 +43,64 @@ import Interactive3DObject from "@/components/ui/Interactive3DObject";
 function Hero() {
   const t = useT({
     ar: {
-      badge: "وكلاء ذكاء اصطناعي للواتساب",
-      h1a: "موظف ذكاء اصطناعي",
+      h1a: "موظف ذكاء اصطناعي متكامل",
       h1b: "يرد على عملاءك ٢٤ ساعة",
-      sub: "ArqFlow بيركّب لنشاطك وكيل ذكاء اصطناعي خاص على واتساب — يرد فوراً، ياخد الطلبات، يحجز المواعيد، ويفهم المصري والعربي والإنجليزي. من غير إجازات ومن غير «هرد عليك بعدين».",
+      sub: "حلول ذكية متكاملة للرد الفوري، استقبال الطلبات، وحجز المواعيد على الواتساب على مدار الساعة.",
       cta1: "ابدأ الآن",
       cta2: "احجز ديمو مجاني",
-      note: "إعداد خلال دقائق · أسعار بالجنيه المصري · إلغاء في أي وقت",
     },
     en: {
-      badge: "AI agents for WhatsApp",
-      h1a: "An AI employee that",
-      h1b: "answers your customers 24/7",
-      sub: "ArqFlow gives your business its own private AI agent on WhatsApp — instant replies, order taking, appointment booking, in Egyptian Arabic and English. No days off, no “I'll get back to you”.",
+      h1a: "Integrated AI Employee",
+      h1b: "Answering Your Customers 24/7",
+      sub: "Integrated smart solutions for instant replies, order taking, and appointment booking on WhatsApp 24/7.",
       cta1: "Get Started",
       cta2: "Book a Free Demo",
-      note: "Set up in minutes · Priced in EGP · Cancel anytime",
     },
   });
 
   return (
-    <section className="relative overflow-hidden">
-      <div className="absolute inset-0 grid-bg opacity-50" aria-hidden />
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-12 sm:pt-24 pb-16 sm:pb-20 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-        <div>
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <span className="badge badge-accent mb-6">
-              <Zap className="w-3.5 h-3.5" aria-hidden /> {t.badge}
-            </span>
-            <h1 className="text-[2rem] leading-10 sm:text-5xl lg:text-6xl sm:leading-[1.15] font-extrabold">
-              <span className="gradient-text">{t.h1a}</span>
-              <br />
-              <span>{t.h1b}</span>
-            </h1>
-            <p className="text-muted mt-6 text-base sm:text-lg leading-relaxed max-w-xl">{t.sub}</p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.15 }}
-            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-8 sm:mt-9 max-w-md sm:max-w-none"
-          >
-            <Link href="/pricing" className="btn-primary text-base !px-7 !py-3.5">
-              {t.cta1}
-              <DirArrow />
-            </Link>
-            <Link href="/book-demo" className="btn-outline text-base !px-7 !py-3.5">
-              <MessageCircle className="w-4 h-4" aria-hidden />
-              {t.cta2}
-            </Link>
-          </motion.div>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.35 }}
-            className="text-muted text-xs mt-6"
-          >
-            {t.note}
-          </motion.p>
-        </div>
-
-        <div className="w-full flex items-center justify-center">
+    <section className="relative overflow-hidden min-h-[550px] flex items-center justify-center">
+      {/* Interactive 3D Sculpture in the Absolute Background */}
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-45 flex items-center justify-center overflow-hidden">
+        <div className="w-full max-w-4xl h-[600px] relative">
           <Interactive3DObject />
         </div>
+      </div>
+
+      <div className="absolute inset-0 grid-bg opacity-40 z-0 pointer-events-none" aria-hidden />
+
+      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-16 sm:pt-28 pb-20 sm:pb-24 z-10 flex flex-col items-center justify-center text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="flex flex-col items-center justify-center"
+        >
+          <h1 className="text-3xl sm:text-5xl lg:text-5xl leading-tight font-extrabold tracking-tight max-w-3xl">
+            <span className="gradient-text">{t.h1a}</span>
+            <br />
+            <span>{t.h1b}</span>
+          </h1>
+          <p className="text-muted mt-6 text-xs sm:text-sm tracking-wide max-w-2xl text-center leading-relaxed">
+            {t.sub}
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 w-full max-w-md"
+        >
+          <Link href="/pricing" className="btn-primary text-sm !px-8 !py-3.5 w-full sm:w-auto">
+            {t.cta1}
+            <DirArrow />
+          </Link>
+          <Link href="/book-demo" className="btn-outline text-sm !px-8 !py-3.5 w-full sm:w-auto">
+            <MessageCircle className="w-4 h-4" aria-hidden />
+            {t.cta2}
+          </Link>
+        </motion.div>
       </div>
     </section>
   );

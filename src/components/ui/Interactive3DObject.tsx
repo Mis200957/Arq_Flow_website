@@ -26,7 +26,7 @@ export default function Interactive3DObject() {
 
     let animationFrameId: number;
     let width = (canvas.width = container.clientWidth);
-    let height = (canvas.height = 450);
+    let height = (canvas.height = container.clientHeight || 500);
 
     // Generate Trefoil Knot 3D path points
     const points: Point3D[] = [];
@@ -78,7 +78,7 @@ export default function Interactive3DObject() {
     const onResize = () => {
       if (container) {
         width = canvas.width = container.clientWidth;
-        height = canvas.height = 450;
+        height = canvas.height = container.clientHeight || 500;
       }
     };
 
@@ -182,7 +182,7 @@ export default function Interactive3DObject() {
       projected.sort((a, b) => a.z - b.z);
 
       // Tube radius settings
-      const baseRadius = 26;
+      const baseRadius = 28;
 
       // Render tubular slices
       projected.forEach((p) => {
@@ -240,20 +240,9 @@ export default function Interactive3DObject() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-[450px] flex items-center justify-center overflow-hidden border border-[#b89063]/15 bg-[#faf9f6]/40 rounded-2xl cursor-none"
-      style={{
-        boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 20px 48px rgba(14, 32, 56, 0.03)",
-        backdropFilter: "blur(4px)",
-      }}
+      className="relative w-full h-full flex items-center justify-center overflow-hidden bg-transparent cursor-none"
     >
       <canvas ref={canvasRef} className="block w-full h-full" />
-      
-      <div className="absolute top-4 start-4 font-mono text-[9px] text-[#0e2038]/40 uppercase tracking-widest pointer-events-none select-none">
-        Sculpture: TREFOIL_LOOP_3D
-      </div>
-      <div className="absolute bottom-4 end-4 font-mono text-[9px] text-[#b89063]/60 uppercase tracking-widest pointer-events-none select-none">
-        VIA WESTERN STYLE
-      </div>
     </div>
   );
 }
