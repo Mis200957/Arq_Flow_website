@@ -112,15 +112,15 @@ function ChatMock() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 32, scale: 0.96 }}
+      initial={{ opacity: 0, y: 32, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
+      transition={{ type: "spring", stiffness: 80, damping: 15, delay: 0.3 }}
       className="relative"
       aria-label={t.bot}
     >
-      <div className="glass-strong overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.5)]">
+      <div className="glass-strong overflow-hidden shadow-[0_24px_80px_rgba(27,27,30,0.06)]">
         {/* chat header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-app bg-[rgba(7,15,28,0.45)]">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-app bg-[var(--bg-solid)]">
           <span className="relative w-10 h-10 rounded-full bg-gradient-to-br from-brand-teal to-brand-sky flex items-center justify-center text-white shrink-0">
             <MessageCircle className="w-5 h-5" aria-hidden />
             <span className="absolute bottom-0 end-0 w-2.5 h-2.5 rounded-full bg-[var(--success)] border-2 border-brand-deep" />
@@ -140,14 +140,14 @@ function ChatMock() {
             {SCRIPT.slice(0, count).map((m, i) => (
               <motion.div
                 key={`${cycle}-${i}`}
-                initial={{ opacity: 0, y: 14, scale: 0.96 }}
+                initial={{ opacity: 0, y: 12, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
+                transition={{ type: "spring", stiffness: 350, damping: 22 }}
                 className={cn(
                   "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
                   m.from === "customer"
-                    ? "self-start bg-[rgba(238,237,210,0.1)] border border-app rounded-ss-md"
-                    : "self-end bg-gradient-to-br from-brand-teal to-brand-sky text-white rounded-se-md shadow-[0_8px_24px_rgba(21,79,97,0.35)]"
+                    ? "self-start bg-[var(--bg-solid-high)] text-app border border-app rounded-ss-md"
+                    : "self-end bg-gradient-to-br from-brand-teal to-brand-sky text-white rounded-se-md shadow-[0_8px_24px_rgba(27,27,30,0.08)]"
                 )}
               >
                 {m.text}
@@ -617,7 +617,7 @@ function Testimonials() {
                   aria-label={`${t.goto} ${i + 1}`}
                   className={cn(
                     "w-2.5 h-2.5 rounded-full transition-colors",
-                    i === index ? "bg-[var(--accent)]" : "bg-[rgba(238,237,210,0.2)]"
+                    i === index ? "bg-[var(--accent)]" : "bg-[rgba(27,27,30,0.2)]"
                   )}
                 />
               ))}

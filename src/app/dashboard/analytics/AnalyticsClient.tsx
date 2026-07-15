@@ -116,7 +116,7 @@ export default function AnalyticsClient({ messages, orders, escalations }: Props
             className={cn(
               "text-xs px-3 py-1.5 rounded-full font-semibold border transition-all",
               range === r
-                ? "bg-[rgba(153,207,220,0.2)] text-accent border-[var(--accent)]"
+                ? "bg-[rgba(27,27,30,0.2)] text-accent border-[var(--accent)]"
                 : "text-muted border-[var(--border)] hover:border-[var(--border-strong)]"
             )}
           >
@@ -139,7 +139,7 @@ export default function AnalyticsClient({ messages, orders, escalations }: Props
           <h3 className="font-bold mb-4">{t.messages}</h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={msgByDay}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(238,237,210,0.06)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(27,27,30,0.06)" />
               <XAxis dataKey="date" tick={{ fill: "var(--fg-muted)", fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fill: "var(--fg-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={tooltipStyle} />
@@ -152,7 +152,7 @@ export default function AnalyticsClient({ messages, orders, escalations }: Props
           <h3 className="font-bold mb-4">{t.orders}</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={ordersByDay} barSize={8}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(238,237,210,0.06)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(27,27,30,0.06)" />
               <XAxis dataKey="date" tick={{ fill: "var(--fg-muted)", fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fill: "var(--fg-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={tooltipStyle} />
@@ -165,11 +165,11 @@ export default function AnalyticsClient({ messages, orders, escalations }: Props
           <h3 className="font-bold mb-4">{t.cost}</h3>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={msgByDay}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(238,237,210,0.06)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(27,27,30,0.06)" />
               <XAxis dataKey="date" tick={{ fill: "var(--fg-muted)", fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fill: "var(--fg-muted)", fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => formatEGP(v, lang)} />
-              <Area type="monotone" dataKey="cost" stroke="var(--accent)" fill="rgba(153,207,220,0.15)" strokeWidth={2} />
+              <Area type="monotone" dataKey="cost" stroke="var(--accent)" fill="rgba(27,27,30,0.15)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -189,7 +189,7 @@ export default function AnalyticsClient({ messages, orders, escalations }: Props
                       <span className="truncate max-w-[70%]">{intent}</span>
                       <span className="text-muted">{count}</span>
                     </div>
-                    <div className="h-1.5 rounded-full bg-[rgba(238,237,210,0.1)] overflow-hidden">
+                    <div className="h-1.5 rounded-full bg-[rgba(27,27,30,0.1)] overflow-hidden">
                       <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
                     </div>
                   </div>

@@ -1,0 +1,158 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+
+export default function InteractiveGridBackground() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mouseRef = useRef({ x: -1000, y: -1000, targetX: -1000, targetY: -1000 });
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    let width = (canvas.width = window.innerWidth);
+    let height = (canvas.height = window.innerHeight);
+
+    // Grid spacing configurations
+    const spacing = 48; // Space between grid dots (px)
+    let cols = Math.ceil(width / spacing) + 1;
+    let rows = Math.ceil(height / spacing) + 1;
+
+    // Define initial dot coordinates and base offsets
+    interface Point {
+      x: number;
+      y: number;
+      baseX: number;
+      baseY: number;
+      vx: number;
+      vy: number;
+    }
+
+    let points: Point[] = [];
+
+    const initGrid = () => {
+      points = [];
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      cols = Math.ceil(width / spacing) + 1;
+      rows = Math.ceil(height / spacing) + 1;
+
+      for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < rows; r++) {
+          const x = c * spacing;
+          const y = r * spacing;
+          points.push({
+            x,
+            y,
+            baseX: x,
+            baseY: y,
+            vx: 0,
+            vy: 0,
+          });
+        }
+      }
+    };
+
+    initGrid();
+
+    // Event listeners
+    const onMouseMove = (e: MouseEvent) => {
+      mouseRef.current.targetX = e.clientX;
+      mouseRef.current.targetY = e.clientY;
+    };
+
+    const onMouseLeave = () => {
+      mouseRef.current.targetX = -1000;
+      mouseRef.current.targetY = -1000;
+    };
+
+    const onResize = () => {
+      initGrid();
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseleave", onMouseLeave);
+    window.addEventListener("resize", onResize);
+
+    // Animation Loop
+    const render = () => {
+      // Clear with very light tinted monochrome background
+      ctx.fillStyle = "#fbf8fc";
+      ctx.fillRect(0, 0, width, height);
+
+      // Smooth mouse coordinates translation
+      const mouse = mouseRef.current;
+      mouse.x += (mouse.targetX - mouse.x) * 0.1;
+      mouse.y += (mouse.targetY - mouse.y) * 0.1;
+
+      // Draw very subtle grid line alignments first
+      ctx.strokeStyle = "rgba(116, 120, 120, 0.02)"; // very faint outline
+      ctx.lineWidth = 1;
+
+      // Render distorted grid points
+      const maxDistance = 160; // radius of mouse magnetic field
+      const forceFactor = 24;  // strength of warping push/pull
+
+      points.forEach((pt) => {
+        const dx = mouse.x - pt.baseX;
+        const dy = mouse.y - pt.baseY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        let targetX = pt.baseX;
+        let targetY = pt.baseY;
+
+        // If cursor is within magnetic radius, apply distortion force
+        if (dist < maxDistance && dist > 0) {
+          const force = (maxDistance - dist) / maxDistance; // 0 to 1
+          // Magnetic pull: distort toward the cursor slightly to emphasize alignment
+          targetX += (dx / dist) * force * forceFactor;
+          targetY += (dy / dist) * force * forceFactor;
+        }
+
+        // Apply springs logic to smooth transition back to base positions
+        pt.vx += (targetX - pt.x) * 0.15;
+        pt.vy += (targetY - pt.y) * 0.15;
+        pt.vx *= 0.78;
+        pt.vy *= 0.78;
+        pt.x += pt.vx;
+        pt.y += pt.vy;
+
+        // Draw dot
+        // We use slightly larger dots near the mouse, and fade them out further away
+        const dotDist = Math.sqrt((mouse.x - pt.x) ** 2 + (mouse.y - pt.y) ** 2);
+        const nearCursor = dotDist < 120;
+        
+        ctx.fillStyle = nearCursor 
+          ? "rgba(27, 27, 30, 0.18)" // Onyx gray when close
+          : "rgba(27, 27, 30, 0.055)"; // subtle gray baseline
+        
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, nearCursor ? 2.2 : 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseleave", onMouseLeave);
+      window.removeEventListener("resize", onResize);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="pointer-events-none fixed inset-0 z-[-10] block w-full h-full"
+      style={{ mixBlendMode: "normal" }}
+    />
+  );
+}

@@ -91,7 +91,7 @@ export default function OrdersClient({ businessId, initialOrders }: Props) {
               className={cn(
                 "text-xs px-3 py-1.5 rounded-full font-semibold border transition-all",
                 filterStatus === s
-                  ? "bg-[rgba(153,207,220,0.2)] text-accent border-[var(--accent)]"
+                  ? "bg-[rgba(27,27,30,0.2)] text-accent border-[var(--accent)]"
                   : "text-muted border-[var(--border)] hover:border-[var(--border-strong)]"
               )}
             >
@@ -123,7 +123,7 @@ export default function OrdersClient({ businessId, initialOrders }: Props) {
                 {filtered.map((o) => (
                   <Fragment key={o.id}>
                     <tr
-                      className="border-b border-[var(--border)] hover:bg-[rgba(238,237,210,0.04)] cursor-pointer"
+                      className="border-b border-[var(--border)] hover:bg-[rgba(27,27,30,0.04)] cursor-pointer"
                       onClick={() => setExpanded(expanded === o.id ? null : o.id)}
                     >
                       <td className="p-3 font-mono text-xs text-accent">{o.id}</td>

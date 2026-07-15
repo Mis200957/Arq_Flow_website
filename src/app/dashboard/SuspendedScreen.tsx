@@ -253,7 +253,7 @@ export default function SuspendedScreen({ business, plan, usage, accounts }: Pro
           </div>
         ) : (
           <div className="space-y-5">
-            <div className="rounded-xl bg-[rgba(153,207,220,0.08)] border border-[var(--accent)]/30 p-4">
+            <div className="rounded-xl bg-[rgba(27,27,30,0.08)] border border-[var(--accent)]/30 p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted">{t.amountDue}</p>
@@ -275,7 +275,7 @@ export default function SuspendedScreen({ business, plan, usage, accounts }: Pro
                     className={cn(
                       "rounded-xl border p-3 text-center text-sm transition",
                       method === ch
-                        ? "border-[var(--accent)] bg-[rgba(153,207,220,0.1)]"
+                        ? "border-[var(--accent)] bg-[rgba(27,27,30,0.1)]"
                         : "border-[var(--border)]"
                     )}
                   >
@@ -283,7 +283,7 @@ export default function SuspendedScreen({ business, plan, usage, accounts }: Pro
                   </button>
                 ))}
               </div>
-              <div className="mt-2 rounded-lg bg-[rgba(238,237,210,0.04)] p-3 text-sm flex items-center justify-between">
+              <div className="mt-2 rounded-lg bg-[rgba(27,27,30,0.04)] p-3 text-sm flex items-center justify-between">
                 <span className="text-muted">{t.transferTo}</span>
                 <span className="font-mono font-bold text-accent" dir="ltr">{accounts[method]}</span>
               </div>

@@ -68,10 +68,10 @@ export function SiteHeader() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-[1px]",
                   pathname === item.href
-                    ? "text-app bg-[rgba(229,228,201,0.08)]"
-                    : "text-muted hover:text-app"
+                    ? "text-app bg-[var(--bg-solid-high)] shadow-[0_2px_8px_rgba(0,0,0,0.02)]"
+                    : "text-muted hover:text-app hover:bg-[var(--bg-solid)]"
                 )}
               >
                 {pick(item.label)}
@@ -82,13 +82,13 @@ export function SiteHeader() {
           <div className="hidden lg:flex items-center gap-2">
             <button
               onClick={() => setLang(lang === "ar" ? "en" : "ar")}
-              className="btn-ghost !px-3 text-sm"
+              className="btn-ghost !px-3 text-sm transition-all duration-200 hover:-translate-y-[1px]"
               aria-label="Switch language"
             >
               <Globe className="w-4 h-4" aria-hidden />
               {lang === "ar" ? "EN" : "عربي"}
             </button>
-            <Link href="/login" className="btn-ghost text-sm">{t.login}</Link>
+            <Link href="/login" className="btn-ghost text-sm transition-all duration-200 hover:-translate-y-[1px]">{t.login}</Link>
             <Link href="/pricing" className="btn-primary !py-2.5 text-sm">{t.start}</Link>
           </div>
 
@@ -133,8 +133,8 @@ export function SiteHeader() {
                   className={cn(
                     "flex items-center min-h-12 px-4 rounded-xl text-base font-medium transition-colors",
                     pathname === item.href
-                      ? "text-app bg-[rgba(229,228,201,0.08)] border border-app"
-                      : "text-muted hover:text-app active:bg-[rgba(229,228,201,0.06)]"
+                      ? "text-app bg-[var(--bg-solid-high)] border border-app"
+                      : "text-muted hover:text-app active:bg-[var(--bg-solid)]"
                   )}
                 >
                   {pick(item.label)}
@@ -238,7 +238,7 @@ export function SiteFooter() {
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="inline-flex items-center min-h-9 text-muted hover:text-app text-sm transition-colors"
+                    className="inline-flex items-center min-h-9 text-muted hover:text-app text-sm transition-colors link-underline"
                   >
                     {pick(l.label)}
                   </Link>

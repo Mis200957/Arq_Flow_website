@@ -72,10 +72,10 @@ export default function NotificationsClient({ userId, initial }: { userId: strin
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-[rgba(238,237,210,0.05)]">
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-[rgba(27,27,30,0.05)]">
           {(["all", "unread"] as const).map((k) => (
             <button key={k} onClick={() => setTab(k)}
-              className={cn("px-4 py-1.5 rounded-lg text-sm font-semibold transition-all", tab === k ? "bg-[rgba(153,207,220,0.18)] text-accent" : "text-muted hover:text-app")}>
+              className={cn("px-4 py-1.5 rounded-lg text-sm font-semibold transition-all", tab === k ? "bg-[rgba(27,27,30,0.18)] text-accent" : "text-muted hover:text-app")}>
               {k === "all" ? t.all : t.unread}{k === "unread" && unreadCount > 0 ? ` (${unreadCount})` : ""}
             </button>
           ))}
@@ -100,8 +100,8 @@ export default function NotificationsClient({ userId, initial }: { userId: strin
             const Icon = iconFor(n.type);
             return (
               <button key={n.id} onClick={() => markRead(n)}
-                className={cn("w-full text-start flex items-start gap-3 p-4 hover:bg-[rgba(238,237,210,0.04)] transition-colors", !n.read && "bg-[rgba(153,207,220,0.06)]")}>
-                <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", !n.read ? "bg-[rgba(153,207,220,0.18)] text-accent" : "bg-[rgba(238,237,210,0.06)] text-muted")}>
+                className={cn("w-full text-start flex items-start gap-3 p-4 hover:bg-[rgba(27,27,30,0.04)] transition-colors", !n.read && "bg-[rgba(27,27,30,0.06)]")}>
+                <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", !n.read ? "bg-[rgba(27,27,30,0.18)] text-accent" : "bg-[rgba(27,27,30,0.06)] text-muted")}>
                   <Icon className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 flex-1">

@@ -326,7 +326,7 @@ function OnboardingImportWizard() {
         <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-[rgba(153,207,220,0.12)] text-accent flex items-center justify-center">
+              <span className="w-8 h-8 rounded-lg bg-[rgba(27,27,30,0.12)] text-accent flex items-center justify-center">
                 <Upload className="w-4 h-4" />
               </span>
               {currentT.title}
@@ -414,7 +414,7 @@ function OnboardingImportWizard() {
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-strong rounded-2xl flex flex-col items-center justify-center gap-3 py-10 px-4 cursor-pointer hover:border-accent hover:bg-[rgba(153,207,220,0.03)] transition-all bg-[rgba(7,15,28,0.2)]"
+                  className="border-2 border-dashed border-strong rounded-2xl flex flex-col items-center justify-center gap-3 py-10 px-4 cursor-pointer hover:border-accent hover:bg-[rgba(27,27,30,0.03)] transition-all bg-[rgba(7,15,28,0.2)]"
                 >
                   <Upload className="w-8 h-8 text-accent animate-pulse" />
                   <p className="font-semibold text-sm">{currentT.dragDrop}</p>
@@ -459,7 +459,7 @@ function OnboardingImportWizard() {
                     style={{ textAlign: "start" }}
                   />
                 </Field>
-                <p className="text-xs text-muted flex items-start gap-1.5 leading-relaxed bg-[rgba(153,207,220,0.05)] border border-app rounded-xl p-3">
+                <p className="text-xs text-muted flex items-start gap-1.5 leading-relaxed bg-[rgba(27,27,30,0.05)] border border-app rounded-xl p-3">
                   <HelpCircle className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                   <span>{currentT.googleLinkHint}</span>
                 </p>

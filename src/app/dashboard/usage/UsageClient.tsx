@@ -134,7 +134,7 @@ export default function UsageClient({ businessId, current: initialCurrent, histo
           hint={
             <div className="mt-2 space-y-1">
               <div className="flex justify-between text-xs"><span>{pct}%</span><span>{t.ofWallet}</span></div>
-              <div className="h-1.5 rounded-full bg-[rgba(238,237,210,0.1)] overflow-hidden">
+              <div className="h-1.5 rounded-full bg-[rgba(27,27,30,0.1)] overflow-hidden">
                 <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: barColor }} />
               </div>
             </div>
@@ -159,7 +159,7 @@ export default function UsageClient({ businessId, current: initialCurrent, histo
                 <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(238,237,210,0.06)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(27,27,30,0.06)" vertical={false} />
             <XAxis dataKey="date" tick={{ fill: "var(--fg-muted)", fontSize: 11 }} axisLine={false} tickLine={false} interval={4} />
             <YAxis tick={{ fill: "var(--fg-muted)", fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
             <Tooltip contentStyle={{ background: "var(--bg-solid)", border: "1px solid var(--border)", borderRadius: "0.75rem", color: "var(--fg)" }} />
@@ -176,10 +176,10 @@ export default function UsageClient({ businessId, current: initialCurrent, histo
         ) : (
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={monthlyData} margin={{ left: -20, right: 8 }} barSize={28}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(238,237,210,0.06)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(27,27,30,0.06)" vertical={false} />
               <XAxis dataKey="label" tick={{ fill: "var(--fg-muted)", fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "var(--fg-muted)", fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
-              <Tooltip contentStyle={{ background: "var(--bg-solid)", border: "1px solid var(--border)", borderRadius: "0.75rem", color: "var(--fg)" }} cursor={{ fill: "rgba(238,237,210,0.05)" }} />
+              <Tooltip contentStyle={{ background: "var(--bg-solid)", border: "1px solid var(--border)", borderRadius: "0.75rem", color: "var(--fg)" }} cursor={{ fill: "rgba(27,27,30,0.05)" }} />
               <Bar dataKey="used" radius={[6, 6, 0, 0]} name={t.consumed}>
                 {monthlyData.map((d, i) => (
                   <Cell key={i} fill={d.total && d.used / d.total >= 0.9 ? "var(--danger)" : d.total && d.used / d.total >= 0.75 ? "var(--warning)" : "var(--accent)"} />

@@ -89,7 +89,7 @@ export function Accordion({
             <h3>
               <button
                 type="button"
-                className="w-full flex items-center justify-between gap-4 p-4 sm:p-5 min-h-14 text-start font-semibold cursor-pointer hover:text-accent transition-colors"
+                className="group w-full flex items-center justify-between gap-4 p-4 sm:p-5 min-h-14 text-start font-semibold cursor-pointer hover:text-accent transition-all duration-200"
                 onClick={() => setOpen(isOpen ? null : i)}
                 aria-expanded={isOpen}
                 aria-controls={`${idPrefix}-panel-${i}`}
@@ -98,7 +98,7 @@ export function Accordion({
                 <span>{item.q}</span>
                 <ChevronDown
                   className={cn(
-                    "w-5 h-5 shrink-0 text-accent transition-transform duration-200",
+                    "w-5 h-5 shrink-0 text-accent transition-all duration-200 group-hover:scale-115 group-hover:translate-y-0.5",
                     isOpen && "rotate-180"
                   )}
                   aria-hidden
@@ -162,7 +162,7 @@ export function PlanCard({
         className={cn(
           "card card-hover h-full flex flex-col p-6 sm:p-7 relative",
           plan.highlighted &&
-            "border-[rgba(153,207,220,0.45)] shadow-[0_0_48px_rgba(153,207,220,0.15)]"
+            "border-[rgba(27,27,30,0.45)] shadow-[0_0_48px_rgba(27,27,30,0.15)]"
         )}
       >
         {plan.highlighted && (

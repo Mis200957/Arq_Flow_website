@@ -102,8 +102,8 @@ export default function AdminShell({ profile, unreadCount, children }: Props) {
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
                     active
-                      ? "bg-[rgba(153,207,220,0.18)] text-accent"
-                      : "text-muted hover:bg-[rgba(238,237,210,0.06)] hover:text-app"
+                      ? "bg-[rgba(27,27,30,0.18)] text-accent"
+                      : "text-muted hover:bg-[rgba(27,27,30,0.06)] hover:text-app"
                   )}
                 >
                   <Icon className={cn("w-4.5 h-4.5 shrink-0", active ? "text-accent" : "text-muted group-hover:text-app")} />
@@ -116,7 +116,7 @@ export default function AdminShell({ profile, unreadCount, children }: Props) {
 
           {/* User footer */}
           <div className="px-4 pb-4 pt-2 border-t border-app shrink-0">
-            <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-[rgba(238,237,210,0.06)] transition-colors">
+            <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-[rgba(27,27,30,0.06)] transition-colors">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-teal to-brand-sky flex items-center justify-center text-xs font-bold text-white shrink-0">
                 {initials}
               </div>
