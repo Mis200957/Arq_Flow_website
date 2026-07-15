@@ -103,6 +103,9 @@ export default function ParticleText({
 
   /* ── Build particle positions from text bitmap ── */
   const buildParticles = useCallback((w: number, h: number) => {
+    // Guard: skip when the container is hidden (zero dimensions)
+    if (w <= 0 || h <= 0) { particles.current = []; return; }
+
     // Offscreen canvas to rasterise the text
     const off = document.createElement("canvas");
     off.width = w;
