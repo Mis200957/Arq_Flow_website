@@ -57,11 +57,11 @@ export function SectionHeading({
           {badge}
         </span>
       )}
-      <h2 className="text-[1.75rem] leading-9 sm:text-4xl sm:leading-[1.2] font-extrabold">
+      <h2 className="text-xl leading-7 sm:text-[1.75rem] sm:leading-9 md:text-4xl md:leading-[1.2] font-extrabold">
         {title}
       </h2>
       {subtitle && (
-        <p className="text-muted mt-4 text-base sm:text-lg leading-relaxed">{subtitle}</p>
+        <p className="text-muted mt-3 sm:mt-4 text-sm sm:text-base md:text-lg leading-relaxed">{subtitle}</p>
       )}
     </Reveal>
   );
@@ -229,15 +229,15 @@ export function CTABanner({
   });
 
   return (
-    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-16 sm:py-20 border-t border-[#0e2038]/5">
+    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-12 sm:py-16 md:py-20 border-t border-[#0e2038]/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <Reveal>
-          <div className="glass-strong relative overflow-hidden p-7 sm:p-12 lg:p-16 text-center bg-white border-[#b89063]/15 shadow-[0_4px_24px_rgba(14,32,56,0.02)]">
+          <div className="glass-strong relative overflow-hidden p-5 sm:p-7 md:p-12 lg:p-16 text-center bg-white border-[#b89063]/15 shadow-[0_4px_24px_rgba(14,32,56,0.02)]">
             <div className="relative">
-              <h2 className="text-[1.75rem] leading-9 sm:text-4xl sm:leading-[1.2] font-extrabold gradient-text pb-0.5">
+              <h2 className="text-xl leading-7 sm:text-[1.75rem] sm:leading-9 md:text-4xl md:leading-[1.2] font-extrabold gradient-text pb-0.5">
                 {title ?? t.title}
               </h2>
-              <p className="text-muted mt-4 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-muted mt-3 sm:mt-4 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
                 {subtitle ?? t.subtitle}
               </p>
               <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-center gap-3 mt-8 max-w-md sm:max-w-none mx-auto">

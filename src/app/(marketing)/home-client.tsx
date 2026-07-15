@@ -60,14 +60,14 @@ function Hero() {
   });
 
   return (
-    <section className="relative overflow-hidden min-h-[580px] sm:min-h-[640px] flex items-center justify-center bg-transparent py-20 sm:py-28">
-      {/* Particle-fill animated "ARQFLOW" background */}
+    <section className="relative overflow-hidden flex items-center justify-center bg-transparent py-12 sm:py-20 md:py-28 md:min-h-[640px]">
+      {/* ── Desktop: Particle ARQFLOW positioned absolutely on the opposite side ── */}
       <div
         className={cn(
-          "absolute top-1/2 -translate-y-1/2 pointer-events-none select-none z-0 w-[55%] h-[220px] sm:h-[280px] lg:h-[320px]",
+          "absolute top-1/2 -translate-y-1/2 pointer-events-none select-none z-0 w-[55%] h-[320px] hidden md:block",
           dir === "rtl"
-            ? "left-[2%] md:left-[4%] lg:left-[6%]"
-            : "right-[2%] md:right-[4%] lg:right-[6%]"
+            ? "left-[2%] lg:left-[6%]"
+            : "right-[2%] lg:right-[6%]"
         )}
       >
         <ParticleText text="ARQFLOW" className="w-full h-full" />
@@ -75,27 +75,38 @@ function Hero() {
 
       <div className="absolute inset-0 grid-bg opacity-30 z-0 pointer-events-none" aria-hidden />
 
-      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 z-10 flex items-center h-full">
+      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 z-10">
+        {/* ── Mobile: Particle ARQFLOW on top, centered ── */}
+        <div className="md:hidden w-full h-[140px] mb-6">
+          <ParticleText text="ARQFLOW" className="w-full h-full" />
+        </div>
+
         <div
           className={cn(
-            "w-full max-w-lg flex flex-col transition-all duration-300",
-            dir === "rtl" 
-              ? "items-start text-right md:mr-[6%] lg:mr-[10%] ml-auto" 
-              : "items-start text-left md:ml-[6%] lg:ml-[10%] mr-auto"
+            "w-full flex flex-col transition-all duration-300",
+            // Mobile: centered
+            "items-center text-center",
+            // Desktop: side-aligned
+            dir === "rtl"
+              ? "md:items-start md:text-right md:max-w-lg md:mr-[6%] lg:mr-[10%] md:ml-auto"
+              : "md:items-start md:text-left md:max-w-lg md:ml-[6%] lg:ml-[10%] md:mr-auto"
           )}
         >
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className={cn("flex flex-col", dir === "rtl" ? "items-start text-right" : "items-start text-left")}
+            className={cn(
+              "flex flex-col items-center text-center",
+              dir === "rtl" ? "md:items-start md:text-right" : "md:items-start md:text-left"
+            )}
           >
-            <h1 className="text-3xl sm:text-4xl lg:text-4xl leading-tight font-extrabold text-[#0e2038] max-w-md">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl leading-tight font-extrabold text-[#0e2038] max-w-md">
               <span className="gradient-text">{t.h1a}</span>
               <br />
               <span>{t.h1b}</span>
             </h1>
-            <p className="text-muted mt-8 text-xs sm:text-sm tracking-wide max-w-md leading-relaxed">
+            <p className="text-muted mt-5 sm:mt-8 text-xs sm:text-sm tracking-wide max-w-sm md:max-w-md leading-relaxed">
               {t.sub}
             </p>
           </motion.div>
@@ -104,7 +115,7 @@ function Hero() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
-            className={cn("flex flex-col sm:flex-row items-center gap-4 mt-10 w-full max-w-md", dir === "rtl" ? "justify-start" : "justify-start")}
+            className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 mt-7 sm:mt-10 w-full max-w-sm sm:max-w-md justify-center md:justify-start"
           >
             <Link href="/pricing" className="btn-primary text-sm !px-8 !py-3.5 w-full sm:w-auto">
               {t.cta1}
@@ -192,13 +203,13 @@ function Features() {
   });
 
   return (
-    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-16 sm:py-24 border-b border-[#0e2038]/5">
+    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-12 sm:py-16 md:py-24 border-b border-[#0e2038]/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} subtitle={t.sub} />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mt-8 sm:mt-12">
           {t.items.map((f, i) => (
             <Reveal key={f.h} delay={i * 0.07}>
-              <div className="card card-hover p-6 h-full bg-white shadow-[0_4px_20px_rgba(14,32,56,0.02)] border border-[#0e2038]/5">
+              <div className="card card-hover p-4 sm:p-6 h-full bg-white shadow-[0_4px_20px_rgba(14,32,56,0.02)] border border-[#0e2038]/5">
                 <span className="w-11 h-11 icon-chip mb-4">
                   <f.icon className="w-5 h-5" aria-hidden />
                 </span>
@@ -244,14 +255,14 @@ function HowItWorks() {
   });
 
   return (
-    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-16 sm:py-24 border-b border-[#0e2038]/5 relative overflow-hidden">
+    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-12 sm:py-16 md:py-24 border-b border-[#0e2038]/5 relative overflow-hidden">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} subtitle={t.sub} />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-12">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mt-8 sm:mt-12">
           {t.steps.map((s, i) => (
             <Reveal key={s.h} delay={i * 0.1}>
-              <div className="card card-hover p-6 h-full relative bg-white shadow-[0_4px_20px_rgba(14,32,56,0.02)] border border-[#0e2038]/5">
-                <span className="text-5xl font-extrabold gradient-text opacity-80">{i + 1}</span>
+              <div className="card card-hover p-4 sm:p-6 h-full relative bg-white shadow-[0_4px_20px_rgba(14,32,56,0.02)] border border-[#0e2038]/5">
+                <span className="text-4xl sm:text-5xl font-extrabold gradient-text opacity-80">{i + 1}</span>
                 <h3 className="font-bold text-lg mt-3 text-[#0e2038]">{s.h}</h3>
                 <p className="text-muted text-sm mt-2 leading-relaxed">{s.p}</p>
               </div>
@@ -306,13 +317,13 @@ function Industries() {
   });
 
   return (
-    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-16 sm:py-24 border-b border-[#0e2038]/5">
+    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-12 sm:py-16 md:py-24 border-b border-[#0e2038]/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} />
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3 mt-12">
+        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-9 gap-2 sm:gap-3 mt-8 sm:mt-12">
           {t.items.map((it, i) => (
             <Reveal key={it.l} delay={i * 0.05}>
-              <div className="card card-hover p-4 text-center h-full flex flex-col items-center gap-2.5 bg-white shadow-[0_4px_20px_rgba(14,32,56,0.02)] border border-[#0e2038]/5">
+              <div className="card card-hover p-3 sm:p-4 text-center h-full flex flex-col items-center gap-1.5 sm:gap-2.5 bg-white shadow-[0_4px_20px_rgba(14,32,56,0.02)] border border-[#0e2038]/5">
                 <span className="w-10 h-10 icon-chip">
                   <it.icon className="w-5 h-5" aria-hidden />
                 </span>
@@ -345,10 +356,10 @@ function PricingPreview() {
   });
 
   return (
-    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-16 sm:py-24 border-b border-[#0e2038]/5 relative overflow-hidden">
+    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-12 sm:py-16 md:py-24 border-b border-[#0e2038]/5 relative overflow-hidden">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} subtitle={t.sub} />
-        <div className="grid lg:grid-cols-3 gap-6 mt-14 items-stretch">
+        <div className="grid lg:grid-cols-3 gap-5 sm:gap-6 mt-10 sm:mt-14 items-stretch">
           {PLANS.map((p, i) => (
             <PlanCard key={p.id} plan={p} delay={i * 0.1} />
           ))}
@@ -428,7 +439,7 @@ function Testimonials() {
   const item = t.items[index];
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 md:py-24">
       <SectionHeading badge={t.badge} title={t.title} />
       <Reveal className="mt-12">
         <div
@@ -520,7 +531,7 @@ function HomeFaq() {
   });
 
   return (
-    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-16 sm:py-24 border-b border-[#0e2038]/5">
+    <section className="w-full bg-[#f9f8f5] text-[#0e2038] py-12 sm:py-16 md:py-24 border-b border-[#0e2038]/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <SectionHeading badge={t.badge} title={t.title} />
         <Reveal className="max-w-3xl mx-auto mt-12">
