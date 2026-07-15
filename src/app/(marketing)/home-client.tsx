@@ -36,6 +36,7 @@ import {
   CTABanner,
   DirArrow,
 } from "@/components/marketing/Shared";
+import ArqFlowTextEffect from "@/components/ui/ArqFlowTextEffect";
 
 /* ================= Hero ================= */
 
@@ -60,20 +61,16 @@ function Hero() {
 
   return (
     <section className="relative overflow-hidden min-h-[580px] sm:min-h-[640px] flex items-center justify-center bg-transparent py-20 sm:py-28">
-      {/* Big outlined background text "ARQFLOW" */}
+      {/* Big outlined background text "ARQFLOW" with Water Fill and Hover Liquid effects */}
       <div
         className={cn(
-          "absolute top-1/2 -translate-y-1/2 font-black select-none pointer-events-none text-7xl sm:text-8xl lg:text-[9.5rem] opacity-35 z-0 font-display transition-all duration-300",
+          "absolute top-1/2 -translate-y-1/2 select-none z-0 transition-all duration-300 w-full max-w-[280px] sm:max-w-[400px] lg:max-w-[480px] opacity-40",
           dir === "rtl" 
-            ? "left-[4%] md:left-[8%] lg:left-[12%] text-left" 
-            : "right-[4%] md:right-[8%] lg:right-[12%] text-right"
+            ? "left-[4%] md:left-[8%] lg:left-[11%]" 
+            : "right-[4%] md:right-[8%] lg:right-[11%]"
         )}
-        style={{
-          WebkitTextStroke: "1.5px #b89063",
-          color: "transparent",
-        }}
       >
-        ARQFLOW
+        <ArqFlowTextEffect />
       </div>
 
       <div className="absolute inset-0 grid-bg opacity-30 z-0 pointer-events-none" aria-hidden />
