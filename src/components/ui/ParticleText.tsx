@@ -30,6 +30,7 @@ const PARTICLE_GAP   = 4;        // sample every Nth pixel — controls density
 const ANIM_DURATION  = 2200;     // ms total flight time
 const STAGGER_RANGE  = 800;      // ms max stagger between particles
 const SETTLE_PULSE   = 1200;     // ms glow/pulse after settling
+const TEXT_REVEAL    = 800;      // ms to fade in the text outline after settle
 const BASE_RADIUS    = 1.8;
 const MAX_RADIUS     = 2.6;
 
@@ -98,6 +99,7 @@ export default function ParticleText({
   const settled      = useRef(false);
   const triggered    = useRef(false);
   const rafId        = useRef<number>(0);
+  const fontSizeRef  = useRef(100);
 
   /* ── Build particle positions from text bitmap ── */
   const buildParticles = useCallback((w: number, h: number) => {
@@ -111,6 +113,7 @@ export default function ParticleText({
     let fontSize = Math.floor(w * 0.17);
     if (fontSize < 40) fontSize = 40;
     if (fontSize > 180) fontSize = 180;
+    fontSizeRef.current = fontSize;
 
     octx.fillStyle = "#000";
     octx.textAlign = "center";
@@ -230,8 +233,16 @@ export default function ParticleText({
       ctx.fill();
     }
 
-    // Keep looping until everything has settled + pulse finished
-    const totalDuration = ANIM_DURATION + STAGGER_RANGE + SETTLE_PULSE + 200;
+    // ── Text outline reveal phase ──
+    // Starts after all particles have finished their settle-pulse
+    const revealStart = ANIM_DURATION + STAGGER_RANGE + SETTLE_PULSE * 0.7;
+    if (elapsed > revealStart) {
+      const revealT = Math.min((elapsed - revealStart) / TEXT_REVEAL, 1);
+      drawTextOutline(ctx, w, h, easeOutCubic(revealT));
+    }
+
+    // Keep looping until everything has settled + pulse + text reveal finished
+    const totalDuration = ANIM_DURATION + STAGGER_RANGE + SETTLE_PULSE + TEXT_REVEAL + 200;
     if (elapsed < totalDuration) {
       rafId.current = requestAnimationFrame(draw);
     } else {
@@ -241,13 +252,36 @@ export default function ParticleText({
     }
   }, []);
 
+  /* ── Draw the text outline (stroked letters) ── */
+  const drawTextOutline = (ctx: CanvasRenderingContext2D, w: number, h: number, opacity: number) => {
+    if (opacity <= 0) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const logicalW = w / dpr;
+    const logicalH = h / dpr;
+    const fs = fontSizeRef.current;
+
+    ctx.save();
+    ctx.globalAlpha = opacity * 0.18;   // very subtle — just enough to define the letters
+    ctx.strokeStyle = "#0e2038";
+    ctx.lineWidth = 1.2;
+    ctx.lineJoin = "round";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `900 ${fs}px "Manrope", "Poppins", "Inter", system-ui, sans-serif`;
+    ctx.strokeText(text, logicalW / 2, logicalH / 2);
+    ctx.restore();
+  };
+
   /* ── Static final frame (no ongoing RAF cost) ── */
   const drawStill = (ctx: CanvasRenderingContext2D, pts: Particle[]) => {
     const w = ctx.canvas.width;
     const h = ctx.canvas.height;
     ctx.clearRect(0, 0, w, h);
-    ctx.globalAlpha = 0.92;
 
+    // Draw text outline first (behind particles)
+    drawTextOutline(ctx, w, h, 1);
+
+    ctx.globalAlpha = 0.92;
     for (const p of pts) {
       ctx.fillStyle = p.color;
       ctx.beginPath();
